@@ -7,7 +7,7 @@ pub(crate) use token::{Token, TokenType};
 use num::{BigInt, Num, ToPrimitive};
 
 use crate::util::is_identifier_continue;
-pub use crate::util::{is_identifier_start, NumberLiteralBase};
+use crate::util::{is_identifier_start, NumberLiteralBase};
 
 use self::token::OPERATORS;
 
