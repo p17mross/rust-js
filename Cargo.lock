@@ -13,6 +13,7 @@ name = "js"
 version = "0.1.0"
 dependencies = [
  "num",
+ "uid",
  "unicode-id-start",
 ]
 
@@ -91,6 +92,12 @@ checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
 dependencies = [
  "autocfg",
 ]
+
+[[package]]
+name = "uid"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "281a11e4180ee68f8c06a7bf82d1be3c496e0debcadcc4576cc0b56132201edf"
 
 [[package]]
 name = "unicode-id-start"

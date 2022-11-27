@@ -1,14 +1,8 @@
-mod lexer;
-mod engine;
-mod util;
+use std::{env, path::PathBuf};
 
-use lexer::Lexer;
-use engine::Engine;
+use js::engine::Program;
 
-use std::env;
-use std::fs;
-
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
     let mut filepath: Option<String> = None;
@@ -22,28 +16,27 @@ fn main() -> Result<(), String> {
         if char_iter.next().unwrap() == '-' {
             match char_iter.as_str() {
                 s => {
-                    return Err(format!("Unknown flag '-{s}'"));
+                    return Err(format!("Unknown flag '-{s}'").into());
                 }
             }
         }
         else {
             if filepath.is_some() {
-                return Err("Found multiple file names".to_string());
+                return Err("Found multiple file names".to_string().into());
             }
             filepath = Some(arg.clone());
         }
     }
 
     let Some(filepath) = filepath else {
-        return Err("Expected file name".to_string());
+        return Err("Expected file name".to_string().into());
     };
 
-    let Ok(program) = fs::read_to_string(filepath.clone()) else {
-        return Err(format!("File not found: '{filepath}'"));
-    };
+    let program = Program::from_file(PathBuf::from(filepath))?;
 
-    let mut engine = Engine::new();
-    engine.parse(&program);
+    println!("{program:?}");
+
+    // TODO: run the code
 
     Ok(())
 }

@@ -1,4 +1,4 @@
-pub mod token;
+pub(crate) mod token;
 
 use std::fmt::Display;
 
@@ -6,6 +6,8 @@ pub(crate) use token::{Token, TokenType};
 
 use num::{BigInt, Num, ToPrimitive};
 
+use crate::engine::{Program, Gc};
+use crate::engine::program::ProgramLocation;
 use crate::util::is_identifier_continue;
 use crate::util::{is_identifier_start, NumberLiteralBase};
 
@@ -28,7 +30,7 @@ pub enum LexErrorType {
     InvalidChar(char),
 }
 
-/// Impl of `Display` for `LexErrorType`
+
 impl Display for LexErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -41,20 +43,23 @@ impl Display for LexErrorType {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 /// An error that occurs during lexing.
-/// Contains the line info and `LexErrorType`
 pub struct LexError {
-    pub line: usize,
-    pub char: usize,
-    pub index: usize,
+    pub location: ProgramLocation,
     pub error_type: LexErrorType,
 }
 
 impl LexError {
     #[inline]
-    const fn new(line: usize, line_index: usize, token_start: usize, e: LexErrorType) -> LexError {
-        LexError { line, char: token_start - line_index + 1, index: token_start, error_type: e }
+    const fn new(program: Gc<Program>, line: usize, line_index: usize, token_start: usize, e: LexErrorType) -> LexError {
+        LexError { location: ProgramLocation {program, line, column: token_start - line_index + 1, index: token_start}, error_type: e }
+    }
+}
+
+impl Display for LexError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}:{}:{}\nSyntax Error: {}", self.location.program.borrow().source, self.location.line, self.location.column, self.error_type))
     }
 }
 
@@ -64,12 +69,11 @@ pub struct Lexer {}
 
 impl Lexer {
     /// Constructs a list of tokens from a string.
-    pub(crate) fn lex(&mut self, s: &str) -> Result<Vec<Token>, LexError> {
+    pub(crate) fn lex(p: Gc<Program>) -> Result<Vec<Token>, LexError> {
         // Stores the tokens
         let mut tokens: Vec<Token> = vec![];
 
-        // Convert string to Vec<char> for easier access by index
-        let program: Vec<char> = s.chars().collect();
+        let p_ref = p.borrow();
 
         // The current index into `program`
         let mut i = 0;
@@ -93,7 +97,7 @@ impl Lexer {
             let token_start = i;
 
             // Get char or break on EOF
-            let Some(&c) = program.get(i) else {
+            let Some(&c) = p_ref.program.get(i) else {
                 break 'tokens;
             };
 
@@ -103,12 +107,12 @@ impl Lexer {
                     let mut s = String::new();
                     'string: loop {
                         i += 1;
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             // Error on EOF
-                            None => return Err(LexError::new(line, line_index, i, LexErrorType::UnclosedString(quote))),
+                            None => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::UnclosedString(quote))),
                             // Error on newlines in the string
                             // Does not error for backtick enclosed strings
-                            Some('\n') if quote != '`' => return Err(LexError::new(line, line_index, i, LexErrorType::NewlineInString(quote))),
+                            Some('\n') if quote != '`' => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::NewlineInString(quote))),
                             // If in a backtick string, update line on newline
                             Some('\n') => {
                                 line += 1;
@@ -120,8 +124,8 @@ impl Lexer {
                             Some('\\') => {
                                 i += 1;
                                 // Add character to string
-                                s += &match program.get(i) {
-                                    None => return Err(LexError::new(line, line_index, i, LexErrorType::UnclosedString(quote))),
+                                s += &match p_ref.program.get(i) {
+                                    None => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::UnclosedString(quote))),
                                     // Line continuation
                                     Some('\n') => "".to_string(),
                                     // Newline
@@ -148,7 +152,7 @@ impl Lexer {
                             }
                         }
                     }
-                    tokens.push(Token::new(line, line_index, token_start, TokenType::StringLiteral(s)));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::StringLiteral(s)));
                     i += 1;
                 }
 
@@ -159,10 +163,10 @@ impl Lexer {
                     // Could be '0' literal, octal string e.g. '012' meaning 10, or start of '0x', '0b', etc.
                     if digit == '0' {
                         i += 1;
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             // If EOF here, generate `NumberLiteral(0)`
                             None => {
-                                tokens.push(Token::new(line, line_index, token_start, TokenType::NumberLiteral(0.0)));
+                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(0.0)));
                                 break 'tokens;
                             },
                             Some(&c) => base = match c {
@@ -175,13 +179,13 @@ impl Lexer {
                                 // Bigint '0n' literal
                                 'n' => {
                                     // Error if the next char is an identifier
-                                    if let Some(&c) = program.get(i + 1) {
+                                    if let Some(&c) = p_ref.program.get(i + 1) {
                                         if is_identifier_start(c) {
-                                            return Err(LexError::new(line, line_index, i, LexErrorType::IdentifierAfterNumber))
+                                            return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))
                                         }
                                     }
                                     // Generate `BigIntLiteral(0)` token
-                                    tokens.push(Token::new(line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from(0))));
+                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from(0))));
                                     i += 2;
                                     continue 'tokens;
                                 },
@@ -190,10 +194,10 @@ impl Lexer {
                                 c if '1' <= c && c <= '9' => NumberLiteralBase::Octal,
                                 // Error if identifier encountered
                                 c if is_identifier_start(c) => {
-                                    return Err(LexError::new(line, line_index, i, LexErrorType::IdentifierAfterNumber))
+                                    return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))
                                 }
                                 _ => {
-                                    tokens.push(Token::new(line, line_index, token_start, TokenType::NumberLiteral(0.0)));
+                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(0.0)));
                                     continue 'tokens;
                                 }
                             }
@@ -208,18 +212,18 @@ impl Lexer {
                     let mut number = String::new();
 
                     'digits: loop {
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             // Error on EOF
                             None => {
                                 if digits_start == i {
-                                    return Err(LexError::new(line, line_index, i, LexErrorType::MissingDigits(base)))
+                                    return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MissingDigits(base)))
                                 } 
                                 break 'digits;
                             },
                             // Indicates a BigInt literal instead of a number
                             Some('n') => {
-                                if had_decimal {return Err(LexError::new(line, line_index, i, LexErrorType::IdentifierAfterNumber))}
-                                tokens.push(Token::new(line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint"))));
+                                if had_decimal {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))}
+                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint"))));
                                 i += 1;
                                 continue 'tokens;
                             },
@@ -237,7 +241,7 @@ impl Lexer {
                                 had_decimal = true;
                             }
                             // Error if an identifier is found
-                            Some(&id) if is_identifier_start(id) => {return Err(LexError::new(line, line_index, i, LexErrorType::IdentifierAfterNumber))},
+                            Some(&id) if is_identifier_start(id) => {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))},
                             // Any other character means the end of the number
                             _ => break 'digits,
                         }
@@ -246,20 +250,20 @@ impl Lexer {
                     i += 1;
                     if base == NumberLiteralBase::Decimal {
                         let n = number.parse::<f64>().expect("Should have been a valid float");
-                        tokens.push(Token::new(line, line_index, token_start, TokenType::NumberLiteral(n)))
+                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(n)))
                     }
                     else {
                         // Parse string to number
                         let n = num::BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint");
                         let n = n.to_f64().unwrap_or(f64::INFINITY);
 
-                        tokens.push(Token::new(line, line_index, token_start, TokenType::NumberLiteral(n)))
+                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(n)))
                     }
                 }
 
                 // Newline
                 '\n' => {
-                    tokens.push(Token::new(line, line_index, token_start, TokenType::NewLine));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NewLine));
                     i += 1;
                     line += 1;
                     line_index = i;
@@ -269,11 +273,11 @@ impl Lexer {
                 w if w.is_whitespace() => {i += 1}
 
                 // Single line comments
-                '/' if program.get(i + 1) == Some(&'/') => {
+                '/' if p_ref.program.get(i + 1) == Some(&'/') => {
                     i += 2;
                     // Find newline to end comment
                     'comment: loop {
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             None => break 'tokens,
                             Some('\n') => {
                                 break 'comment
@@ -284,11 +288,11 @@ impl Lexer {
                 }
 
                 // Multi-line comments
-                '/' if program.get(i + 1) == Some(&'*') => {
+                '/' if p_ref.program.get(i + 1) == Some(&'*') => {
                     i += 2;
                     // Find '*/' to end comment
                     'comment: loop {
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             None => break 'tokens,
                             // Still track line / columns in a comment
                             Some('\n') => {
@@ -296,7 +300,7 @@ impl Lexer {
                                 line += 1;
                                 line_index = i;
                             }
-                            Some('*') if program.get(i + 1) == Some(&'/') => {
+                            Some('*') if p_ref.program.get(i + 1) == Some(&'/') => {
                                 i += 2;
                                 break 'comment
                             },
@@ -308,29 +312,29 @@ impl Lexer {
                 // An identifier
                 c if is_identifier_start(c) => {
                     'chars_in_identifer: loop {
-                        match program.get(i) {
+                        match p_ref.program.get(i) {
                             None => {break 'chars_in_identifer},
                             Some(&c) if is_identifier_continue(c) => i += 1,
                             _ => break 'chars_in_identifer,
                         }
                     }
 
-                    let ident: String = program[token_start..i].iter().collect();
+                    let ident: String = p_ref.program[token_start..i].iter().collect();
 
-                    tokens.push(Token::new(line, line_index, token_start, TokenType::Identifier(ident)));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::Identifier(ident)));
                 }
             
                 // Any other character: should be an operator
                 c => {
                     for (operator, operator_token) in OPERATORS {
                         // Get operators
-                        if program[i..i+operator.len()].iter().map(char::to_owned).eq(operator.chars()) {
+                        if p_ref.program[i..i+operator.len()].iter().map(char::to_owned).eq(operator.chars()) {
                             i += operator.len();
-                            tokens.push(Token::new(line, line_index, token_start, operator_token));
+                            tokens.push(Token::new(p.clone(), line, line_index, token_start, operator_token));
                             continue 'tokens;
                         }
                     }
-                    return Err(LexError::new(line, line_index, token_start, LexErrorType::InvalidChar(c)));
+                    return Err(LexError::new(p.clone(), line, line_index, token_start, LexErrorType::InvalidChar(c)));
                 }
             }
         }

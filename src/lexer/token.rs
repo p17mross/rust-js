@@ -1,5 +1,7 @@
 use num::BigInt;
 
+use crate::engine::{program::ProgramLocation, Gc, Program};
+
 #[derive(Debug, Clone)]
 pub(crate) enum TokenType {
     //Special tokens
@@ -150,16 +152,14 @@ pub(crate) enum TokenType {
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub(crate) struct Token {
-    pub line: usize,
-    pub char: usize,
-    pub index: usize,
+    pub location: ProgramLocation,
     pub token: TokenType
 }
 
 impl Token {
     #[inline]
-    pub const fn new(line: usize, line_index: usize, token_start: usize, t: TokenType) -> Token {
-        Token { line, char: token_start - line_index + 1, index: token_start, token: t }
+    pub const fn new(program: Gc<Program>, line: usize, line_index: usize, token_start: usize, t: TokenType) -> Token {
+        Token { location: ProgramLocation {program, line, column: token_start - line_index + 1, index: token_start}, token: t }
     }
 }
 

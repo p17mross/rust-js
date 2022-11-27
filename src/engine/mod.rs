@@ -1,31 +1,23 @@
-use super::Lexer;
+pub(crate) mod garbagecollection;
+pub(crate) use garbagecollection::Gc;
+
+pub mod program;
+pub use program::Program;
+pub mod error;
 
 #[derive(Debug)]
+#[allow(dead_code)]
+/// A class for executing parsed [Program]s.
+/// Currently has no functionality.
 pub struct Engine {
-    lexer: Lexer,
-    //parser: super::Parser,
-    //runtime state
+    program: Program,
+    // TODO: runtime state
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(program: Program) -> Self {
         Engine {
-            lexer: Default::default(),
+            program,
         }
-    }
-
-    pub fn parse(&mut self, s: &str) {
-        let tokens = self.lexer.lex(s);
-        
-        let Ok(tokens) = tokens else {
-            println!("Error: {tokens:?}");
-            return;
-        };
-
-        for token in tokens {
-            println!("{token:?}")
-        }
-
-        // TODO: parse to AST
     }
 }
