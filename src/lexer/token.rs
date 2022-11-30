@@ -149,6 +149,80 @@ pub(crate) enum TokenType {
     BigIntLiteral(BigInt),
 }
 
+impl TokenType {
+    pub const fn to_str(&self) -> &'static str {
+        match self {
+            Self::Identifier(_) => "identifier",
+            Self::StringLiteral(_) => "string literal",
+            Self::NumberLiteral(_) => "numeric literal",
+            Self::BigIntLiteral(_) => "bigint literal",
+
+            Self::Semicolon => ";",
+            Self::NewLine => "newline",
+            Self::Comma => ",",
+            Self::OperatorDot => ".",
+            Self::OperatorQuestionMark => "?",
+            Self::OperatorColon => ":",
+            Self::OperatorSpread => "...",
+            Self::OperatorFatArrow => "=>",
+
+            Self::OpenParen => "(",
+            Self::CloseParen => ")",
+            Self::OpenBrace => "{",
+            Self::CloseBrace => "}",
+            Self::OpenSquareBracket => "[",
+            Self::CloseSquareBracket => "]",
+
+            Self::OperatorAddition => "+",
+            Self::OperatorSubtraction => "-",
+            Self::OperatorMultiplication => "*",
+            Self::OperatorDivision => "/",
+            Self::OperatorRemainder => "%",
+            Self::OperatorExponentiation => "**",
+            Self::OperatorIncrement => "++",
+            Self::OperatorDecrement => "--",
+
+            Self::OperatorBitwiseOr => "|",
+            Self::OperatorBitwiseAnd => "&",
+            Self::OperatorBitwiseXor => "^",
+            Self::OperatorBitwiseNot => "~",
+            Self::OperatorShiftLeft => "<<",
+            Self::OperatorShiftRight => ">>",
+            Self::OperatorUnsignedShiftRight => "<<<",
+
+            Self::OperatorLogicalOr => "||",
+            Self::OperatorLogicalAnd => "&&",
+            Self::OperatorLogicalNot => "!",
+
+            Self::OperatorAssignment => "=",
+            Self::OperatorAdditionAssignment => "+=",
+            Self::OperatorSubtractionAssignment => "-=",
+            Self::OperatorMultiplicationAssignment => "*=",
+            Self::OperatorDivisionAssignment => "/=",
+            Self::OperatorRemainderAssignment => "%=",
+            Self::OperatorExponentiationAssignment => "**=",
+            Self::OperatorShiftLeftAssignment => "<<=",
+            Self::OperatorShiftRightAssignment => ">>=",
+            Self::OperatorUnsignedShiftRightAssignment => ">>>=",
+            Self::OperatorBitwiseOrAssignment => "|=",
+            Self::OperatorBitwiseAndAssignment => "&=",
+            Self::OperatorBitwiseXorAssignment => "^=",
+            Self::OperatorLogicalOrAssignment => "||=",
+            Self::OperatorLogicalAndAssignment => "&&=",
+            Self::OperatorNullishCoalescingAssignment => "?=",
+
+            Self::OperatorEquality => "==",
+            Self::OperatorStrictEquality => "===",
+            Self::OperatorInequality => "!=",
+            Self::OperatorStrictInequality => "!==",
+            Self::OperatorGreaterThan => ">",
+            Self::OperatorLessThan => "<",
+            Self::OperatorGreaterThanOrEqual => ">=",
+            Self::OperatorLessThanOrEqual => "<=",
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub(crate) struct Token {
