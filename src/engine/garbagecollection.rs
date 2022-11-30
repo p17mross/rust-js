@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::{RefCell, Ref, RefMut, BorrowError, BorrowMutError}, fmt::Debug};
+use std::{rc::Rc, cell::{RefCell, Ref, RefMut, BorrowError, BorrowMutError}, fmt::{Debug, Display}};
 
 use uid::IdU64;
 
@@ -11,12 +11,24 @@ pub struct GarbageCollectionId(IdU64<Self>);
 
 /// TODO: actually implement garbage collection
 /// A type for a garbage collected object
-#[derive(Debug, Clone)]
-pub struct Gc<T> {
+#[derive(Clone)]
+pub struct Gc<T: GarbageCollectable> {
     /// The data that is being garbage collected
     data: Option<Rc<RefCell<T>>>,
     /// A unique identifier of the data.
     id: GarbageCollectionId,
+}
+
+impl<T: GarbageCollectable + Display> Display for Gc<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}", self.borrow()))
+    }
+}
+
+impl<T: GarbageCollectable + Debug> Debug for Gc<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.borrow()))
+    }
 }
 
 #[derive(Debug)]
