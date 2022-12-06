@@ -157,7 +157,7 @@ impl Lexer {
                 }
 
                 // Number or BigInt literal
-                digit if '0' <= digit && digit <= '9' => {
+                digit if ('0'..='9').contains(&digit) => {
                     // Init base to decimal
                     let mut base = NumberLiteralBase::Decimal;
                     // Could be '0' literal, octal string e.g. '012' meaning 10, or start of '0x', '0b', etc.
@@ -191,7 +191,7 @@ impl Lexer {
                                 },
                                 // TODO: error here in strict mode
                                 // Octal literal with no '0o' or '0O'
-                                c if '1' <= c && c <= '9' => NumberLiteralBase::Octal,
+                                c if ('1'..='9').contains(&c) => NumberLiteralBase::Octal,
                                 // Error if identifier encountered
                                 c if is_identifier_start(c) => {
                                     return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))

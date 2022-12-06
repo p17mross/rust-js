@@ -31,7 +31,7 @@ impl ASTNodeProgram {
         }));
 
         let s = Rc::new(RefCell::new(Self {
-            program: program.clone(),
+            program,
             block: block.clone()
         }));
         

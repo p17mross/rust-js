@@ -120,7 +120,7 @@ impl Parser {
 
     fn parse_block(&mut self, require_end_brace: bool) -> Result<Option<Rc<RefCell<ASTNodeBlock>>>, ParseError> {
         // Save location for later
-        let start_i = self.i;
+        let _start_i = self.i;
 
         let block = Rc::new(RefCell::new(ASTNodeBlock {
             location: self.get_location(),

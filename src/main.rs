@@ -11,9 +11,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // First arg is path to binary, so ignore it
     args.next();
 
+    // This is so that items can be manually skipped
+    #[allow(clippy::while_let_on_iterator)]
     while let Some(arg) = args.next() {
         let mut char_iter = arg.chars();
         if char_iter.next().unwrap() == '-' {
+            // This is so that command line flags can be implemented in the future
+            #[allow(clippy::match_single_binding)]
             match char_iter.as_str() {
                 s => {
                     return Err(format!("Unknown flag '-{s}'").into());

@@ -6,7 +6,7 @@ trait StringExtTreeIndent {
 
 impl StringExtTreeIndent for String {
     fn indent_tree(&self) -> Self {
-        self.replace("\n", "\n| ")
+        self.replace('\n', "\n| ")
     }
 }
 
@@ -41,7 +41,7 @@ impl ASTNodeBlock {
         let mut s = format!("Block at {}:{}", self.location.line, self.location.column);
         for statement in self.statements.iter() {
             s += "\n|-";
-            s += &format!("{}", statement.to_tree()).indent_tree();
+            s += &statement.to_tree().indent_tree();
         }
         s
     }
