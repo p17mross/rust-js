@@ -23,7 +23,8 @@ impl ASTNodeStatement {
 impl ASTNodeExpression {
     pub fn to_tree(&self) -> String {
         match self {
-            _ => todo!()
+            Self::Variable(v) => v.borrow().to_tree(),
+            Self::ObjectLiteral(o) => o.borrow().to_tree(),
         }
     }
 }
@@ -77,6 +78,24 @@ impl ASTNodeLetExpression {
         let mut s = format!("Let expression at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-lhs: {}", self.lhs.borrow().to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
+        s
+    }
+}
+
+impl ASTNodeVariable {
+    pub fn to_tree(&self) -> String {
+        format!("Variable at {}:{}: \"{}\"", self.location.line, self.location.column, self.identifier)
+    }
+}
+
+impl ASTNodeObjectLiteral {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Object Literal at {}:{}", self.location.line, self.location.column);
+
+        for (key, expression) in &self.properties {
+            s += &format!("|-\"{key}\": {}", expression.to_tree().indent_tree());
+        }
+
         s
     }
 }
