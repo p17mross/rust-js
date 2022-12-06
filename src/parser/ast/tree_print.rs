@@ -1,0 +1,82 @@
+use super::*;
+
+trait StringExtTreeIndent {
+    fn indent_tree(&self) -> Self;
+}
+
+impl StringExtTreeIndent for String {
+    fn indent_tree(&self) -> Self {
+        self.replace("\n", "\n| ")
+    }
+}
+
+impl ASTNodeStatement {
+    pub fn to_tree(&self) -> String {
+        match self {
+            Self::Block(n) => n.borrow().to_tree(),
+            Self::LetExpression(n) => n.borrow().to_tree(),
+            Self::Expression(e) => e.borrow().to_tree(),
+        }
+    }
+}
+
+impl ASTNodeExpression {
+    pub fn to_tree(&self) -> String {
+        match self {
+            _ => todo!()
+        }
+    }
+}
+
+impl ASTNodeProgram {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Program from {}\n", self.program.borrow().source);
+        s += &self.block.borrow().to_tree();
+        s
+    }
+}
+
+impl ASTNodeBlock {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Block at {}:{}", self.location.line, self.location.column);
+        for statement in self.statements.iter() {
+            s += "\n|-";
+            s += &format!("{}", statement.to_tree()).indent_tree();
+        }
+        s
+    }
+}
+
+impl ASTNodePattern {
+    pub fn to_tree(&self) -> String {
+        match &self.target {
+            ASTNodePatternType::Variable(identifier) => format!("\"{identifier}\""),
+            ASTNodePatternType::ArrayDestructure{items, spread} => {
+                let mut s = format!("Array destructure at {}:{}\n|-Items: ", self.location.line, self.location.column);
+                for (i, item) in items.iter().enumerate() {
+                    s += &format!("|-{i}: {}", item.to_tree().indent_tree());
+                }
+                if let Some(spread) = spread {
+                    s += &format!("|-Spread: {}", spread.borrow().to_tree());
+                }
+                s
+            },
+            ASTNodePatternType::ObjectDestructure(items) => {
+                let mut s = format!("Object destructure at {}:{}\n", self.location.line, self.location.column);
+                for key in items.keys() {
+                    s += &format!("|-\"{key}\": {}", items[key].to_tree());
+                }
+                s
+            }
+        }
+    }
+}
+
+impl ASTNodeLetExpression {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Let expression at {}:{}\n", self.location.line, self.location.column);
+        s += &format!("|-lhs: {}", self.lhs.borrow().to_tree().indent_tree());
+        s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
+        s
+    }
+}

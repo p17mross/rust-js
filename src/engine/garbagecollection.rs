@@ -11,21 +11,20 @@ pub struct GarbageCollectionId(IdU64<Self>);
 
 /// TODO: actually implement garbage collection
 /// A type for a garbage collected object
-#[derive(Clone)]
-pub struct Gc<T: GarbageCollectable> {
+pub struct Gc<T: GarbageCollectable + ?Sized> {
     /// The data that is being garbage collected
     data: Option<Rc<RefCell<T>>>,
     /// A unique identifier of the data.
     id: GarbageCollectionId,
 }
 
-impl<T: GarbageCollectable + Display> Display for Gc<T> {
+impl<T: GarbageCollectable + Display + ?Sized> Display for Gc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{}", self.borrow()))
     }
 }
 
-impl<T: GarbageCollectable + Debug> Debug for Gc<T> {
+impl<T: GarbageCollectable + Debug + ?Sized> Debug for Gc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.borrow()))
     }
@@ -76,9 +75,27 @@ impl From<BorrowMutError> for GarbageCollectionBorrowMutError {
 
 impl<T: GarbageCollectable> Gc<T> {
     /// Creates a new Gc<T>, from the provided T   
-    pub fn new(t: T) -> Self {
+    pub fn new(t: T) -> Self{
         Self {
             data: Some(Rc::new(RefCell::new(t))),
+            id: GarbageCollectionId(IdU64::new()),
+        }
+    }
+}
+
+impl<T: GarbageCollectable + ?Sized> Clone for Gc<T> {
+    fn clone(&self) -> Self {
+        Self {
+            data: self.data.clone(),
+            id: self.id
+        }
+    }
+}
+
+impl<T: GarbageCollectable + ?Sized> Gc<T> {
+    pub(crate) fn from_rc(t: Rc<RefCell<T>>) -> Self {
+        Self {
+            data: Some(t),
             id: GarbageCollectionId(IdU64::new()),
         }
     }

@@ -1,6 +1,6 @@
-use std::{path::PathBuf, fs, fmt::Display};
+use std::{path::PathBuf, fs, fmt::{Display, Debug}, rc::Rc, cell::RefCell};
 
-use crate::{Lexer, Parser, parser::ASTNode};
+use crate::{Lexer, Parser, parser::ast::ASTNodeProgram};
 
 use super::{error::{SyntaxError, ProgramFromFileError}, Gc, garbagecollection::{GarbageCollectable, GarbageCollectionId}};
 
@@ -26,7 +26,6 @@ impl Display for ProgramSource {
     }
 }
 
-#[derive(Debug, Clone)]
 /// A struct representing a javascript program
 pub struct Program {
     /// The program source
@@ -34,14 +33,24 @@ pub struct Program {
     /// The text of the program.
     /// Stored as a [Vec<char>] rather than [String] for easier indexing.
     pub program: Vec<char>,
-    pub(crate) ast: Option<Gc<ASTNode>>,
+    pub ast: Option<Rc<RefCell<ASTNodeProgram>>>,
+}
+
+impl Debug for Program {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "Program {{source: {}, ast: {}}}", 
+            self.source, 
+            if self.ast.is_some() {"Some"} else {"None"}
+        ))
+    }
 }
 
 impl GarbageCollectable for Program {
     fn get_children(&self) -> Vec<GarbageCollectionId> {
         match &self.ast {
             None => vec![],
-            Some(a) => vec![a.get_id()]
+            Some(a) => a.borrow().get_children()
         }
     }
 }
@@ -51,11 +60,11 @@ impl Program {
     fn load_ast(s: Gc<Self>) -> Result<(), SyntaxError> {
         // Lex
         let tokens = Lexer::lex(s.clone())?;
-        // Mutably borrow s
-        let mut s_ref = s.borrow_mut();
-        
         // Parse
-        s_ref.ast = Some(Parser::parse(tokens)?);
+        let ast = Parser::parse(s.clone(), tokens)?;
+
+        // Set s.ast
+        s.borrow_mut().ast = Some(ast);
 
         Ok(())
     }
