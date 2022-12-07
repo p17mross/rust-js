@@ -4,7 +4,7 @@ use crate::engine::{program::ProgramLocation, Gc, Program};
 
 #[derive(Debug, Clone, PartialEq)]
 /// An enum for all arithmetic assignment operators
-pub(crate) enum ArithmeticAssignmentOperator {
+pub(crate) enum AssignmentOperator {
     /// `+=`
     Addition,
     /// `-=`
@@ -38,8 +38,22 @@ pub(crate) enum ArithmeticAssignmentOperator {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-/// An enum for all comparison operators
-pub(crate) enum ComparisonOperator {
+/// An enum for all operators which take two arguments by value
+pub(crate) enum BinaryOperator {
+
+    // Arithmetic operators
+
+    /// `*`
+    OperatorMultiplication,
+    /// `/`
+    OperatorDivision,
+    /// `%`
+    OperatorRemainder,
+    /// `**`
+    OperatorExponentiation,
+
+    // Comparison operators
+
     /// `==`
     Equality,
     /// `===`
@@ -56,6 +70,28 @@ pub(crate) enum ComparisonOperator {
     GreaterThanOrEqual,
     /// `<=`
     LessThanOrEqual,
+
+    // Bitwise operators
+
+    /// `|`
+    OperatorBitwiseOr,
+    /// `&`
+    OperatorBitwiseAnd,
+    /// `^`
+    OperatorBitwiseXor,
+    /// `<<`
+    OperatorShiftLeft,
+    /// `>>`
+    OperatorShiftRight,
+    /// `>>>`
+    OperatorUnsignedShiftRight,
+
+    // Boolean operators
+
+    /// `||`
+    OperatorLogicalOr,
+    /// `&&`
+    OperatorLogicalAnd,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -96,61 +132,33 @@ pub(crate) enum TokenType {
     /// `]`
     CloseSquareBracket,
 
+    // This is not in BinaryOperator as let, var, and const declarations treat it differently to other assignment operators
+    /// `=`
+    OperatorAssignment,
+
     // Arithmetic operators
+    // '+' and '-' are not in BinaryOperator as they can be used as unary operators
+    // e.g. '-10' is lexed as [OperatorSubtraction, NumberLiteral(10)]
 
     /// `+`
     OperatorAddition,
     /// `-`
     OperatorSubtraction,
-    /// `*`
-    OperatorMultiplication,
-    /// `/`
-    OperatorDivision,
-    /// `%`
-    OperatorRemainder,
-    /// `**`
-    OperatorExponentiation,
     /// `++`
     OperatorIncrement,
     /// `--`
     OperatorDecrement,
     
-    // Bitwise operators
-
-    /// `|`
-    OperatorBitwiseOr,
-    /// `&`
-    OperatorBitwiseAnd,
-    /// `^`
-    OperatorBitwiseXor,
-    /// `~`
-    OperatorBitwiseNot,
-    /// `<<`
-    OperatorShiftLeft,
-    /// `>>`
-    OperatorShiftRight,
-    /// `>>>`
-    OperatorUnsignedShiftRight,
-
-    // Boolean operators
-
-    /// `||`
-    OperatorLogicalOr,
-    /// `&&`
-    OperatorLogicalAnd,
     /// `!`
     OperatorLogicalNot,
+    /// `~`
+    OperatorBitwiseNot,
 
-    // Assignment operators
+    /// An assignment operator
+    Assignment(AssignmentOperator),
 
-    /// `=`
-    OperatorAssignment,
-    
-    /// An arithmetic assignment operator
-    ArithmeticAssignment(ArithmeticAssignmentOperator),
-
-    /// A comparison operator
-    Comparison(ComparisonOperator),
+    /// A binary operator
+    BinaryOperator(BinaryOperator),
 
     // Value literals
 
@@ -189,50 +197,50 @@ impl TokenType {
 
             Self::OperatorAddition => "+",
             Self::OperatorSubtraction => "-",
-            Self::OperatorMultiplication => "*",
-            Self::OperatorDivision => "/",
-            Self::OperatorRemainder => "%",
-            Self::OperatorExponentiation => "**",
+            Self::BinaryOperator(BinaryOperator::OperatorMultiplication) => "*",
+            Self::BinaryOperator(BinaryOperator::OperatorDivision) => "/",
+            Self::BinaryOperator(BinaryOperator::OperatorRemainder) => "%",
+            Self::BinaryOperator(BinaryOperator::OperatorExponentiation) => "**",
             Self::OperatorIncrement => "++",
             Self::OperatorDecrement => "--",
 
-            Self::OperatorBitwiseOr => "|",
-            Self::OperatorBitwiseAnd => "&",
-            Self::OperatorBitwiseXor => "^",
+            Self::BinaryOperator(BinaryOperator::OperatorBitwiseOr) => "|",
+            Self::BinaryOperator(BinaryOperator::OperatorBitwiseAnd) => "&",
+            Self::BinaryOperator(BinaryOperator::OperatorBitwiseXor) => "^",
             Self::OperatorBitwiseNot => "~",
-            Self::OperatorShiftLeft => "<<",
-            Self::OperatorShiftRight => ">>",
-            Self::OperatorUnsignedShiftRight => "<<<",
+            Self::BinaryOperator(BinaryOperator::OperatorShiftLeft) => "<<",
+            Self::BinaryOperator(BinaryOperator::OperatorShiftRight) => ">>",
+            Self::BinaryOperator(BinaryOperator::OperatorUnsignedShiftRight) => "<<<",
 
-            Self::OperatorLogicalOr => "||",
-            Self::OperatorLogicalAnd => "&&",
+            Self::BinaryOperator(BinaryOperator::OperatorLogicalOr) => "||",
+            Self::BinaryOperator(BinaryOperator::OperatorLogicalAnd) => "&&",
             Self::OperatorLogicalNot => "!",
 
             Self::OperatorAssignment => "=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Addition) => "+=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Subtraction) => "-=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Multiplication) => "*=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Division) => "/=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Remainder) => "%=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::Exponentiation) => "**=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::ShiftLeft) => "<<=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::ShiftRight) => ">>=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::UnsignedShiftRight) => ">>>=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseOr) => "|=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseAnd) => "&=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseXor) => "^=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::LogicalOr) => "||=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::LogicalAnd) => "&&=",
-            Self::ArithmeticAssignment(ArithmeticAssignmentOperator::NullishCoalescing) => "?=",
+            Self::Assignment(AssignmentOperator::Addition) => "+=",
+            Self::Assignment(AssignmentOperator::Subtraction) => "-=",
+            Self::Assignment(AssignmentOperator::Multiplication) => "*=",
+            Self::Assignment(AssignmentOperator::Division) => "/=",
+            Self::Assignment(AssignmentOperator::Remainder) => "%=",
+            Self::Assignment(AssignmentOperator::Exponentiation) => "**=",
+            Self::Assignment(AssignmentOperator::ShiftLeft) => "<<=",
+            Self::Assignment(AssignmentOperator::ShiftRight) => ">>=",
+            Self::Assignment(AssignmentOperator::UnsignedShiftRight) => ">>>=",
+            Self::Assignment(AssignmentOperator::BitwiseOr) => "|=",
+            Self::Assignment(AssignmentOperator::BitwiseAnd) => "&=",
+            Self::Assignment(AssignmentOperator::BitwiseXor) => "^=",
+            Self::Assignment(AssignmentOperator::LogicalOr) => "||=",
+            Self::Assignment(AssignmentOperator::LogicalAnd) => "&&=",
+            Self::Assignment(AssignmentOperator::NullishCoalescing) => "?=",
 
-            Self::Comparison(ComparisonOperator::Equality) => "==",
-            Self::Comparison(ComparisonOperator::StrictEquality) => "===",
-            Self::Comparison(ComparisonOperator::Inequality) => "!=",
-            Self::Comparison(ComparisonOperator::StrictInequality) => "!==",
-            Self::Comparison(ComparisonOperator::GreaterThan) => ">",
-            Self::Comparison(ComparisonOperator::LessThan) => "<",
-            Self::Comparison(ComparisonOperator::GreaterThanOrEqual) => ">=",
-            Self::Comparison(ComparisonOperator::LessThanOrEqual) => "<=",
+            Self::BinaryOperator(BinaryOperator::Equality) => "==",
+            Self::BinaryOperator(BinaryOperator::StrictEquality) => "===",
+            Self::BinaryOperator(BinaryOperator::Inequality) => "!=",
+            Self::BinaryOperator(BinaryOperator::StrictInequality) => "!==",
+            Self::BinaryOperator(BinaryOperator::GreaterThan) => ">",
+            Self::BinaryOperator(BinaryOperator::LessThan) => "<",
+            Self::BinaryOperator(BinaryOperator::GreaterThanOrEqual) => ">=",
+            Self::BinaryOperator(BinaryOperator::LessThanOrEqual) => "<=",
         }
     }
 }
@@ -267,56 +275,56 @@ pub(crate) const OPERATORS: [(&str, TokenType); 55] = [
     (";",    TokenType::Semicolon),
     ("=>",   TokenType::OperatorFatArrow),
 
-    ("!==",  TokenType::Comparison(ComparisonOperator::StrictInequality)),
-    ("!=",   TokenType::Comparison(ComparisonOperator::Inequality)),
-    ("===",  TokenType::Comparison(ComparisonOperator::StrictEquality)),
-    ("==",   TokenType::Comparison(ComparisonOperator::Equality)),
+    ("!==",  TokenType::BinaryOperator(BinaryOperator::StrictInequality)),
+    ("!=",   TokenType::BinaryOperator(BinaryOperator::Inequality)),
+    ("===",  TokenType::BinaryOperator(BinaryOperator::StrictEquality)),
+    ("==",   TokenType::BinaryOperator(BinaryOperator::Equality)),
     
     ("=",    TokenType::OperatorAssignment),
-    ("-=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Subtraction)),
-    ("*=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Multiplication)),
-    ("**=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Exponentiation)),
-    ("+=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Addition)),
-    ("/=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Division)),
-    ("%=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::Remainder)),
+    ("-=",   TokenType::Assignment(AssignmentOperator::Subtraction)),
+    ("*=",   TokenType::Assignment(AssignmentOperator::Multiplication)),
+    ("**=",  TokenType::Assignment(AssignmentOperator::Exponentiation)),
+    ("+=",   TokenType::Assignment(AssignmentOperator::Addition)),
+    ("/=",   TokenType::Assignment(AssignmentOperator::Division)),
+    ("%=",   TokenType::Assignment(AssignmentOperator::Remainder)),
 
-    ("||=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::LogicalOr)),
-    ("&&=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::LogicalAnd)),
-    ("|=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseOr)),
-    ("&=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseAnd)),
-    ("^=",   TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::BitwiseXor)),
-    ("??=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::NullishCoalescing)),
+    ("||=",  TokenType::Assignment(AssignmentOperator::LogicalOr)),
+    ("&&=",  TokenType::Assignment(AssignmentOperator::LogicalAnd)),
+    ("|=",   TokenType::Assignment(AssignmentOperator::BitwiseOr)),
+    ("&=",   TokenType::Assignment(AssignmentOperator::BitwiseAnd)),
+    ("^=",   TokenType::Assignment(AssignmentOperator::BitwiseXor)),
+    ("??=",  TokenType::Assignment(AssignmentOperator::NullishCoalescing)),
 
-    ("<<=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::ShiftLeft)),
-    (">>=",  TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::ShiftRight)),
-    (">>>=", TokenType::ArithmeticAssignment(ArithmeticAssignmentOperator::UnsignedShiftRight)),
+    ("<<=",  TokenType::Assignment(AssignmentOperator::ShiftLeft)),
+    (">>=",  TokenType::Assignment(AssignmentOperator::ShiftRight)),
+    (">>>=", TokenType::Assignment(AssignmentOperator::UnsignedShiftRight)),
 
     ("++",   TokenType::OperatorIncrement),
     ("--",   TokenType::OperatorDecrement),
-    ("**",   TokenType::OperatorExponentiation),
+    ("**",   TokenType::BinaryOperator(BinaryOperator::OperatorExponentiation)),
 
     ("+",    TokenType::OperatorAddition),
     ("-",    TokenType::OperatorSubtraction),
-    ("*",    TokenType::OperatorMultiplication),
-    ("/",    TokenType::OperatorDivision),
-    ("%",    TokenType::OperatorRemainder),
+    ("*",    TokenType::BinaryOperator(BinaryOperator::OperatorMultiplication)),
+    ("/",    TokenType::BinaryOperator(BinaryOperator::OperatorDivision)),
+    ("%",    TokenType::BinaryOperator(BinaryOperator::OperatorRemainder)),
 
-    ("||",   TokenType::OperatorLogicalOr),
-    ("&&",   TokenType::OperatorLogicalAnd),
+    ("||",   TokenType::BinaryOperator(BinaryOperator::OperatorLogicalOr)),
+    ("&&",   TokenType::BinaryOperator(BinaryOperator::OperatorLogicalAnd)),
     ("!",    TokenType::OperatorLogicalNot),
-    ("|",    TokenType::OperatorBitwiseOr),
-    ("&",    TokenType::OperatorBitwiseAnd),
-    ("^",    TokenType::OperatorBitwiseXor),
+    ("|",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseOr)),
+    ("&",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseAnd)),
+    ("^",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseXor)),
     ("~",    TokenType::OperatorBitwiseNot),
 
-    ("<<",   TokenType::OperatorShiftLeft),
-    (">>>",  TokenType::OperatorUnsignedShiftRight),
-    (">>",   TokenType::OperatorShiftRight),
+    ("<<",   TokenType::BinaryOperator(BinaryOperator::OperatorShiftLeft)),
+    (">>>",  TokenType::BinaryOperator(BinaryOperator::OperatorUnsignedShiftRight)),
+    (">>",   TokenType::BinaryOperator(BinaryOperator::OperatorShiftRight)),
 
-    ("<=",   TokenType::Comparison(ComparisonOperator::LessThanOrEqual)),
-    (">=",   TokenType::Comparison(ComparisonOperator::GreaterThanOrEqual)),
-    ("<",    TokenType::Comparison(ComparisonOperator::LessThan)),
-    (">",    TokenType::Comparison(ComparisonOperator::GreaterThan)),
+    ("<=",   TokenType::BinaryOperator(BinaryOperator::LessThanOrEqual)),
+    (">=",   TokenType::BinaryOperator(BinaryOperator::GreaterThanOrEqual)),
+    ("<",    TokenType::BinaryOperator(BinaryOperator::LessThan)),
+    (">",    TokenType::BinaryOperator(BinaryOperator::GreaterThan)),
 
     ("?",    TokenType::OperatorQuestionMark),
     (":",    TokenType::OperatorColon),
