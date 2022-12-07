@@ -326,9 +326,10 @@ impl Lexer {
             
                 // Any other character: should be an operator
                 c => {
-                    for (operator, operator_token) in OPERATORS {
+                    'test_operators: for (operator, operator_token) in OPERATORS {
+                        let Some(slice) = p_ref.program.get(i..i+operator.len()) else {continue 'test_operators};
                         // Get operators
-                        if p_ref.program[i..i+operator.len()].iter().map(char::to_owned).eq(operator.chars()) {
+                        if slice.iter().map(char::to_owned).eq(operator.chars()) {
                             i += operator.len();
                             tokens.push(Token::new(p.clone(), line, line_index, token_start, operator_token));
                             continue 'tokens;
