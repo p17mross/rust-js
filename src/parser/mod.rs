@@ -2,7 +2,7 @@ pub mod ast;
 
 use std::{fmt::Display, rc::Rc, cell::RefCell};
 
-use crate::{lexer::{Token, TokenType}, engine::{Gc, program::ProgramLocation, Program}, util::PrettyPrint};
+use crate::{lexer::{Token, TokenType}, engine::{Gc, program::ProgramLocation, Program}};
 
 use self::ast::*;
 
@@ -162,6 +162,20 @@ impl Parser {
                     expression: self.parse_expression(false)?
                 })))),
 
+                // Logical not
+                TokenType::OperatorLogicalNot => return Ok(ASTNodeExpression::LogicalNot(Rc::new(RefCell::new(ASTNodeLogicalNot {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    expression: self.parse_expression(false)?
+                })))),
+
+                // Bitwise not
+                TokenType::OperatorBitwiseNot => return Ok(ASTNodeExpression::BitwiseNot(Rc::new(RefCell::new(ASTNodeBitwiseNot {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    expression: self.parse_expression(false)?
+                })))),
+
                 t => todo!("{t:?} as lhs of expression"),
             }
         };
@@ -290,8 +304,6 @@ impl Parser {
     }
 
     pub(crate) fn parse(program: Gc<Program>, tokens: Vec<Token>) -> Result<Rc<RefCell<ASTNodeProgram>>, ParseError> {
-
-        tokens.pretty_print();
 
         let mut s = Self {
             tokens,

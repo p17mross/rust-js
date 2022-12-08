@@ -136,3 +136,17 @@ pub struct ASTNodeUnaryMinus {
 
     pub expression: ASTNodeExpression,
 }
+
+pub struct ASTNodeLogicalNot {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub expression: ASTNodeExpression,
+}
+
+pub struct ASTNodeBitwiseNot {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub expression: ASTNodeExpression,
+}

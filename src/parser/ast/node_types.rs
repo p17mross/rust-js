@@ -30,6 +30,8 @@ pub enum ASTNodeExpression {
     BigIntLiteral(Rc<RefCell<ASTNodeBigIntLiteral>>),
     UnaryPlus(Rc<RefCell<ASTNodeUnaryPlus>>),
     UnaryMinus(Rc<RefCell<ASTNodeUnaryMinus>>),
+    LogicalNot(Rc<RefCell<ASTNodeLogicalNot>>),
+    BitwiseNot(Rc<RefCell<ASTNodeBitwiseNot>>),
 }
 
 impl ASTNodeExpression {
@@ -43,6 +45,8 @@ impl ASTNodeExpression {
             Self::BigIntLiteral(n) => (*n).borrow_mut().parent = parent,
             Self::UnaryPlus(p) => (*p).borrow_mut().parent = parent,
             Self::UnaryMinus(m) => (*m).borrow_mut().parent = parent,
+            Self::LogicalNot(n) => (*n).borrow_mut().parent = parent,
+            Self::BitwiseNot(n) => (*n).borrow_mut().parent = parent,
         }
     }
 }

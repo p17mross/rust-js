@@ -93,6 +93,7 @@ impl<T: GarbageCollectable + ?Sized> Clone for Gc<T> {
 }
 
 impl<T: GarbageCollectable + ?Sized> Gc<T> {
+    #[allow(dead_code)]
     pub(crate) fn from_rc(t: Rc<RefCell<T>>) -> Self {
         Self {
             data: Some(t),

@@ -31,6 +31,8 @@ impl ASTNodeExpression {
             Self::BigIntLiteral(n) => n.borrow().to_tree(),
             Self::UnaryPlus(p) => p.borrow().to_tree(),
             Self::UnaryMinus(m) => m.borrow().to_tree(),
+            Self::LogicalNot(n) => n.borrow().to_tree(),
+            Self::BitwiseNot(n) => n.borrow().to_tree(),
         }
     }
 }
@@ -154,5 +156,17 @@ impl ASTNodeUnaryPlus {
 impl ASTNodeUnaryMinus {
     pub fn to_tree(&self) -> String {
         format!("Unary minus at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
+    }
+}
+
+impl ASTNodeLogicalNot {
+    pub fn to_tree(&self) -> String {
+        format!("Logical not at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
+    }
+}
+
+impl ASTNodeBitwiseNot {
+    pub fn to_tree(&self) -> String {
+        format!("Bitwise not at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
     }
 }
