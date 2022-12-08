@@ -111,8 +111,8 @@ impl ASTNodeObjectLiteral {
 impl ASTNodeArrayItem {
     pub fn to_tree(&self) -> String {
         match self {
-            Self::Item(e) => e.borrow().to_tree(),
-            Self::Spread(e) => format!("Spread from {}", e.borrow().to_tree()),
+            Self::Item(e) => e.to_tree(),
+            Self::Spread(e) => format!("Spread from {}", e.to_tree()),
         }
     }
 }

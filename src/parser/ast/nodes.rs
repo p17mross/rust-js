@@ -91,8 +91,8 @@ pub struct ASTNodeObjectLiteral {
 
 #[derive(Debug)]
 pub enum ASTNodeArrayItem {
-    Item(Rc<RefCell<ASTNodeExpression>>),
-    Spread(Rc<RefCell<ASTNodeExpression>>),
+    Item(ASTNodeExpression),
+    Spread(ASTNodeExpression),
 }
 
 pub struct ASTNodeArrayLiteral {
