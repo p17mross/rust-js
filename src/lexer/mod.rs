@@ -231,19 +231,16 @@ impl Lexer {
                             Some(digit) if base.get_chars().contains(&digit.to_string()) => {number += &digit.to_string()},
                             // Underscores are ignored in numeric literals
                             Some('_') => (),
-                            // A newline
-                            Some('\n') => {
-                                // Decrement i so that the next loop iteration finds the newline
-                                i -= 1;
-                                break 'digits;
-                            },
                             Some('.') if base == NumberLiteralBase::Decimal => {
                                 had_decimal = true;
                             }
                             // Error if an identifier is found
                             Some(&id) if is_identifier_start(id) => {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))},
                             // Any other character means the end of the number
-                            _ => break 'digits,
+                            _ => {
+                                i -=1;
+                                break 'digits;
+                            }
                         }
                         i += 1;
                     }
