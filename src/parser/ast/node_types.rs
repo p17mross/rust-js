@@ -4,7 +4,7 @@ use super::{nodes::*, node_parents::*};
 
 #[derive(Debug)]
 pub enum ASTNodeStatement {
-    Expression(Rc<RefCell<ASTNodeExpression>>),
+    Expression(ASTNodeExpression),
 
     Block(Rc<RefCell<ASTNodeBlock>>),
     LetExpression(Rc<RefCell<ASTNodeLetExpression>>),
@@ -13,7 +13,7 @@ pub enum ASTNodeStatement {
 impl ASTNodeStatement {
     pub fn set_parent(&mut self, parent: ASTNodeStatementParent) {
         match self {
-            Self::Expression(e) => (*e).borrow_mut().set_parent(parent.into()),
+            Self::Expression(e) => (*e).set_parent(parent.into()),
             Self::Block(b) => (*b).borrow_mut().parent = parent.into(),
             Self::LetExpression(l) => (*l).borrow_mut().parent = parent,
         }

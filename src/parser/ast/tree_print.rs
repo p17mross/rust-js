@@ -15,7 +15,7 @@ impl ASTNodeStatement {
         match self {
             Self::Block(n) => n.borrow().to_tree(),
             Self::LetExpression(n) => n.borrow().to_tree(),
-            Self::Expression(e) => e.borrow().to_tree(),
+            Self::Expression(e) => e.to_tree(),
         }
     }
 }
