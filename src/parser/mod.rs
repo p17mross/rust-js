@@ -2,7 +2,7 @@ pub mod ast;
 
 use std::{fmt::Display, rc::Rc, cell::RefCell};
 
-use crate::{lexer::{Token, TokenType}, engine::{Gc, program::ProgramLocation, Program}};
+use crate::{lexer::{Token, TokenType}, engine::{Gc, program::ProgramLocation, Program}, util::PrettyPrint};
 
 use self::ast::*;
 
@@ -73,15 +73,105 @@ impl Parser {
     }
 
     fn parse_pattern(&mut self) -> Result<Option<Rc<RefCell<ASTNodePattern>>>, ParseError> {
-        todo!()
+        match self.get_token() {
+            None => {self.i -= 1; return Ok(None)},
+            Some(t) => match &t.token_type {
+                // Just a variable
+                TokenType::Identifier(i) => return Ok(Some(Rc::new(RefCell::new(ASTNodePattern{
+                    location: t.location.clone(),
+                    parent: ASTNodePatternParent::Unset,
+
+                    target: ASTNodePatternType::Variable(i.clone())
+                })))),
+                // Array destructure
+                TokenType::OpenSquareBracket => todo!("Array destructure"),
+                // Object destructure
+                TokenType::OpenBrace => todo!("Object destructure"),
+                
+                _ => return Ok(None),
+            }
+        }
     }
 
-    fn parse_expression(&mut self) -> Result<ASTNodeExpression, ParseError> {
-        todo!()
+    fn parse_array_literal(&mut self) -> Result<Option<Rc<RefCell<ASTNodeArrayLiteral>>>, ParseError> {
+        todo!("Array literals")
+    }
+
+    fn parse_expression(&mut self, require_end_paren: bool) -> Result<ASTNodeExpression, ParseError> {
+        let lhs = match self.get_token() {
+            None => return Err(self.get_error(ParseErrorType::UnexpectedEOF)),
+            Some(t) => match &t.token_type {
+                // Bracketed expression
+                // TODO: this could also be an arrow function
+                TokenType::OpenParen => self.parse_expression(true)?,
+
+                // Object literal
+                // This cannot be a block as they are not allowed inside expressions
+                TokenType::OpenBrace => match self.parse_object_literal()? {
+                    None => return Err(self.get_error(ParseErrorType::SyntaxError)),
+                    Some(o) => ASTNodeExpression::ObjectLiteral(o),
+                },
+
+                // Array literal
+                TokenType::OpenSquareBracket => match self.parse_array_literal()? {
+                    None => return Err(self.get_error(ParseErrorType::SyntaxError)),
+                    Some(a) => ASTNodeExpression::ArrayLiteral(a)
+                }
+
+                // Variable
+                // TODO: error on reserved words
+                // TODO: this could be a function expression
+                TokenType::Identifier(i) => ASTNodeExpression::Variable(Rc::new(RefCell::new(ASTNodeVariable{
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    identifier: i.clone()
+                }))),
+
+                // String literal
+                TokenType::StringLiteral(s) => ASTNodeExpression::StringLiteral(Rc::new(RefCell::new(ASTNodeStringLiteral {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    string: s.clone()
+                }))),
+
+                // Number literal
+                TokenType::NumberLiteral(n) => ASTNodeExpression::NumberLiteral(Rc::new(RefCell::new(ASTNodeNumberLiteral {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    number: *n
+                }))),
+
+                // Bigint literal
+                TokenType::BigIntLiteral(n) => ASTNodeExpression::BigIntLiteral(Rc::new(RefCell::new(ASTNodeBigIntLiteral {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    bigint: n.clone()
+                }))),
+
+                t => todo!("{t:?} as lhs of expression"),
+            }
+        };
+
+        match self.get_token() {
+            None => return Ok(lhs),
+            Some(t) => match &t.token_type {
+                TokenType::Semicolon => return Ok(lhs),
+                TokenType::CloseParen => if require_end_paren {
+                    return Ok(lhs)
+                } else {
+                    return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                        found: "}",
+                        expected: None
+                    }))
+                }
+
+                t => todo!("{t:?} as middle of expression."),
+            }
+        }
     }
 
     fn parse_object_literal(&mut self) -> Result<Option<Rc<RefCell<ASTNodeObjectLiteral>>>, ParseError> {
-        todo!()
+        todo!("Parsing object literals")
     }
 
     fn parse_let_expression(&mut self) -> Result<Option<Rc<RefCell<ASTNodeLetExpression>>>, ParseError> {
@@ -103,7 +193,7 @@ impl Parser {
         if t.token_type != TokenType::OperatorAssignment {
             return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
         };
-        let mut value = self.parse_expression()?;
+        let mut value = self.parse_expression(false)?;
 
         let l = Rc::new(RefCell::new(ASTNodeLetExpression {
             location,
@@ -162,7 +252,23 @@ impl Parser {
                         return Err(self.get_error(ParseErrorType::SyntaxError));
                     }
 
-                    todo!();
+                    // TODO: remove once more token types are implemented
+                    let temp_t = t.token_type.clone();
+
+                    if let TokenType::Identifier(i) = &t.token_type {
+                        match i.as_str() {
+                            "let" => {
+                                if let Some(l) = self.parse_let_expression()? {
+                                    (*block).borrow_mut().statements.push(ASTNodeStatement::LetExpression(l));
+                                    continue 'statements;
+                                }
+                            },
+
+                            _ => ()
+                        }
+                    }
+
+                    todo!("{:?} as start of statement", temp_t);
 
                 }
             }
@@ -170,7 +276,9 @@ impl Parser {
     }
 
     pub(crate) fn parse(program: Gc<Program>, tokens: Vec<Token>) -> Result<Rc<RefCell<ASTNodeProgram>>, ParseError> {
-        
+
+        tokens.pretty_print();
+
         let mut s = Self {
             tokens,
             i: 0,

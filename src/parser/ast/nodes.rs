@@ -1,5 +1,7 @@
 use std::{rc::Rc, cell::RefCell, collections::HashMap};
 
+use num::BigInt;
+
 use crate::engine::{Gc, Program, garbagecollection::GarbageCollectable, program::ProgramLocation};
 
 use super::*;
@@ -85,4 +87,38 @@ pub struct ASTNodeObjectLiteral {
     pub parent: ASTNodeExpressionParent,
 
     pub properties: HashMap<String, ASTNodeExpression>
+}
+
+#[derive(Debug)]
+pub enum ASTNodeArrayItem {
+    Item(Rc<RefCell<ASTNodeExpression>>),
+    Spread(Rc<RefCell<ASTNodeExpression>>),
+}
+
+pub struct ASTNodeArrayLiteral {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub items: Vec<ASTNodeArrayItem>
+}
+
+pub struct ASTNodeStringLiteral {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub string: String,
+}
+
+pub struct ASTNodeNumberLiteral {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub number: f64,
+}
+
+pub struct ASTNodeBigIntLiteral {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub bigint: BigInt,
 }

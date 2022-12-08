@@ -12,6 +12,8 @@ pub fn is_identifier_start(c: char) -> bool {c == '$' || c == '_' || is_id_start
 pub fn is_identifier_continue(c: char) -> bool {c == '$' || c == '_' || is_id_continue(c)}
 
 
+/// A trait representing printing a type in a nicer format than [Debug](std::fmt::Debug),
+/// without the implication of [Display](std::fmt::Display) that the output is user facing.
 pub trait PrettyPrint {
     fn pretty_print(&self);
 }

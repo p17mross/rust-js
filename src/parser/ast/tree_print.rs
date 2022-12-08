@@ -25,6 +25,10 @@ impl ASTNodeExpression {
         match self {
             Self::Variable(v) => v.borrow().to_tree(),
             Self::ObjectLiteral(o) => o.borrow().to_tree(),
+            Self::ArrayLiteral(a) => a.borrow().to_tree(),
+            Self::StringLiteral(s) => s.borrow().to_tree(),
+            Self::NumberLiteral(n) => n.borrow().to_tree(),
+            Self::BigIntLiteral(n) => n.borrow().to_tree(),
         }
     }
 }
@@ -76,7 +80,7 @@ impl ASTNodePattern {
 impl ASTNodeLetExpression {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Let expression at {}:{}\n", self.location.line, self.location.column);
-        s += &format!("|-lhs: {}", self.lhs.borrow().to_tree().indent_tree());
+        s += &format!("|-lhs: {}\n", self.lhs.borrow().to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
         s
     }
@@ -97,5 +101,44 @@ impl ASTNodeObjectLiteral {
         }
 
         s
+    }
+}
+
+impl ASTNodeArrayItem {
+    pub fn to_tree(&self) -> String {
+        match self {
+            Self::Item(e) => e.borrow().to_tree(),
+            Self::Spread(e) => format!("Spread from {}", e.borrow().to_tree()),
+        }
+    }
+}
+
+impl ASTNodeArrayLiteral {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Array Literal at {}:{}", self.location.line, self.location.column);
+
+        for (i, expression) in self.items.iter().enumerate() {
+            s += &format!("|-{i}: {}", expression.to_tree().indent_tree())
+        }
+
+        s
+    }
+}
+
+impl ASTNodeStringLiteral {
+    pub fn to_tree(&self) -> String {
+        format!("String Literal at {}:{}: \"{}\"", self.location.line, self.location.column, self.string)
+    }
+}
+
+impl ASTNodeNumberLiteral {
+    pub fn to_tree(&self) -> String {
+        format!("Number Literal at {}:{}: {}", self.location.line, self.location.column, self.number)
+    }
+}
+
+impl ASTNodeBigIntLiteral {
+    pub fn to_tree(&self) -> String {
+        format!("Number Literal at {}:{}: {}", self.location.line, self.location.column, self.bigint)
     }
 }

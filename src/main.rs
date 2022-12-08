@@ -39,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Program::from_file(PathBuf::from(filepath))?;
 
     println!("{}", program.borrow().ast.clone().unwrap().borrow().to_tree());
-    println!("{:?}", program.borrow().ast.clone().unwrap());
+    
     // TODO: run the code
 
     Ok(())

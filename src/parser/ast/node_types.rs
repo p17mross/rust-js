@@ -23,7 +23,11 @@ impl ASTNodeStatement {
 #[derive(Debug, Clone)]
 pub enum ASTNodeExpression {
     Variable(Rc<RefCell<ASTNodeVariable>>),
-    ObjectLiteral(Rc<RefCell<ASTNodeObjectLiteral>>),   
+    ObjectLiteral(Rc<RefCell<ASTNodeObjectLiteral>>),
+    ArrayLiteral(Rc<RefCell<ASTNodeArrayLiteral>>,),
+    StringLiteral(Rc<RefCell<ASTNodeStringLiteral>>),
+    NumberLiteral(Rc<RefCell<ASTNodeNumberLiteral>>),
+    BigIntLiteral(Rc<RefCell<ASTNodeBigIntLiteral>>),
 }
 
 impl ASTNodeExpression {
@@ -31,6 +35,10 @@ impl ASTNodeExpression {
         match self {
             Self::ObjectLiteral(o) => (*o).borrow_mut().parent = parent,
             Self::Variable(v) => (*v).borrow_mut().parent = parent,
+            Self::ArrayLiteral(a) => (*a).borrow_mut().parent = parent,
+            Self::StringLiteral(s) => (*s).borrow_mut().parent = parent,
+            Self::NumberLiteral(n) => (*n).borrow_mut().parent = parent,
+            Self::BigIntLiteral(n) => (*n).borrow_mut().parent = parent,
         }
     }
 }
