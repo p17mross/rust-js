@@ -1,2 +1,3 @@
 /target
 .vscode/launch.json
+src/scripts/test.js
