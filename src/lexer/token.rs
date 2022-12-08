@@ -1,6 +1,6 @@
 use num::BigInt;
 
-use crate::engine::{program::ProgramLocation, Gc, Program};
+use crate::{engine::{program::ProgramLocation, Gc, Program}, util::PrettyPrint};
 
 #[derive(Debug, Clone, PartialEq)]
 /// An enum for all arithmetic assignment operators
@@ -329,6 +329,15 @@ pub(crate) const OPERATORS: [(&str, TokenType); 55] = [
     ("?",    TokenType::OperatorQuestionMark),
     (":",    TokenType::OperatorColon),
 ];
+
+impl PrettyPrint for Vec<Token> {
+    fn pretty_print(&self) {
+        println!("Tokens parsed from {:?}", self[0].location.program.borrow().source);
+        for token in self {
+            println!("{:?} at {}:{}", token.token_type, token.location.line, token.location.column);
+        }
+    }   
+}
 
 #[test]
 /// Tests that no item in OPERATORS starts with an item before it in the array

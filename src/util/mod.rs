@@ -10,3 +10,8 @@ pub fn is_identifier_start(c: char) -> bool {c == '$' || c == '_' || is_id_start
 /// Checks if a character is a valid not-first character of an identifier.  
 /// Simple wrapper around [unicode_id_start::is_id_continue()] to include '$' and '_'
 pub fn is_identifier_continue(c: char) -> bool {c == '$' || c == '_' || is_id_continue(c)}
+
+
+pub trait PrettyPrint {
+    fn pretty_print(&self);
+}
