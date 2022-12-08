@@ -122,3 +122,17 @@ pub struct ASTNodeBigIntLiteral {
 
     pub bigint: BigInt,
 }
+
+pub struct ASTNodeUnaryPlus {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub expression: ASTNodeExpression,
+}
+
+pub struct ASTNodeUnaryMinus {
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub expression: ASTNodeExpression,
+}

@@ -148,6 +148,20 @@ impl Parser {
                     bigint: n.clone()
                 }))),
 
+                // Unary plus
+                TokenType::OperatorAddition => return Ok(ASTNodeExpression::UnaryPlus(Rc::new(RefCell::new(ASTNodeUnaryPlus {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    expression: self.parse_expression(false)?
+                })))),
+
+                // Unary minus
+                TokenType::OperatorSubtraction => return Ok(ASTNodeExpression::UnaryMinus(Rc::new(RefCell::new(ASTNodeUnaryMinus {
+                    location: t.location.clone(),
+                    parent: ASTNodeExpressionParent::Unset,
+                    expression: self.parse_expression(false)?
+                })))),
+
                 t => todo!("{t:?} as lhs of expression"),
             }
         };

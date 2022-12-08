@@ -28,6 +28,8 @@ pub enum ASTNodeExpression {
     StringLiteral(Rc<RefCell<ASTNodeStringLiteral>>),
     NumberLiteral(Rc<RefCell<ASTNodeNumberLiteral>>),
     BigIntLiteral(Rc<RefCell<ASTNodeBigIntLiteral>>),
+    UnaryPlus(Rc<RefCell<ASTNodeUnaryPlus>>),
+    UnaryMinus(Rc<RefCell<ASTNodeUnaryMinus>>),
 }
 
 impl ASTNodeExpression {
@@ -39,6 +41,8 @@ impl ASTNodeExpression {
             Self::StringLiteral(s) => (*s).borrow_mut().parent = parent,
             Self::NumberLiteral(n) => (*n).borrow_mut().parent = parent,
             Self::BigIntLiteral(n) => (*n).borrow_mut().parent = parent,
+            Self::UnaryPlus(p) => (*p).borrow_mut().parent = parent,
+            Self::UnaryMinus(m) => (*m).borrow_mut().parent = parent,
         }
     }
 }

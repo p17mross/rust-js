@@ -106,3 +106,25 @@ impl Debug for ASTNodeBigIntLiteral {
         ))
     }
 }
+
+impl Debug for ASTNodeUnaryPlus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "ASTNodeNumberLiteral at {}:{}: {:?}",
+            self.location.line,
+            self.location.column,
+            self.expression
+        ))
+    }
+}
+
+impl Debug for ASTNodeUnaryMinus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "ASTNodeNumberLiteral at {}:{}: {:?}",
+            self.location.line,
+            self.location.column,
+            self.expression
+        ))
+    }
+}

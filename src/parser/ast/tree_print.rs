@@ -29,6 +29,8 @@ impl ASTNodeExpression {
             Self::StringLiteral(s) => s.borrow().to_tree(),
             Self::NumberLiteral(n) => n.borrow().to_tree(),
             Self::BigIntLiteral(n) => n.borrow().to_tree(),
+            Self::UnaryPlus(p) => p.borrow().to_tree(),
+            Self::UnaryMinus(m) => m.borrow().to_tree(),
         }
     }
 }
@@ -140,5 +142,17 @@ impl ASTNodeNumberLiteral {
 impl ASTNodeBigIntLiteral {
     pub fn to_tree(&self) -> String {
         format!("Number Literal at {}:{}: {}", self.location.line, self.location.column, self.bigint)
+    }
+}
+
+impl ASTNodeUnaryPlus {
+    pub fn to_tree(&self) -> String {
+        format!("Unary plus at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
+    }
+}
+
+impl ASTNodeUnaryMinus {
+    pub fn to_tree(&self) -> String {
+        format!("Unary minus at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
     }
 }
