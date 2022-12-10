@@ -175,14 +175,15 @@ impl Parser {
                 TokenType::OperatorAddition => {
                     let location = t.location.clone();
                     let mut expression = self.parse_expression(false)?;
-                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: UnaryOperatorType::Plus,
-                        expression: expression.clone()
-                    }));
-
-                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    let o = Rc::new_cyclic(|p|{
+                        expression.set_parent(ASTNodeExpressionParent::UnaryOperator(p.clone()));
+                        RefCell::new(ASTNodeUnaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: UnaryOperatorType::Plus,
+                            expression: expression
+                        })
+                    });
                     ASTNodeExpression::UnaryOperator(o)
                 }
 
@@ -190,14 +191,15 @@ impl Parser {
                 TokenType::OperatorSubtraction => {
                     let location = t.location.clone();
                     let mut expression = self.parse_expression(false)?;
-                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: UnaryOperatorType::Minus,
-                        expression: expression.clone()
-                    }));
-
-                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    let o = Rc::new_cyclic(|p|{
+                        expression.set_parent(ASTNodeExpressionParent::UnaryOperator(p.clone()));
+                        RefCell::new(ASTNodeUnaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: UnaryOperatorType::Minus,
+                            expression: expression
+                        })
+                    });
                     ASTNodeExpression::UnaryOperator(o)
                 }
 
@@ -205,14 +207,15 @@ impl Parser {
                 TokenType::OperatorLogicalNot => {
                     let location = t.location.clone();
                     let mut expression = self.parse_expression(false)?;
-                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: UnaryOperatorType::LogicalNot,
-                        expression: expression.clone()
-                    }));
-
-                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    let o = Rc::new_cyclic(|p|{
+                        expression.set_parent(ASTNodeExpressionParent::UnaryOperator(p.clone()));
+                        RefCell::new(ASTNodeUnaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: UnaryOperatorType::LogicalNot,
+                            expression: expression
+                        })
+                    });
                     ASTNodeExpression::UnaryOperator(o)
                 }
 
@@ -220,14 +223,15 @@ impl Parser {
                 TokenType::OperatorBitwiseNot => {
                     let location = t.location.clone();
                     let mut expression = self.parse_expression(false)?;
-                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: UnaryOperatorType::BitwiseNot,
-                        expression: expression.clone()
-                    }));
-
-                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    let o = Rc::new_cyclic(|p|{
+                        expression.set_parent(ASTNodeExpressionParent::UnaryOperator(p.clone()));
+                        RefCell::new(ASTNodeUnaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: UnaryOperatorType::BitwiseNot,
+                            expression: expression
+                        })
+                    });
                     ASTNodeExpression::UnaryOperator(o)
                 }
 
@@ -252,52 +256,55 @@ impl Parser {
                 },
                 TokenType::OperatorAddition => {
                     let location = t.location.clone();
-                    let rhs = self.parse_expression(false)?;
-                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: BinaryOperator::Addition,
-                        lhs,
-                        rhs,
-                    }));
-
-                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
-                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    let mut rhs = self.parse_expression(false)?;
+                    let b = Rc::new_cyclic(|p|{
+                        lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        RefCell::new(ASTNodeBinaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: BinaryOperator::Addition,
+                            lhs,
+                            rhs,
+                        }
+                    )});
 
                     Ok(ASTNodeExpression::BinaryOperator(b))
                 }
 
                 TokenType::OperatorSubtraction => {
                     let location = t.location.clone();
-                    let rhs = self.parse_expression(false)?;
-                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type: BinaryOperator::Subtraction,
-                        lhs,
-                        rhs,
-                    }));
-
-                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
-                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    let mut rhs = self.parse_expression(false)?;
+                    let b = Rc::new_cyclic(|p|{
+                        lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        RefCell::new(ASTNodeBinaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type: BinaryOperator::Subtraction,
+                            lhs,
+                            rhs,
+                        }
+                    )});
 
                     Ok(ASTNodeExpression::BinaryOperator(b))
                 }
 
-                TokenType::BinaryOperator(b) => {
-                    let operator_type = b.clone();
+                TokenType::BinaryOperator(operator_type) => {
+                    let operator_type = operator_type.clone();
                     let location = t.location.clone();
-                    let rhs = self.parse_expression(false)?;
-                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
-                        location,
-                        parent: ASTNodeExpressionParent::Unset,
-                        operator_type,
-                        lhs,
-                        rhs,
-                    }));
-
-                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
-                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    let mut rhs = self.parse_expression(false)?;
+                    let b = Rc::new_cyclic(|p|{
+                        lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(p.clone()));
+                        RefCell::new(ASTNodeBinaryOperator {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            operator_type,
+                            lhs,
+                            rhs,
+                        }
+                    )});
 
                     Ok(ASTNodeExpression::BinaryOperator(b))
                 }
@@ -356,15 +363,16 @@ impl Parser {
 
         let mut value = self.parse_expression(false)?;
 
-        let l = Rc::new(RefCell::new(ASTNodeLetExpression {
-            location,
-            parent: ASTNodeStatementParent::Unset,
-            lhs: pattern.clone(),
-            rhs: value.clone(),
-        }));
-
-        (*pattern).borrow_mut().parent = ASTNodePatternParent::LetExpression(Rc::downgrade(&l));
-        value.set_parent(ASTNodeExpressionParent::LetExpression(Rc::downgrade(&l)));
+        let l = Rc::new_cyclic(|p|{
+            pattern.borrow_mut().parent = ASTNodePatternParent::LetExpression(p.clone());
+            value.set_parent(ASTNodeExpressionParent::LetExpression(p.clone()));
+            RefCell::new(ASTNodeLetExpression {
+                location,
+                parent: ASTNodeStatementParent::Unset,
+                lhs: pattern,
+                rhs: value,
+            })
+        });
 
         // Consume semicolon or newline
         self.get_token();
@@ -445,18 +453,15 @@ impl Parser {
             i: 0,
         };
 
+        let block = s.parse_block(false)?;
+        let mut block_ref = block.borrow_mut();
+
         let parsed_program = Rc::new(RefCell::new(ASTNodeProgram {
             program,
-            block: s.parse_block(false)?
+            block: block.clone(),
         }));
 
-        let parsed_ref = (*parsed_program).borrow_mut();
-        let mut block_ref = (*parsed_ref.block).borrow_mut();
-
         block_ref.parent = ASTNodeBlockParent::Program(Rc::downgrade(&parsed_program));
-
-        drop(block_ref);
-        drop(parsed_ref);
 
         Ok(parsed_program)
     }
