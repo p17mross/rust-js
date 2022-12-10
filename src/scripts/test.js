@@ -4,3 +4,4 @@ let c = a + b;
 let d = b * c;
 let e = c ** d;
 let f = d << c;
+let g = "string".length;

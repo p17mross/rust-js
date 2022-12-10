@@ -78,9 +78,21 @@ impl Parser {
     }
 
     fn get_error(&self, error_type: ParseErrorType) -> ParseError {
-        ParseError {
-            location: self.tokens.get(self.i - 1).unwrap().location.clone(),
-            error_type
+        match error_type {
+            // Handle UnexpectedEOF differently as self.i likely points beyond the end of self.tokens
+            ParseErrorType::UnexpectedEOF => {
+                ParseError {
+                    // TODO: get actual line:column of end of file not just the last token
+                    location: self.tokens.get(self.tokens.len() - 1).unwrap().location.clone(),
+                    error_type
+                }
+            },
+            _ => {
+                ParseError {
+                    location: self.tokens.get(self.i - 1).unwrap().location.clone(),
+                    error_type
+                }
+            }
         }
     }
 
@@ -109,7 +121,7 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, require_end_paren: bool) -> Result<ASTNodeExpression, ParseError> {
-        let lhs = match self.get_token() {
+        let mut lhs = match self.get_token() {
             None => return Err(self.get_error(ParseErrorType::UnexpectedEOF)),
             Some(t) => match &t.token_type {
                 // Bracketed expression
@@ -290,6 +302,28 @@ impl Parser {
                     Ok(ASTNodeExpression::BinaryOperator(b))
                 }
 
+                TokenType::OperatorDot => {
+                    let t = t.clone();
+                    let location = t.location;
+                    let Some(rhs) = self.get_token() else {
+                        return Err(self.get_error(ParseErrorType::UnexpectedEOF))
+                    };
+                    let TokenType::Identifier(i) = rhs.token_type.clone() else {
+                        let t_str = t.token_type.to_str();
+                        return Err(self.get_error(ParseErrorType::UnexpectedToken { found: t_str, expected: Some("identifier") }))
+                    };
+
+
+                    Ok(ASTNodeExpression::PropertyLookup(Rc::new_cyclic(|p|{
+                        lhs.set_parent(ASTNodeExpressionParent::PropertyLookup(p.clone()));
+                        RefCell::new(ASTNodePropertyLookup {
+                            location,
+                            parent: ASTNodeExpressionParent::Unset,
+                            lhs,
+                            rhs: i
+                        })
+                    })))
+                }
 
                 t => todo!("{t:?} as middle of expression."),
             }
@@ -338,10 +372,45 @@ impl Parser {
         Ok(Some(l))
     }
 
-    fn parse_block(&mut self, require_end_brace: bool) -> Result<Option<Rc<RefCell<ASTNodeBlock>>>, ParseError> {
-        // Save location for later
-        let _start_i = self.i;
+    fn parse_statement(&mut self) -> Result<Option<ASTNodeStatement>, ParseError> {
+        match self.get_token() {
+            None => Ok(None),
+            Some(t) => {
 
+                // If found end brace, return
+                if t.token_type == TokenType::CloseBrace {
+                    self.i -= 1;
+                    return Ok(None)
+                }
+
+                // Parse block
+                if t.token_type == TokenType::OpenBrace {
+                    return Ok(Some(ASTNodeStatement::Block(self.parse_block(true)?)));
+                }
+
+                // TODO: remove once more token types are implemented
+                let temp_t = t.token_type.clone();
+
+                if let TokenType::Identifier(i) = &t.token_type {
+                    match i.as_str() {
+                        "let" => {
+                            let s = self.parse_let_expression()?;
+                            if let Some(s) = s {
+                                return Ok(Some(ASTNodeStatement::LetExpression(s)));
+                            }
+                        },
+
+                        _ => ()
+                    }
+                }
+
+                todo!("{:?} as start of statement", temp_t);
+
+            }
+        }
+    }
+
+    fn parse_block(&mut self, require_end_brace: bool) -> Result<Rc<RefCell<ASTNodeBlock>>, ParseError> {
         let block = Rc::new(RefCell::new(ASTNodeBlock {
             location: self.get_location(),
             parent: ASTNodeBlockParent::Unset,
@@ -349,61 +418,25 @@ impl Parser {
             statements: vec![]
         }));
         
+        let mut block_ref = block.borrow_mut();
+
         'statements: loop {
-            match self.get_token() {
-                None => if require_end_brace {
+            self.consume_newlines();
+            let statement = self.parse_statement()?;
+
+            let Some(mut statement) = statement else {
+                // If end of file reached without closing brace
+                if self.get_token().is_none() && require_end_brace {
                     return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                } else {
-                    return Ok(Some(block))
                 }
-
-                Some(t) => {
-
-                    // If found end brace, return
-                    if t.token_type == TokenType::CloseBrace {
-                        return Ok(Some(block))
-                    }
-
-                    // Ignore newlines
-                    if t.token_type == TokenType::NewLine {continue 'statements;}
-
-                    if t.token_type == TokenType::OpenBrace {
-                        let inner_block = self.parse_block(true)?;
-                        if let Some(inner_block) = inner_block {
-                            (*block).borrow_mut().statements.push(ASTNodeStatement::Block(inner_block));
-                            continue 'statements;
-                        }
-                        
-                        let object_literal = self.parse_object_literal()?;
-                        if let Some(object_literal) = object_literal {
-                            (*block).borrow_mut().statements.push(ASTNodeStatement::Expression(ASTNodeExpression::ObjectLiteral(object_literal)));
-                            continue 'statements;
-                        };
-                        return Err(self.get_error(ParseErrorType::SyntaxError));
-                    }
-
-                    // TODO: remove once more token types are implemented
-                    let temp_t = t.token_type.clone();
-
-                    if let TokenType::Identifier(i) = &t.token_type {
-                        match i.as_str() {
-                            "let" => {
-                                if let Some(l) = self.parse_let_expression()? {
-                                    (*l).borrow_mut().parent = ASTNodeStatementParent::Block(Rc::downgrade(&block));
-                                    (*block).borrow_mut().statements.push(ASTNodeStatement::LetExpression(l));
-                                    continue 'statements;
-                                }
-                            },
-
-                            _ => ()
-                        }
-                    }
-
-                    todo!("{:?} as start of statement", temp_t);
-
-                }
-            }
+                break 'statements;
+            };
+            statement.set_parent(ASTNodeStatementParent::Block(Rc::downgrade(&block)));
+            block_ref.statements.push(statement);
         }
+
+        drop(block_ref);
+        Ok(block)
     }
 
     pub(crate) fn parse(program: Gc<Program>, tokens: Vec<Token>) -> Result<Rc<RefCell<ASTNodeProgram>>, ParseError> {
@@ -414,7 +447,7 @@ impl Parser {
 
         let parsed_program = Rc::new(RefCell::new(ASTNodeProgram {
             program,
-            block: s.parse_block(false)?.ok_or_else(||s.get_error(ParseErrorType::SyntaxError))?
+            block: s.parse_block(false)?
         }));
 
         let parsed_ref = (*parsed_program).borrow_mut();

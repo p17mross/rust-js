@@ -4,7 +4,6 @@ use crate::engine::program::ProgramLocation;
 
 use super::*;
 
-
 pub struct ASTNodeObjectLiteral {
     pub location: ProgramLocation,
     pub parent: ASTNodeExpressionParent,

@@ -99,6 +99,7 @@ impl From<ASTNodeExpressionParent> for ASTNodeStatementParent {
             ASTNodeExpressionParent::BinaryOperator(_) => panic!("Statement cannot be a child of a binary operator"),
             ASTNodeExpressionParent::ObjectLiteral(_) => panic!("Statement cannot be a child of an object literal"),
             ASTNodeExpressionParent::ArrayLiteral(_) => panic!("Statement cannot be a child of an array literal"),
+            ASTNodeExpressionParent::PropertyLookup(_) => panic!("Statement cannot be a child of a property lookup"),
         }
     }
 }

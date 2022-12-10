@@ -3,12 +3,14 @@ mod object_literal;
 mod unary_operators;
 mod binary_operators;
 mod value_literals;
+mod property_lookup;
 
 pub use array_literal::*;
 pub use object_literal::*;
 pub use unary_operators::*;
 pub use binary_operators::*;
 pub use value_literals::*;
+pub use property_lookup::*;
 
 
 use std::{rc::{Rc, Weak}, cell::RefCell};
@@ -25,6 +27,7 @@ pub enum ASTNodeExpression {
     ValueLiteral(Rc<RefCell<ASTNodeValueLiteral>>),
     UnaryOperator(Rc<RefCell<ASTNodeUnaryOperator>>),
     BinaryOperator(Rc<RefCell<ASTNodeBinaryOperator>>),
+    PropertyLookup(Rc<RefCell<ASTNodePropertyLookup>>),
 }
 
 pub struct ASTNodeVariable {
@@ -42,6 +45,7 @@ pub enum ASTNodeExpressionParent {
     BinaryOperator(Weak<RefCell<ASTNodeBinaryOperator>>),
     ObjectLiteral(Weak<RefCell<ASTNodeObjectLiteral>>),
     ArrayLiteral(Weak<RefCell<ASTNodeArrayLiteral>>),
+    PropertyLookup(Weak<RefCell<ASTNodePropertyLookup>>),
 
     Unset,
 }
@@ -55,6 +59,7 @@ impl ASTNodeExpression {
             Self::ValueLiteral(v) => v.borrow().parent.clone(),
             Self::UnaryOperator(u) => u.borrow().parent.clone(),
             Self::BinaryOperator(b) => b.borrow().parent.clone(),
+            Self::PropertyLookup(l) => l.borrow().parent.clone(),
         }
     }
 
@@ -66,6 +71,7 @@ impl ASTNodeExpression {
             Self::ValueLiteral(v) => (*v).borrow_mut().parent = parent,
             Self::UnaryOperator(u) => (*u).borrow_mut().parent = parent,
             Self::BinaryOperator(b) => (*b).borrow_mut().parent = parent,
+            Self::PropertyLookup(l) => (*l).borrow_mut().parent = parent,
         }
     }
 
@@ -77,15 +83,11 @@ impl ASTNodeExpression {
             Self::ValueLiteral(v) => v.borrow().location.clone(),
             Self::UnaryOperator(u) => u.borrow().location.clone(),
             Self::BinaryOperator(b) => b.borrow().location.clone(),
+            Self::PropertyLookup(l) => l.borrow().location.clone(),
         }
     }
 }
 
-impl Debug for ASTNodeLetExpression {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ASTNodeLetExpression {{lhs: {:?}, rhs: {:?}}}", self.lhs, self.rhs))
-    }
-}
 
 impl Debug for ASTNodeVariable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -125,6 +127,8 @@ impl PartialEq for ASTNodeExpressionParent {
             (ASTNodeExpressionParent::ObjectLiteral(_), _) => false,
             (ASTNodeExpressionParent::ArrayLiteral(a), ASTNodeExpressionParent::ArrayLiteral(p)) => a.ptr_eq(p),
             (ASTNodeExpressionParent::ArrayLiteral(_), _) => false,
+            (ASTNodeExpressionParent::PropertyLookup(l), ASTNodeExpressionParent::PropertyLookup(p)) => l.ptr_eq(p),
+            (ASTNodeExpressionParent::PropertyLookup(_), _) => false,
 
             (ASTNodeExpressionParent::Unset, _) => false,
             
@@ -147,6 +151,7 @@ impl ASTNodeExpression {
             Self::ValueLiteral(v) => v.borrow().to_tree(),
             Self::UnaryOperator(u) => u.borrow().to_tree(),
             Self::BinaryOperator(b) => b.borrow().to_tree(),
+            Self::PropertyLookup(l) => l.borrow().to_tree(),
         }
     }
 }
@@ -161,6 +166,7 @@ impl CheckParent for ASTNodeExpression {
             Self::ValueLiteral(v) => v.check_parent(p.into()),
             Self::UnaryOperator(u) => u.check_parent(p.into()),
             Self::BinaryOperator(b) => b.check_parent(p.into()),
+            Self::PropertyLookup(l) => l.check_parent(p.into()),
         }
     }
 }

@@ -4,13 +4,18 @@ use crate::{engine::program::ProgramLocation};
 
 use super::*;
 
-
 pub struct ASTNodeLetExpression {
     pub location: ProgramLocation,
     pub parent: ASTNodeStatementParent,
 
     pub lhs: Rc<RefCell<ASTNodePattern>>,
     pub rhs: ASTNodeExpression,
+}
+
+impl Debug for ASTNodeLetExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ASTNodeLetExpression {{lhs: {:?}, rhs: {:?}}}", self.lhs, self.rhs))
+    }
 }
 
 impl ASTNodeLetExpression {
