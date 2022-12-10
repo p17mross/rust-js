@@ -1,11 +1,90 @@
-mod tree_print;
-mod debug_impls;
+mod expressions;
+mod statements;
 
-mod nodes;
-mod node_parents;
-mod node_types;
+pub use expressions::*;
+pub use statements::*;
 
-pub use self::nodes::*;
-pub use self::node_parents::*;
-pub use self::node_types::*;
+use std::{rc::Rc, cell::RefCell, fmt::Debug};
+use crate::engine::{Gc, Program, garbagecollection::GarbageCollectable, program::ProgramLocation};
 
+// Format for ASTNode files: 
+// 1) Struct/enum definitions
+// 2) Impls on these types (e.g. get_parent())
+// 3) Trait impls on these types (e.g. Debug, From)
+// 4) to_tree() impls
+// 5) check_parent() impls
+
+
+pub struct ASTNodeProgram {
+    pub program: Gc<Program>,
+    pub block: Rc<RefCell<ASTNodeBlock>>,
+}
+
+impl GarbageCollectable for ASTNodeProgram {
+    fn get_children(&self) -> Vec<crate::engine::garbagecollection::GarbageCollectionId> {
+        vec![self.program.get_id()]
+    }
+}
+
+impl ASTNodeProgram {
+    pub fn new(program: Gc<Program>) -> Rc<RefCell<Self>> {
+        let block = Rc::new(RefCell::new(ASTNodeBlock {
+            location: ProgramLocation { 
+                program: program.clone(),
+                line: 0, 
+                column: 0, 
+                index: 0 
+            }, 
+            statements: vec![],
+            parent: ASTNodeBlockParent::Unset,
+        }));
+
+        let s = Rc::new(RefCell::new(Self {
+            program,
+            block: block.clone()
+        }));
+        
+        block.borrow_mut().parent = ASTNodeBlockParent::Program(Rc::downgrade(&s));
+
+        s
+    }
+}
+
+
+impl Debug for ASTNodeProgram {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("ASTNodeProgram from {:?} {{{:?}}}", self.program.borrow().source, self.block))
+    }
+}
+
+pub(crate) trait StringExtTreeIndent {
+    fn indent_tree(&self) -> Self;
+}
+
+impl StringExtTreeIndent for String {
+    fn indent_tree(&self) -> Self {
+        self.replace('\n', "\n| ")
+    }
+}
+
+impl ASTNodeProgram {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("Program from {}\n", self.program.borrow().source);
+        s += &self.block.borrow().to_tree();
+        s
+    }
+}
+
+pub trait CheckParent {
+    type Parent;
+    fn check_parent(&self, p: Self::Parent);
+}
+
+impl CheckParent for Rc<RefCell<ASTNodeProgram>> {
+    type Parent = ();
+    fn check_parent(&self, _: Self::Parent) {
+        let s_ref = self.borrow();
+        
+        s_ref.block.check_parent(ASTNodeBlockParent::Program(Rc::downgrade(&self)));
+    }
+}

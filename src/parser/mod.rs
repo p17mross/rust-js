@@ -65,6 +65,17 @@ impl Parser {
         t
     }
 
+    /// Consumes any [TokenType::NewLine] tokens
+    /// Returns true if any tokens were consumed
+    fn consume_newlines(&mut self) -> bool{
+        let mut any_consumed = false;
+        while let Some(Token { location:_, token_type:TokenType::NewLine }) = self.tokens.get(self.i) {
+            self.i += 1;
+            any_consumed = true;
+        }
+        any_consumed
+    }
+
     fn get_error(&self, error_type: ParseErrorType) -> ParseError {
         ParseError {
             location: self.tokens.get(self.i - 1).unwrap().location.clone(),
@@ -77,10 +88,9 @@ impl Parser {
             None => {self.i -= 1; return Ok(None)},
             Some(t) => match &t.token_type {
                 // Just a variable
-                TokenType::Identifier(i) => return Ok(Some(Rc::new(RefCell::new(ASTNodePattern{
-                    location: t.location.clone(),
+                TokenType::Identifier(i) => return Ok(Some(Rc::new(RefCell::new(ASTNodePattern {
+                    location: t.location.clone(), 
                     parent: ASTNodePatternParent::Unset,
-
                     target: ASTNodePatternType::Variable(i.clone())
                 })))),
                 // Array destructure
@@ -128,53 +138,85 @@ impl Parser {
                 }))),
 
                 // String literal
-                TokenType::StringLiteral(s) => ASTNodeExpression::StringLiteral(Rc::new(RefCell::new(ASTNodeStringLiteral {
+                TokenType::StringLiteral(s) => ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(ASTNodeValueLiteral {
                     location: t.location.clone(),
                     parent: ASTNodeExpressionParent::Unset,
-                    string: s.clone()
+                    value: ValueLiteral::String(s.clone())
                 }))),
 
                 // Number literal
-                TokenType::NumberLiteral(n) => ASTNodeExpression::NumberLiteral(Rc::new(RefCell::new(ASTNodeNumberLiteral {
+                TokenType::NumberLiteral(n) => ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(ASTNodeValueLiteral {
                     location: t.location.clone(),
                     parent: ASTNodeExpressionParent::Unset,
-                    number: *n
+                    value: ValueLiteral::Number(*n)
                 }))),
 
                 // Bigint literal
-                TokenType::BigIntLiteral(n) => ASTNodeExpression::BigIntLiteral(Rc::new(RefCell::new(ASTNodeBigIntLiteral {
+                TokenType::BigIntLiteral(n) => ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(ASTNodeValueLiteral {
                     location: t.location.clone(),
                     parent: ASTNodeExpressionParent::Unset,
-                    bigint: n.clone()
+                    value: ValueLiteral::BigInt(n.clone())
                 }))),
 
                 // Unary plus
-                TokenType::OperatorAddition => return Ok(ASTNodeExpression::UnaryPlus(Rc::new(RefCell::new(ASTNodeUnaryPlus {
-                    location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
-                    expression: self.parse_expression(false)?
-                })))),
+                TokenType::OperatorAddition => {
+                    let location = t.location.clone();
+                    let mut expression = self.parse_expression(false)?;
+                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: UnaryOperatorType::Plus,
+                        expression: expression.clone()
+                    }));
+
+                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    ASTNodeExpression::UnaryOperator(o)
+                }
 
                 // Unary minus
-                TokenType::OperatorSubtraction => return Ok(ASTNodeExpression::UnaryMinus(Rc::new(RefCell::new(ASTNodeUnaryMinus {
-                    location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
-                    expression: self.parse_expression(false)?
-                })))),
+                TokenType::OperatorSubtraction => {
+                    let location = t.location.clone();
+                    let mut expression = self.parse_expression(false)?;
+                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: UnaryOperatorType::Minus,
+                        expression: expression.clone()
+                    }));
+
+                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    ASTNodeExpression::UnaryOperator(o)
+                }
 
                 // Logical not
-                TokenType::OperatorLogicalNot => return Ok(ASTNodeExpression::LogicalNot(Rc::new(RefCell::new(ASTNodeLogicalNot {
-                    location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
-                    expression: self.parse_expression(false)?
-                })))),
+                TokenType::OperatorLogicalNot => {
+                    let location = t.location.clone();
+                    let mut expression = self.parse_expression(false)?;
+                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: UnaryOperatorType::LogicalNot,
+                        expression: expression.clone()
+                    }));
+
+                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    ASTNodeExpression::UnaryOperator(o)
+                }
 
                 // Bitwise not
-                TokenType::OperatorBitwiseNot => return Ok(ASTNodeExpression::BitwiseNot(Rc::new(RefCell::new(ASTNodeBitwiseNot {
-                    location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
-                    expression: self.parse_expression(false)?
-                })))),
+                TokenType::OperatorBitwiseNot => {
+                    let location = t.location.clone();
+                    let mut expression = self.parse_expression(false)?;
+                    let o = Rc::new(RefCell::new(ASTNodeUnaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: UnaryOperatorType::BitwiseNot,
+                        expression: expression.clone()
+                    }));
+
+                    expression.set_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&o)));
+                    ASTNodeExpression::UnaryOperator(o)
+                }
 
                 t => todo!("{t:?} as lhs of expression"),
             }
@@ -183,7 +225,10 @@ impl Parser {
         match self.get_token() {
             None => return Ok(lhs),
             Some(t) => match &t.token_type {
-                TokenType::Semicolon => return Ok(lhs),
+                TokenType::Semicolon => {
+                    self.i -= 1;
+                    return Ok(lhs)
+                },
                 TokenType::CloseParen => if require_end_paren {
                     return Ok(lhs)
                 } else {
@@ -221,6 +266,7 @@ impl Parser {
         if t.token_type != TokenType::OperatorAssignment {
             return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
         };
+
         let mut value = self.parse_expression(false)?;
 
         let l = Rc::new(RefCell::new(ASTNodeLetExpression {
@@ -232,6 +278,9 @@ impl Parser {
 
         (*pattern).borrow_mut().parent = ASTNodePatternParent::LetExpression(Rc::downgrade(&l));
         value.set_parent(ASTNodeExpressionParent::LetExpression(Rc::downgrade(&l)));
+
+        // Consume semicolon or newline
+        self.get_token();
 
         Ok(Some(l))
     }
@@ -274,7 +323,7 @@ impl Parser {
                         
                         let object_literal = self.parse_object_literal()?;
                         if let Some(object_literal) = object_literal {
-                            (*block).borrow_mut().statements.push(ASTNodeStatement::Expression(Rc::new(RefCell::new(ASTNodeExpression::ObjectLiteral(object_literal)))));
+                            (*block).borrow_mut().statements.push(ASTNodeStatement::Expression(ASTNodeExpression::ObjectLiteral(object_literal)));
                             continue 'statements;
                         };
                         return Err(self.get_error(ParseErrorType::SyntaxError));
@@ -287,6 +336,7 @@ impl Parser {
                         match i.as_str() {
                             "let" => {
                                 if let Some(l) = self.parse_let_expression()? {
+                                    (*l).borrow_mut().parent = ASTNodeStatementParent::Block(Rc::downgrade(&block));
                                     (*block).borrow_mut().statements.push(ASTNodeStatement::LetExpression(l));
                                     continue 'statements;
                                 }
@@ -304,15 +354,24 @@ impl Parser {
     }
 
     pub(crate) fn parse(program: Gc<Program>, tokens: Vec<Token>) -> Result<Rc<RefCell<ASTNodeProgram>>, ParseError> {
-
         let mut s = Self {
             tokens,
             i: 0,
         };
 
-        Ok(Rc::new(RefCell::new(ASTNodeProgram {
+        let parsed_program = Rc::new(RefCell::new(ASTNodeProgram {
             program,
             block: s.parse_block(false)?.ok_or_else(||s.get_error(ParseErrorType::SyntaxError))?
-        })))
+        }));
+
+        let parsed_ref = (*parsed_program).borrow_mut();
+        let mut block_ref = (*parsed_ref.block).borrow_mut();
+
+        block_ref.parent = ASTNodeBlockParent::Program(Rc::downgrade(&parsed_program));
+
+        drop(block_ref);
+        drop(parsed_ref);
+
+        Ok(parsed_program)
     }
 }
