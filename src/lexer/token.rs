@@ -39,18 +39,23 @@ pub(crate) enum AssignmentOperator {
 
 #[derive(Debug, Clone, PartialEq)]
 /// An enum for all operators which take two arguments by value
-pub(crate) enum BinaryOperator {
+pub enum BinaryOperator {
 
     // Arithmetic operators
 
+    /// '+'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
+    Addition,
+    /// '+'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
+    Subtraction,
+
     /// `*`
-    OperatorMultiplication,
+    Multiplication,
     /// `/`
-    OperatorDivision,
+    Division,
     /// `%`
-    OperatorRemainder,
+    Remainder,
     /// `**`
-    OperatorExponentiation,
+    Exponentiation,
 
     // Comparison operators
 
@@ -74,24 +79,24 @@ pub(crate) enum BinaryOperator {
     // Bitwise operators
 
     /// `|`
-    OperatorBitwiseOr,
+    BitwiseOr,
     /// `&`
-    OperatorBitwiseAnd,
+    BitwiseAnd,
     /// `^`
-    OperatorBitwiseXor,
+    BitwiseXor,
     /// `<<`
-    OperatorShiftLeft,
+    ShiftLeft,
     /// `>>`
-    OperatorShiftRight,
+    ShiftRight,
     /// `>>>`
-    OperatorUnsignedShiftRight,
+    UnsignedShiftRight,
 
     // Boolean operators
 
     /// `||`
-    OperatorLogicalOr,
+    LogicalOr,
     /// `&&`
-    OperatorLogicalAnd,
+    LogicalAnd,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -197,23 +202,25 @@ impl TokenType {
 
             Self::OperatorAddition => "+",
             Self::OperatorSubtraction => "-",
-            Self::BinaryOperator(BinaryOperator::OperatorMultiplication) => "*",
-            Self::BinaryOperator(BinaryOperator::OperatorDivision) => "/",
-            Self::BinaryOperator(BinaryOperator::OperatorRemainder) => "%",
-            Self::BinaryOperator(BinaryOperator::OperatorExponentiation) => "**",
+            Self::BinaryOperator(BinaryOperator::Addition) => "+",
+            Self::BinaryOperator(BinaryOperator::Subtraction) => "-",
+            Self::BinaryOperator(BinaryOperator::Multiplication) => "*",
+            Self::BinaryOperator(BinaryOperator::Division) => "/",
+            Self::BinaryOperator(BinaryOperator::Remainder) => "%",
+            Self::BinaryOperator(BinaryOperator::Exponentiation) => "**",
             Self::OperatorIncrement => "++",
             Self::OperatorDecrement => "--",
 
-            Self::BinaryOperator(BinaryOperator::OperatorBitwiseOr) => "|",
-            Self::BinaryOperator(BinaryOperator::OperatorBitwiseAnd) => "&",
-            Self::BinaryOperator(BinaryOperator::OperatorBitwiseXor) => "^",
+            Self::BinaryOperator(BinaryOperator::BitwiseOr) => "|",
+            Self::BinaryOperator(BinaryOperator::BitwiseAnd) => "&",
+            Self::BinaryOperator(BinaryOperator::BitwiseXor) => "^",
             Self::OperatorBitwiseNot => "~",
-            Self::BinaryOperator(BinaryOperator::OperatorShiftLeft) => "<<",
-            Self::BinaryOperator(BinaryOperator::OperatorShiftRight) => ">>",
-            Self::BinaryOperator(BinaryOperator::OperatorUnsignedShiftRight) => "<<<",
+            Self::BinaryOperator(BinaryOperator::ShiftLeft) => "<<",
+            Self::BinaryOperator(BinaryOperator::ShiftRight) => ">>",
+            Self::BinaryOperator(BinaryOperator::UnsignedShiftRight) => "<<<",
 
-            Self::BinaryOperator(BinaryOperator::OperatorLogicalOr) => "||",
-            Self::BinaryOperator(BinaryOperator::OperatorLogicalAnd) => "&&",
+            Self::BinaryOperator(BinaryOperator::LogicalOr) => "||",
+            Self::BinaryOperator(BinaryOperator::LogicalAnd) => "&&",
             Self::OperatorLogicalNot => "!",
 
             Self::OperatorAssignment => "=",
@@ -301,25 +308,25 @@ pub(crate) const OPERATORS: [(&str, TokenType); 55] = [
 
     ("++",   TokenType::OperatorIncrement),
     ("--",   TokenType::OperatorDecrement),
-    ("**",   TokenType::BinaryOperator(BinaryOperator::OperatorExponentiation)),
+    ("**",   TokenType::BinaryOperator(BinaryOperator::Exponentiation)),
 
     ("+",    TokenType::OperatorAddition),
     ("-",    TokenType::OperatorSubtraction),
-    ("*",    TokenType::BinaryOperator(BinaryOperator::OperatorMultiplication)),
-    ("/",    TokenType::BinaryOperator(BinaryOperator::OperatorDivision)),
-    ("%",    TokenType::BinaryOperator(BinaryOperator::OperatorRemainder)),
+    ("*",    TokenType::BinaryOperator(BinaryOperator::Multiplication)),
+    ("/",    TokenType::BinaryOperator(BinaryOperator::Division)),
+    ("%",    TokenType::BinaryOperator(BinaryOperator::Remainder)),
 
-    ("||",   TokenType::BinaryOperator(BinaryOperator::OperatorLogicalOr)),
-    ("&&",   TokenType::BinaryOperator(BinaryOperator::OperatorLogicalAnd)),
+    ("||",   TokenType::BinaryOperator(BinaryOperator::LogicalOr)),
+    ("&&",   TokenType::BinaryOperator(BinaryOperator::LogicalAnd)),
     ("!",    TokenType::OperatorLogicalNot),
-    ("|",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseOr)),
-    ("&",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseAnd)),
-    ("^",    TokenType::BinaryOperator(BinaryOperator::OperatorBitwiseXor)),
+    ("|",    TokenType::BinaryOperator(BinaryOperator::BitwiseOr)),
+    ("&",    TokenType::BinaryOperator(BinaryOperator::BitwiseAnd)),
+    ("^",    TokenType::BinaryOperator(BinaryOperator::BitwiseXor)),
     ("~",    TokenType::OperatorBitwiseNot),
 
-    ("<<",   TokenType::BinaryOperator(BinaryOperator::OperatorShiftLeft)),
-    (">>>",  TokenType::BinaryOperator(BinaryOperator::OperatorUnsignedShiftRight)),
-    (">>",   TokenType::BinaryOperator(BinaryOperator::OperatorShiftRight)),
+    ("<<",   TokenType::BinaryOperator(BinaryOperator::ShiftLeft)),
+    (">>>",  TokenType::BinaryOperator(BinaryOperator::UnsignedShiftRight)),
+    (">>",   TokenType::BinaryOperator(BinaryOperator::ShiftRight)),
 
     ("<=",   TokenType::BinaryOperator(BinaryOperator::LessThanOrEqual)),
     (">=",   TokenType::BinaryOperator(BinaryOperator::GreaterThanOrEqual)),

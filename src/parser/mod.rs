@@ -2,7 +2,7 @@ pub mod ast;
 
 use std::{fmt::Display, rc::Rc, cell::RefCell};
 
-use crate::{lexer::{Token, TokenType}, engine::{Gc, program::ProgramLocation, Program}};
+use crate::{lexer::{Token, TokenType, token::BinaryOperator}, engine::{Gc, program::ProgramLocation, Program}};
 
 use self::ast::*;
 
@@ -67,6 +67,7 @@ impl Parser {
 
     /// Consumes any [TokenType::NewLine] tokens
     /// Returns true if any tokens were consumed
+    #[allow(dead_code)]
     fn consume_newlines(&mut self) -> bool{
         let mut any_consumed = false;
         while let Some(Token { location:_, token_type:TokenType::NewLine }) = self.tokens.get(self.i) {
@@ -223,20 +224,72 @@ impl Parser {
         };
 
         match self.get_token() {
-            None => return Ok(lhs),
+            None => Ok(lhs),
             Some(t) => match &t.token_type {
                 TokenType::Semicolon => {
                     self.i -= 1;
-                    return Ok(lhs)
+                    Ok(lhs)
                 },
                 TokenType::CloseParen => if require_end_paren {
-                    return Ok(lhs)
+                    Ok(lhs)
                 } else {
-                    return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                    Err(self.get_error(ParseErrorType::UnexpectedToken {
                         found: "}",
                         expected: None
                     }))
+                },
+                TokenType::OperatorAddition => {
+                    let location = t.location.clone();
+                    let rhs = self.parse_expression(false)?;
+                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: BinaryOperator::Addition,
+                        lhs,
+                        rhs,
+                    }));
+
+                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+
+                    Ok(ASTNodeExpression::BinaryOperator(b))
                 }
+
+                TokenType::OperatorSubtraction => {
+                    let location = t.location.clone();
+                    let rhs = self.parse_expression(false)?;
+                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type: BinaryOperator::Subtraction,
+                        lhs,
+                        rhs,
+                    }));
+
+                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+
+                    Ok(ASTNodeExpression::BinaryOperator(b))
+                }
+
+                TokenType::BinaryOperator(b) => {
+                    let operator_type = b.clone();
+                    let location = t.location.clone();
+                    let rhs = self.parse_expression(false)?;
+                    let b = Rc::new(RefCell::new(ASTNodeBinaryOperator {
+                        location,
+                        parent: ASTNodeExpressionParent::Unset,
+                        operator_type,
+                        lhs,
+                        rhs,
+                    }));
+
+                    b.borrow_mut().lhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+                    b.borrow_mut().rhs.set_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&b)));
+
+                    Ok(ASTNodeExpression::BinaryOperator(b))
+                }
+
 
                 t => todo!("{t:?} as middle of expression."),
             }

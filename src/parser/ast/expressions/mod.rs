@@ -1,11 +1,13 @@
 mod array_literal;
 mod object_literal;
 mod unary_operators;
+mod binary_operators;
 mod value_literals;
 
 pub use array_literal::*;
 pub use object_literal::*;
 pub use unary_operators::*;
+pub use binary_operators::*;
 pub use value_literals::*;
 
 
@@ -22,6 +24,7 @@ pub enum ASTNodeExpression {
     ArrayLiteral(Rc<RefCell<ASTNodeArrayLiteral>>,),
     ValueLiteral(Rc<RefCell<ASTNodeValueLiteral>>),
     UnaryOperator(Rc<RefCell<ASTNodeUnaryOperator>>),
+    BinaryOperator(Rc<RefCell<ASTNodeBinaryOperator>>),
 }
 
 pub struct ASTNodeVariable {
@@ -36,6 +39,7 @@ pub enum ASTNodeExpressionParent {
     LetExpression(Weak<RefCell<ASTNodeLetExpression>>),
     Block(Weak<RefCell<ASTNodeBlock>>),
     UnaryOperator(Weak<RefCell<ASTNodeUnaryOperator>>),
+    BinaryOperator(Weak<RefCell<ASTNodeBinaryOperator>>),
     ObjectLiteral(Weak<RefCell<ASTNodeObjectLiteral>>),
     ArrayLiteral(Weak<RefCell<ASTNodeArrayLiteral>>),
 
@@ -49,7 +53,8 @@ impl ASTNodeExpression {
             Self::ObjectLiteral(o) => o.borrow().parent.clone(),
             Self::ArrayLiteral(a) => a.borrow().parent.clone(),
             Self::ValueLiteral(v) => v.borrow().parent.clone(),
-            Self::UnaryOperator(p) => p.borrow().parent.clone(),
+            Self::UnaryOperator(u) => u.borrow().parent.clone(),
+            Self::BinaryOperator(b) => b.borrow().parent.clone(),
         }
     }
 
@@ -59,7 +64,8 @@ impl ASTNodeExpression {
             Self::ObjectLiteral(o) => (*o).borrow_mut().parent = parent,
             Self::ArrayLiteral(a) => (*a).borrow_mut().parent = parent,
             Self::ValueLiteral(v) => (*v).borrow_mut().parent = parent,
-            Self::UnaryOperator(p) => (*p).borrow_mut().parent = parent,
+            Self::UnaryOperator(u) => (*u).borrow_mut().parent = parent,
+            Self::BinaryOperator(b) => (*b).borrow_mut().parent = parent,
         }
     }
 
@@ -69,7 +75,8 @@ impl ASTNodeExpression {
             Self::ObjectLiteral(o) => o.borrow().location.clone(),
             Self::ArrayLiteral(a) => a.borrow().location.clone(),
             Self::ValueLiteral(v) => v.borrow().location.clone(),
-            Self::UnaryOperator(p) => p.borrow().location.clone(),
+            Self::UnaryOperator(u) => u.borrow().location.clone(),
+            Self::BinaryOperator(b) => b.borrow().location.clone(),
         }
     }
 }
@@ -112,6 +119,8 @@ impl PartialEq for ASTNodeExpressionParent {
             (ASTNodeExpressionParent::LetExpression(_), _) => false,
             (ASTNodeExpressionParent::UnaryOperator(u), ASTNodeExpressionParent::UnaryOperator(p)) => u.ptr_eq(p),
             (ASTNodeExpressionParent::UnaryOperator(_), _) => false,
+            (ASTNodeExpressionParent::BinaryOperator(u), ASTNodeExpressionParent::BinaryOperator(p)) => u.ptr_eq(p),
+            (ASTNodeExpressionParent::BinaryOperator(_), _) => false,
             (ASTNodeExpressionParent::ObjectLiteral(o), ASTNodeExpressionParent::ObjectLiteral(p)) => o.ptr_eq(p),
             (ASTNodeExpressionParent::ObjectLiteral(_), _) => false,
             (ASTNodeExpressionParent::ArrayLiteral(a), ASTNodeExpressionParent::ArrayLiteral(p)) => a.ptr_eq(p),
@@ -136,7 +145,8 @@ impl ASTNodeExpression {
             Self::ObjectLiteral(o) => o.borrow().to_tree(),
             Self::ArrayLiteral(a) => a.borrow().to_tree(),
             Self::ValueLiteral(v) => v.borrow().to_tree(),
-            Self::UnaryOperator(p) => p.borrow().to_tree(),
+            Self::UnaryOperator(u) => u.borrow().to_tree(),
+            Self::BinaryOperator(b) => b.borrow().to_tree(),
         }
     }
 }
@@ -150,6 +160,7 @@ impl CheckParent for ASTNodeExpression {
             Self::ArrayLiteral(a) => a.check_parent(p.into()),
             Self::ValueLiteral(v) => v.check_parent(p.into()),
             Self::UnaryOperator(u) => u.check_parent(p.into()),
+            Self::BinaryOperator(b) => b.check_parent(p.into()),
         }
     }
 }

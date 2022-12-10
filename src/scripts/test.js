@@ -1,6 +1,6 @@
-let a = 10;
-let b = "something";
-let c = (20);
-let d = -20;
-let e = !10;
-let f = ~("test");
+let a = 2;
+let b = 3;
+let c = a + b;
+let d = b * c;
+let e = c ** d;
+let f = d << c;
