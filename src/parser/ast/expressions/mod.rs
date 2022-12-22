@@ -12,7 +12,6 @@ pub use binary_operators::*;
 pub use value_literals::*;
 pub use property_lookup::*;
 
-
 use std::{rc::{Rc, Weak}, cell::RefCell};
 
 use crate::engine::program::ProgramLocation;
@@ -28,6 +27,14 @@ pub enum ASTNodeExpression {
     UnaryOperator(Rc<RefCell<ASTNodeUnaryOperator>>),
     BinaryOperator(Rc<RefCell<ASTNodeBinaryOperator>>),
     PropertyLookup(Rc<RefCell<ASTNodePropertyLookup>>),
+    Grouping(Rc<RefCell<ASTNodeGrouping>>),
+}
+
+pub struct ASTNodeGrouping{
+    pub location: ProgramLocation,
+    pub parent: ASTNodeExpressionParent,
+
+    pub expression: ASTNodeExpression,
 }
 
 pub struct ASTNodeVariable {
@@ -46,6 +53,7 @@ pub enum ASTNodeExpressionParent {
     ObjectLiteral(Weak<RefCell<ASTNodeObjectLiteral>>),
     ArrayLiteral(Weak<RefCell<ASTNodeArrayLiteral>>),
     PropertyLookup(Weak<RefCell<ASTNodePropertyLookup>>),
+    Grouping(Weak<RefCell<ASTNodeGrouping>>),
 
     Unset,
 }
@@ -60,6 +68,7 @@ impl ASTNodeExpression {
             Self::UnaryOperator(u) => u.borrow().parent.clone(),
             Self::BinaryOperator(b) => b.borrow().parent.clone(),
             Self::PropertyLookup(l) => l.borrow().parent.clone(),
+            Self::Grouping(g) => g.borrow().parent.clone(),
         }
     }
 
@@ -72,6 +81,7 @@ impl ASTNodeExpression {
             Self::UnaryOperator(u) => (*u).borrow_mut().parent = parent,
             Self::BinaryOperator(b) => (*b).borrow_mut().parent = parent,
             Self::PropertyLookup(l) => (*l).borrow_mut().parent = parent,
+            Self::Grouping(g) => (*g).borrow_mut().parent = parent,
         }
     }
 
@@ -84,15 +94,26 @@ impl ASTNodeExpression {
             Self::UnaryOperator(u) => u.borrow().location.clone(),
             Self::BinaryOperator(b) => b.borrow().location.clone(),
             Self::PropertyLookup(l) => l.borrow().location.clone(),
+            Self::Grouping(g) => g.borrow().location.clone(),
         }
     }
 }
 
+impl Debug for ASTNodeGrouping {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "ASTNodeGrouping at {}:{} {{{:?}}}",
+            self.location.line,
+            self.location.column,
+            self.expression
+        ))
+    }
+}
 
 impl Debug for ASTNodeVariable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "ASTNodeVariable at {}:{} {{identifier: {:?}}}", 
+            "ASTNodeVariable at {}:{}: \"{:?}\"", 
             self.location.line, 
             self.location.column, 
             self.identifier
@@ -113,7 +134,7 @@ impl From<ASTNodeStatementParent> for ASTNodeExpressionParent {
 impl PartialEq for ASTNodeExpressionParent {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            // Match arms are laid out like this to avoid 'a _ => false' branch
+            // Match arms are laid out like this to avoid a '_ => false' branch
             // This means that if new enum variants are added, this code will not compile
             (ASTNodeExpressionParent::Block(b), ASTNodeExpressionParent::Block(p)) => b.ptr_eq(p),
             (ASTNodeExpressionParent::Block(_), _) => false,
@@ -129,10 +150,18 @@ impl PartialEq for ASTNodeExpressionParent {
             (ASTNodeExpressionParent::ArrayLiteral(_), _) => false,
             (ASTNodeExpressionParent::PropertyLookup(l), ASTNodeExpressionParent::PropertyLookup(p)) => l.ptr_eq(p),
             (ASTNodeExpressionParent::PropertyLookup(_), _) => false,
+            (ASTNodeExpressionParent::Grouping(g), ASTNodeExpressionParent::Grouping(p)) => g.ptr_eq(p),
+            (ASTNodeExpressionParent::Grouping(_), _) => false,
 
             (ASTNodeExpressionParent::Unset, _) => false,
             
         }
+    }
+}
+
+impl ASTNodeGrouping {
+    pub fn to_tree(&self) -> String {
+        format!("Grouping at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
     }
 }
 
@@ -152,6 +181,7 @@ impl ASTNodeExpression {
             Self::UnaryOperator(u) => u.borrow().to_tree(),
             Self::BinaryOperator(b) => b.borrow().to_tree(),
             Self::PropertyLookup(l) => l.borrow().to_tree(),
+            Self::Grouping(g) => g.borrow().to_tree(),
         }
     }
 }
@@ -167,7 +197,19 @@ impl CheckParent for ASTNodeExpression {
             Self::UnaryOperator(u) => u.check_parent(p.into()),
             Self::BinaryOperator(b) => b.check_parent(p.into()),
             Self::PropertyLookup(l) => l.check_parent(p.into()),
+            Self::Grouping(g) => g.check_parent(p.into()),
         }
+    }
+}
+
+impl CheckParent for Rc<RefCell<ASTNodeGrouping>> {
+    type Parent = ASTNodeExpressionParent;
+    fn check_parent(&self, p: Self::Parent) {
+        let s_ref = self.borrow();
+        if s_ref.parent != p {
+            panic!("Incorrect parent on grouping at {}:{}", s_ref.location.line, s_ref.location.column);
+        }
+        s_ref.expression.check_parent(ASTNodeExpressionParent::Grouping(Rc::downgrade(self)));
     }
 }
 
