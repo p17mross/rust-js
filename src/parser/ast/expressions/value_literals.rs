@@ -1,17 +1,12 @@
 use num::BigInt;
 
-use crate::engine::program::ProgramLocation;
+use crate::{engine::program::ProgramLocation, lexer::token::ValueLiteral};
 
 use std::fmt::Debug;
 
 use super::*;
 
-#[derive(Debug)]
-pub enum ValueLiteral {
-    String(String),
-    Number(f64),
-    BigInt(BigInt),
-}
+
 
 pub struct ASTNodeValueLiteral {
     pub location: ProgramLocation,

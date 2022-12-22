@@ -3,6 +3,13 @@ use num::BigInt;
 use crate::{engine::{program::ProgramLocation, Gc, Program}, util::PrettyPrint};
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum ValueLiteral {
+    String(String),
+    Number(f64),
+    BigInt(BigInt),
+}
+
+#[derive(Debug, Clone, PartialEq)]
 /// An enum for all arithmetic assignment operators
 pub(crate) enum AssignmentOperator {
     /// `+=`
@@ -37,7 +44,7 @@ pub(crate) enum AssignmentOperator {
     NullishCoalescing,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 /// An enum for all operators which take two arguments by value
 pub enum BinaryOperator {
 
@@ -45,7 +52,7 @@ pub enum BinaryOperator {
 
     /// '+'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
     Addition,
-    /// '+'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
+    /// '-'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
     Subtraction,
 
     /// `*`
@@ -97,6 +104,15 @@ pub enum BinaryOperator {
     LogicalOr,
     /// `&&`
     LogicalAnd,
+
+    /// '??'
+    NullishCoalescing,
+
+    // Keyword operators
+    /// 'in'
+    In,
+    /// 'instanceof'
+    InstanceOf,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -115,6 +131,8 @@ pub(crate) enum TokenType {
     OperatorDot,
     /// `?`
     OperatorQuestionMark,
+    /// '?.'
+    OperatorOptionalChaining,
     /// `:`
     OperatorColon,
     /// '...'
@@ -167,12 +185,8 @@ pub(crate) enum TokenType {
 
     // Value literals
 
-    /// A string literal, enclosed in double or single quotes
-    StringLiteral(String),
-    /// A numeric literal with a decimal
-    NumberLiteral(f64),
-    /// A numeric literal with no decimal
-    BigIntLiteral(BigInt),
+    /// A value literal
+    ValueLiteral(ValueLiteral),
 }
 
 impl TokenType {
@@ -180,15 +194,14 @@ impl TokenType {
     pub const fn to_str(&self) -> &'static str {
         match self {
             Self::Identifier(_) => "identifier",
-            Self::StringLiteral(_) => "string literal",
-            Self::NumberLiteral(_) => "numeric literal",
-            Self::BigIntLiteral(_) => "bigint literal",
+            Self::ValueLiteral(_) => "value literal",
 
             Self::Semicolon => ";",
             Self::NewLine => "newline",
             Self::Comma => ",",
             Self::OperatorDot => ".",
             Self::OperatorQuestionMark => "?",
+            Self::OperatorOptionalChaining => "?.",
             Self::OperatorColon => ":",
             Self::OperatorSpread => "...",
             Self::OperatorFatArrow => "=>",
@@ -248,6 +261,11 @@ impl TokenType {
             Self::BinaryOperator(BinaryOperator::LessThan) => "<",
             Self::BinaryOperator(BinaryOperator::GreaterThanOrEqual) => ">=",
             Self::BinaryOperator(BinaryOperator::LessThanOrEqual) => "<=",
+
+            Self::BinaryOperator(BinaryOperator::NullishCoalescing) => "??",
+
+            Self::BinaryOperator(BinaryOperator::In) => "in",
+            Self::BinaryOperator(BinaryOperator::InstanceOf) => "instanceof",
         }
     }
 }

@@ -11,7 +11,7 @@ use crate::engine::program::ProgramLocation;
 use crate::util::is_identifier_continue;
 use crate::util::{is_identifier_start, NumberLiteralBase};
 
-use self::token::OPERATORS;
+use self::token::{OPERATORS, ValueLiteral};
 
 #[derive(Debug, Clone, Copy)]
 /// All the types of errors that can occur during lexing
@@ -152,7 +152,7 @@ impl Lexer {
                             }
                         }
                     }
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::StringLiteral(s)));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::String(s))));
                     i += 1;
                 }
 
@@ -166,7 +166,7 @@ impl Lexer {
                         match p_ref.program.get(i) {
                             // If EOF here, generate `NumberLiteral(0)`
                             None => {
-                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(0.0)));
+                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
                                 break 'tokens;
                             },
                             Some(&c) => base = match c {
@@ -185,7 +185,7 @@ impl Lexer {
                                         }
                                     }
                                     // Generate `BigIntLiteral(0)` token
-                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from(0))));
+                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from(0)))));
                                     i += 2;
                                     continue 'tokens;
                                 },
@@ -197,7 +197,7 @@ impl Lexer {
                                     return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))
                                 }
                                 _ => {
-                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(0.0)));
+                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
                                     continue 'tokens;
                                 }
                             }
@@ -223,7 +223,7 @@ impl Lexer {
                             // Indicates a BigInt literal instead of a number
                             Some('n') => {
                                 if had_decimal {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))}
-                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::BigIntLiteral(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint"))));
+                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint")))));
                                 i += 1;
                                 continue 'tokens;
                             },
@@ -247,14 +247,14 @@ impl Lexer {
                     i += 1;
                     if base == NumberLiteralBase::Decimal {
                         let n = number.parse::<f64>().expect("Should have been a valid float");
-                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(n)))
+                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
                     }
                     else {
                         // Parse string to number
                         let n = num::BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint");
                         let n = n.to_f64().unwrap_or(f64::INFINITY);
 
-                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NumberLiteral(n)))
+                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
                     }
                 }
 
