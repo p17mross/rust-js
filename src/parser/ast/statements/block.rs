@@ -46,7 +46,7 @@ impl From<ASTNodeStatementParent> for ASTNodeBlockParent {
 impl PartialEq for ASTNodeBlockParent {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            // Match arms are laid out like this to avoid 'a _ => false' branch
+            // Match arms are laid out like this to avoid a '_ => false' branch
             // This means that if new enum variants are added, this code will not compile
             (ASTNodeBlockParent::Block(b), ASTNodeBlockParent::Block(parent)) => b.ptr_eq(parent),
             (ASTNodeBlockParent::Block(_), _) => false,
