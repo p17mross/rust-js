@@ -79,7 +79,7 @@ impl CheckParent for Rc<RefCell<ASTNodeBlock>> {
         }
 
         for statement in &s_ref.statements {
-            statement.check_parent(ASTNodeStatementParent::Block(Rc::downgrade(&self)));
+            statement.check_parent(ASTNodeStatementParent::Block(Rc::downgrade(self)));
         }   
     }
 }

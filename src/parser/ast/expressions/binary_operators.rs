@@ -43,7 +43,7 @@ impl CheckParent for Rc<RefCell<ASTNodeBinaryOperator>> {
             panic!("Incorrect parent on binary operator at {}:{}", s_ref.location.line, s_ref.location.column)
         }
 
-        s_ref.lhs.check_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&self)));
-        s_ref.rhs.check_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(&self)));
+        s_ref.lhs.check_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(self)));
+        s_ref.rhs.check_parent(ASTNodeExpressionParent::BinaryOperator(Rc::downgrade(self)));
     }
 }

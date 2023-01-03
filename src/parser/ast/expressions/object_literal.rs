@@ -42,8 +42,8 @@ impl CheckParent for Rc<RefCell<ASTNodeObjectLiteral>> {
             panic!("Incorrect parent on object literal at {}:{}", s_ref.location.line, s_ref.location.column);
         }
 
-        for (_, property) in &s_ref.properties {
-            property.check_parent(ASTNodeExpressionParent::ObjectLiteral(Rc::downgrade(&self)));
+        for property in s_ref.properties.values() {
+            property.check_parent(ASTNodeExpressionParent::ObjectLiteral(Rc::downgrade(self)));
         }
     }
 }

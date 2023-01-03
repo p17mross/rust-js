@@ -34,7 +34,7 @@ impl CheckParent for Rc<RefCell<ASTNodeLetExpression>> {
         if s_ref.parent != p {
             panic!("Incorrect parent on let expression at {}:{}", s_ref.location.line, s_ref.location.column)
         }
-        s_ref.lhs.check_parent(ASTNodePatternParent::LetExpression(Rc::downgrade(&self)));
-        s_ref.rhs.check_parent(ASTNodeExpressionParent::LetExpression(Rc::downgrade(&self)));
+        s_ref.lhs.check_parent(ASTNodePatternParent::LetExpression(Rc::downgrade(self)));
+        s_ref.rhs.check_parent(ASTNodeExpressionParent::LetExpression(Rc::downgrade(self)));
     }
 }

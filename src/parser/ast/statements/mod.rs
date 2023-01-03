@@ -94,13 +94,15 @@ impl From<ASTNodeExpressionParent> for ASTNodeStatementParent {
             ASTNodeExpressionParent::Block(b) => Self::Block(b),
             ASTNodeExpressionParent::Unset => Self::Unset,
 
-            ASTNodeExpressionParent::LetExpression(_) => panic!("Statement cannot be a child of a let expression"),
-            ASTNodeExpressionParent::UnaryOperator(_) => panic!("Statement cannot be a child of a unary operator"),
-            ASTNodeExpressionParent::BinaryOperator(_) => panic!("Statement cannot be a child of a binary operator"),
-            ASTNodeExpressionParent::ObjectLiteral(_) => panic!("Statement cannot be a child of an object literal"),
             ASTNodeExpressionParent::ArrayLiteral(_) => panic!("Statement cannot be a child of an array literal"),
-            ASTNodeExpressionParent::PropertyLookup(_) => panic!("Statement cannot be a child of a property lookup"),
+            ASTNodeExpressionParent::BinaryOperator(_) => panic!("Statement cannot be a child of a binary operator"),
+            ASTNodeExpressionParent::FunctionCall(_) => panic!("Statement cannot be a child of a function call"),
+            ASTNodeExpressionParent::FunctionCallArgs(_) => panic!("Statement cannot be a child of function call args"),
             ASTNodeExpressionParent::Grouping(_) => panic!("Statement cannot be a child of a grouping"),
+            ASTNodeExpressionParent::LetExpression(_) => panic!("Statement cannot be a child of a let expression"),
+            ASTNodeExpressionParent::ObjectLiteral(_) => panic!("Statement cannot be a child of an object literal"),
+            ASTNodeExpressionParent::PropertyLookup(_) => panic!("Statement cannot be a child of a property lookup"),
+            ASTNodeExpressionParent::UnaryOperator(_) => panic!("Statement cannot be a child of a unary operator"),
         }
     }
 }
@@ -186,7 +188,7 @@ impl CheckParent for ASTNodeStatement {
         match self {
             ASTNodeStatement::Block(b) => b.check_parent(p.into()),
             ASTNodeStatement::Expression(e) => e.check_parent(p.into()),
-            ASTNodeStatement::LetExpression(l) => l.check_parent(p.into())
+            ASTNodeStatement::LetExpression(l) => l.check_parent(p)
         }
     }
 }
@@ -202,15 +204,15 @@ impl CheckParent for Rc<RefCell<ASTNodePattern>> {
         match &s_ref.target {
             ASTNodePatternType::ArrayDestructure { items, spread } => {
                 for item in items {
-                    item.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(&self)));
+                    item.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(self)));
                 }
                 if let Some(spread) = spread {
-                    spread.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(&self)));
+                    spread.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(self)));
                 }
             }
             ASTNodePatternType::ObjectDestructure(keys) => {
-                for (_, pattern) in keys {
-                    pattern.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(&self)));
+                for pattern in keys.values() {
+                    pattern.check_parent(ASTNodePatternParent::Pattern(Rc::downgrade(self)));
                 }
             }
             ASTNodePatternType::Variable(_) => ()

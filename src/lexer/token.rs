@@ -9,7 +9,7 @@ pub enum ValueLiteral {
     BigInt(BigInt),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 /// An enum for all arithmetic assignment operators
 pub(crate) enum AssignmentOperator {
     /// `+=`
@@ -44,15 +44,15 @@ pub(crate) enum AssignmentOperator {
     NullishCoalescing,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// An enum for all operators which take two arguments by value
 pub enum BinaryOperator {
 
     // Arithmetic operators
 
-    /// '+'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
+    /// '+'. This is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
     Addition,
-    /// '-'. this is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
+    /// '-'. This is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
     Subtraction,
 
     /// `*`
@@ -107,6 +107,8 @@ pub enum BinaryOperator {
 
     /// '??'
     NullishCoalescing,
+    /// ','
+    Comma,
 
     // Keyword operators
     /// 'in'
@@ -213,10 +215,8 @@ impl TokenType {
             Self::OpenSquareBracket => "[",
             Self::CloseSquareBracket => "]",
 
-            Self::OperatorAddition => "+",
-            Self::OperatorSubtraction => "-",
-            Self::BinaryOperator(BinaryOperator::Addition) => "+",
-            Self::BinaryOperator(BinaryOperator::Subtraction) => "-",
+            Self::OperatorAddition | Self::BinaryOperator(BinaryOperator::Addition) => "+",
+            Self::OperatorSubtraction | Self::BinaryOperator(BinaryOperator::Subtraction) => "-",
             Self::BinaryOperator(BinaryOperator::Multiplication) => "*",
             Self::BinaryOperator(BinaryOperator::Division) => "/",
             Self::BinaryOperator(BinaryOperator::Remainder) => "%",
@@ -263,6 +263,7 @@ impl TokenType {
             Self::BinaryOperator(BinaryOperator::LessThanOrEqual) => "<=",
 
             Self::BinaryOperator(BinaryOperator::NullishCoalescing) => "??",
+            Self::BinaryOperator(BinaryOperator::Comma) => ",",
 
             Self::BinaryOperator(BinaryOperator::In) => "in",
             Self::BinaryOperator(BinaryOperator::InstanceOf) => "instanceof",
@@ -271,7 +272,6 @@ impl TokenType {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct Token {
     pub location: ProgramLocation,
     pub token_type: TokenType

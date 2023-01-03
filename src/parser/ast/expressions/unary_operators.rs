@@ -5,18 +5,21 @@ use std::fmt::Debug;
 use super::*;
 
 #[derive(Debug)]
-pub enum UnaryOperatorType {
+pub enum UnaryOperator {
     Plus,
     Minus,
     LogicalNot,
     BitwiseNot,
+    Await,
+    TypeOf,
+    Void,
 }
 
 pub struct ASTNodeUnaryOperator {
     pub location: ProgramLocation,
     pub parent: ASTNodeExpressionParent,
 
-    pub operator_type: UnaryOperatorType,
+    pub operator_type: UnaryOperator,
     pub expression: ASTNodeExpression,
 }
 
@@ -48,6 +51,6 @@ impl CheckParent for Rc<RefCell<ASTNodeUnaryOperator>> {
             panic!("Incorrect parent on unary operator {:?} at {}:{}", s_ref.operator_type, s_ref.location.line, s_ref.location.column);
         }
 
-        s_ref.expression.check_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(&self)))
+        s_ref.expression.check_parent(ASTNodeExpressionParent::UnaryOperator(Rc::downgrade(self)))
     }
 }

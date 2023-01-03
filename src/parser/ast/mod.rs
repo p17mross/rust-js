@@ -85,6 +85,6 @@ impl CheckParent for Rc<RefCell<ASTNodeProgram>> {
     fn check_parent(&self, _: Self::Parent) {
         let s_ref = self.borrow();
         
-        s_ref.block.check_parent(ASTNodeBlockParent::Program(Rc::downgrade(&self)));
+        s_ref.block.check_parent(ASTNodeBlockParent::Program(Rc::downgrade(self)));
     }
 }

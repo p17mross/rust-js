@@ -57,8 +57,8 @@ impl CheckParent for Rc<RefCell<ASTNodeArrayLiteral>> {
 
         for item in &s_ref.items {
             match item {
-                ASTNodeArrayItem::Item(i) => i.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(&self))),
-                ASTNodeArrayItem::Spread(s) => s.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(&self))),
+                ASTNodeArrayItem::Item(i) => i.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(self))),
+                ASTNodeArrayItem::Spread(s) => s.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(self))),
             }
         }
     }

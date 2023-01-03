@@ -38,6 +38,6 @@ impl CheckParent for Rc<RefCell<ASTNodePropertyLookup>> {
         if s_ref.parent != p {
             panic!("Incorrect parent on property lookup at {}:{}", s_ref.location.line, s_ref.location.column);
         }
-        s_ref.lhs.check_parent(ASTNodeExpressionParent::PropertyLookup(Rc::downgrade(&self)));
+        s_ref.lhs.check_parent(ASTNodeExpressionParent::PropertyLookup(Rc::downgrade(self)));
     }
 }
