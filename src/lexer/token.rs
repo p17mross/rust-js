@@ -117,6 +117,7 @@ pub enum BinaryOperator {
     InstanceOf,
 }
 
+// TODO: maybe box identifier + valueliteral variants to reduce size of enum
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TokenType {
     //Special tokens
@@ -125,8 +126,6 @@ pub(crate) enum TokenType {
     Identifier(String),
     /// `;`
     Semicolon,
-    /// A new line
-    NewLine,
     /// `,`
     Comma,
     /// `.`
@@ -144,18 +143,18 @@ pub(crate) enum TokenType {
 
     // Brackets and braces
 
-    /// `(`
-    OpenParen,
-    /// `)`
-    CloseParen,
-    /// `{`
-    OpenBrace,
-    /// `}`
-    CloseBrace,
-    /// `[`
-    OpenSquareBracket,
-    /// `]`
-    CloseSquareBracket,
+    /// `(`. usize is matching [CloseParen](TokenType::CloseParen)
+    OpenParen(usize),
+    /// `)`. usize is matching [OpenParen](TokenType::OpenParen)
+    CloseParen(usize),
+    /// `{`. usize is matching [CloseBrace](TokenType::CloseBrace)
+    OpenBrace(usize),
+    /// `}`. usize is matching [OpenBrace](TokenType::OpenBrace)
+    CloseBrace(usize),
+    /// `[`. usize is matching [CloseSquareBracket](TokenType::CloseSquareBracket)
+    OpenSquareBracket(usize),
+    /// `]`. usize is matching [OpenSquareBracket](TokenType::OpenSquareBracket)
+    CloseSquareBracket(usize),
 
     // This is not in BinaryOperator as let, var, and const declarations treat it differently to other assignment operators
     /// `=`
@@ -199,7 +198,6 @@ impl TokenType {
             Self::ValueLiteral(_) => "value literal",
 
             Self::Semicolon => ";",
-            Self::NewLine => "newline",
             Self::Comma => ",",
             Self::OperatorDot => ".",
             Self::OperatorQuestionMark => "?",
@@ -208,12 +206,12 @@ impl TokenType {
             Self::OperatorSpread => "...",
             Self::OperatorFatArrow => "=>",
 
-            Self::OpenParen => "(",
-            Self::CloseParen => ")",
-            Self::OpenBrace => "{",
-            Self::CloseBrace => "}",
-            Self::OpenSquareBracket => "[",
-            Self::CloseSquareBracket => "]",
+            Self::OpenParen(_) => "(",
+            Self::CloseParen(_) => ")",
+            Self::OpenBrace(_) => "{",
+            Self::CloseBrace(_) => "}",
+            Self::OpenSquareBracket(_) => "[",
+            Self::CloseSquareBracket(_) => "]",
 
             Self::OperatorAddition | Self::BinaryOperator(BinaryOperator::Addition) => "+",
             Self::OperatorSubtraction | Self::BinaryOperator(BinaryOperator::Subtraction) => "-",
@@ -274,28 +272,24 @@ impl TokenType {
 #[derive(Debug, Clone)]
 pub(crate) struct Token {
     pub location: ProgramLocation,
-    pub token_type: TokenType
+    pub token_type: TokenType,
+    pub newline_after: bool,
 }
 
 impl Token {
     #[inline]
     pub const fn new(program: Gc<Program>, line: usize, line_index: usize, token_start: usize, t: TokenType) -> Token {
-        Token { location: ProgramLocation {program, line, column: token_start - line_index + 1, index: token_start}, token_type: t }
+        Token { location: ProgramLocation {program, line, column: token_start - line_index + 1, index: token_start}, token_type: t, newline_after: false}
     }
 }
 
 /// A map of strings to operators
-pub(crate) const OPERATORS: [(&str, TokenType); 55] = [
-    ("(",    TokenType::OpenParen),
-    (")",    TokenType::CloseParen),
-    ("[",    TokenType::OpenSquareBracket),
-    ("]",    TokenType::CloseSquareBracket),
-    ("{",    TokenType::OpenBrace),
-    ("}",    TokenType::CloseBrace),
+pub(crate) const OPERATORS: [(&str, TokenType); 50] = [
 
-    ("...",  TokenType::OperatorSpread),
+("...",  TokenType::OperatorSpread),
 
     (",",    TokenType::Comma),
+    ("?.",   TokenType::OperatorOptionalChaining),
     (".",    TokenType::OperatorDot),
     (";",    TokenType::Semicolon),
     ("=>",   TokenType::OperatorFatArrow),

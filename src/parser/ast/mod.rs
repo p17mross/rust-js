@@ -36,15 +36,12 @@ impl ASTNodeProgram {
                 index: 0 
             }, 
             statements: vec![],
-            parent: ASTNodeBlockParent::Unset,
         }));
 
         let s = Rc::new(RefCell::new(Self {
             program,
             block: block.clone()
         }));
-        
-        block.borrow_mut().parent = ASTNodeBlockParent::Program(Rc::downgrade(&s));
 
         s
     }
@@ -72,19 +69,5 @@ impl ASTNodeProgram {
         let mut s = format!("Program from {}\n", self.program.borrow().source);
         s += &self.block.borrow().to_tree();
         s
-    }
-}
-
-pub trait CheckParent {
-    type Parent;
-    fn check_parent(&self, p: Self::Parent);
-}
-
-impl CheckParent for Rc<RefCell<ASTNodeProgram>> {
-    type Parent = ();
-    fn check_parent(&self, _: Self::Parent) {
-        let s_ref = self.borrow();
-        
-        s_ref.block.check_parent(ASTNodeBlockParent::Program(Rc::downgrade(self)));
     }
 }

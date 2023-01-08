@@ -2,8 +2,6 @@ use std::{env, path::PathBuf};
 
 use js::engine::Program;
 
-use js::parser::ast::CheckParent;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
 
@@ -43,9 +41,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let ast = program.borrow().ast.clone().unwrap();
 
     println!("{}", ast.borrow().to_tree());
-    
-    // Check that the parents are correct
-    ast.check_parent(());
 
     // TODO: run the code
 

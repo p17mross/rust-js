@@ -92,7 +92,7 @@ impl Program {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 /// Represents a line:column position in a program
 pub struct ProgramLocation {
     /// The source of the program
@@ -103,4 +103,10 @@ pub struct ProgramLocation {
     pub column: usize,
     /// The index into [Program]::program
     pub index: usize,
+}
+
+impl Debug for ProgramLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{}:{} in {}", self.line, self.column, self.program.borrow().source))
+    }
 }

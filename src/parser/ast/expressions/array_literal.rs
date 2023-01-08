@@ -8,22 +8,11 @@ pub enum ASTNodeArrayItem {
     Spread(ASTNodeExpression),
 }
 
+#[derive(Debug)]
 pub struct ASTNodeArrayLiteral {
     pub location: ProgramLocation,
-    pub parent: ASTNodeExpressionParent,
 
     pub items: Vec<ASTNodeArrayItem>
-}
-
-impl Debug for ASTNodeArrayLiteral {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "ASTNodeArrayLiteral at {}:{} {{items: {:?}}}",
-            self.location.line,
-            self.location.column,
-            self.items
-        ))
-    }
 }
 
 impl ASTNodeArrayItem {
@@ -44,22 +33,5 @@ impl ASTNodeArrayLiteral {
         }
 
         s
-    }
-}
-
-impl CheckParent for Rc<RefCell<ASTNodeArrayLiteral>> {
-    type Parent = ASTNodeExpressionParent;
-    fn check_parent(&self, p: Self::Parent) {
-        let s_ref = self.borrow();
-        if s_ref.parent != p {
-            panic!("Incorrect parent on array literal at {}:{}", s_ref.location.line, s_ref.location.column);
-        }
-
-        for item in &s_ref.items {
-            match item {
-                ASTNodeArrayItem::Item(i) => i.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(self))),
-                ASTNodeArrayItem::Spread(s) => s.check_parent(ASTNodeExpressionParent::ArrayLiteral(Rc::downgrade(self))),
-            }
-        }
     }
 }

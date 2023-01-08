@@ -4,22 +4,11 @@ use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+#[derive(Debug)]
 pub struct ASTNodeObjectLiteral {
     pub location: ProgramLocation,
-    pub parent: ASTNodeExpressionParent,
 
     pub properties: HashMap<String, ASTNodeExpression>
-}
-
-impl Debug for ASTNodeObjectLiteral {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "ASTNodeObjectLiteral at {}:{} {{properties: {:?}}}",
-            self.location.line,
-            self.location.column,
-            self.properties
-        ))
-    }
 }
 
 impl ASTNodeObjectLiteral {
@@ -31,19 +20,5 @@ impl ASTNodeObjectLiteral {
         }
 
         s
-    }
-}
-
-impl CheckParent for Rc<RefCell<ASTNodeObjectLiteral>> {
-    type Parent = ASTNodeExpressionParent;
-    fn check_parent(&self, p: Self::Parent) {
-        let s_ref = self.borrow();
-        if s_ref.parent != p {
-            panic!("Incorrect parent on object literal at {}:{}", s_ref.location.line, s_ref.location.column);
-        }
-
-        for property in s_ref.properties.values() {
-            property.check_parent(ASTNodeExpressionParent::ObjectLiteral(Rc::downgrade(self)));
-        }
     }
 }

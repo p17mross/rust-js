@@ -1,47 +1,34 @@
-use std::{rc::{Weak, Rc}, cell::RefCell, fmt::Debug};
+use std::{rc::Rc, cell::RefCell};
 
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+#[derive(Debug)]
 pub struct ASTNodeFunctionCall {
     pub location: ProgramLocation,
-    pub parent: ASTNodeExpressionParent,
 
     pub function: ASTNodeExpression,
-    pub args: Rc<RefCell<ASTNodeFunctionCallArgs>>
+    pub args: Rc<RefCell<ASTNodeFunctionCallArgs>>,
+
+    /// Whether the function call is optionally chained e.g. 'a?.(b)'
+    pub optional: bool,
 }
 
+#[derive(Debug)]
+pub struct ASTNodeNew {
+    pub location: ProgramLocation,
+
+    pub function: ASTNodeExpression,
+    pub args: Option<Rc<RefCell<ASTNodeFunctionCallArgs>>>,
+}
+
+#[derive(Debug)]
 pub struct ASTNodeFunctionCallArgs {
     pub location: ProgramLocation,
-    pub parent: Weak<RefCell<ASTNodeFunctionCall>>,
 
     pub args: Vec<ASTNodeExpression>,
     pub rest: Option<ASTNodeExpression>,
-}
-
-impl Debug for ASTNodeFunctionCall {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "ASTNodeFunctionCall at {}:{}: {{function: {:?}, args: {:?}}}",
-            self.location.line,
-            self.location.column,
-            self.function,
-            self.args
-        ))
-    }
-}
-
-impl Debug for ASTNodeFunctionCallArgs {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "ASTNodeFunctionCallArgs at {}:{}: {{args: {:?}, rest: {:?}}}",
-            self.location.line,
-            self.location.column,
-            self.args,
-            self.rest
-        ))
-    }
 }
 
 impl ASTNodeFunctionCall {
@@ -49,6 +36,18 @@ impl ASTNodeFunctionCall {
         let mut s = format!("Function call at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
         s += &format!("|-args: {}", self.args.borrow().to_tree().indent_tree());
+        s
+    }
+}
+
+impl ASTNodeNew {
+    pub fn to_tree(&self) -> String {
+        let mut s = format!("New at {}:{}\n", self.location.line, self.location.column);
+        s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
+        s += &format!("|-args: {}", match &self.args {
+            Some(a) => a.borrow().to_tree().indent_tree(),
+            None => "[]".to_string()
+        });
         s
     }
 }
@@ -65,28 +64,5 @@ impl ASTNodeFunctionCallArgs {
         
         s
 
-    }
-}
-
-impl CheckParent for Rc<RefCell<ASTNodeFunctionCall>> {
-    type Parent = ASTNodeExpressionParent;
-    fn check_parent(&self, p: Self::Parent) {
-        let s_ref = self.borrow();
-        if s_ref.parent != p {
-            panic!("Incorrect parent on function call at {}:{}", s_ref.location.line, s_ref.location.column)
-        }
-
-        s_ref.function.check_parent(ASTNodeExpressionParent::FunctionCall(Rc::downgrade(self)));
-        s_ref.args.check_parent(Rc::downgrade(self));
-    }
-}
-
-impl CheckParent for Rc<RefCell<ASTNodeFunctionCallArgs>> {
-    type Parent = Weak<RefCell<ASTNodeFunctionCall>>;
-    fn check_parent(&self, p: Self::Parent) {
-        let s_ref = self.borrow();
-        if !s_ref.parent.ptr_eq(&p) {
-            panic!("Incorrect parent on function call args at {}:{}", s_ref.location.line, s_ref.location.column)
-        }
     }
 }

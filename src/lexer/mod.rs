@@ -28,6 +28,10 @@ pub enum LexErrorType {
     MissingDigits(NumberLiteralBase),
     /// When an invalid unicode occurs outside of a string
     InvalidChar(char),
+    /// When brackets are incorrectly matched
+    MismatchedBracket,
+    /// Unclosed Bracket
+    UnclosedBracket
 }
 
 
@@ -36,9 +40,11 @@ impl Display for LexErrorType {
         match self {
             Self::UnclosedString(c) => f.write_fmt(format_args!("{c}{c} literal not terminated before end of script")),
             Self::NewlineInString(c) => f.write_fmt(format_args!("{c}{c} literal contains an unescaped line break")),
-            Self::IdentifierAfterNumber => f.write_str("identifier starts immediately after numeric literal"),
-            Self::MissingDigits(n) => f.write_fmt(format_args!("missing {} digits after '{}'", n.get_name(), n.get_start())),
-            Self::InvalidChar(c) => f.write_fmt(format_args!("illegal character U+{:x}", *c as u32))
+            Self::IdentifierAfterNumber => f.write_str("Identifier starts immediately after numeric literal"),
+            Self::MissingDigits(n) => f.write_fmt(format_args!("Missing {} digits after '{}'", n.get_name(), n.get_start())),
+            Self::InvalidChar(c) => f.write_fmt(format_args!("Illegal character U+{:x}", *c as u32)),
+            Self::MismatchedBracket => f.write_str("Mismatched bracket"),
+            Self::UnclosedBracket => f.write_str("Unclosed bracket")
         }
     }
 }
@@ -72,6 +78,14 @@ impl Lexer {
     pub(crate) fn lex(p: Gc<Program>) -> Result<Vec<Token>, LexError> {
         // Stores the tokens
         let mut tokens: Vec<Token> = vec![];
+
+        enum Bracket {
+            Paren(usize),
+            Brace(usize),
+            SquareBracket(usize)
+        }
+
+        let mut brackets = vec![];
 
         let p_ref = p.borrow();
 
@@ -260,7 +274,9 @@ impl Lexer {
 
                 // Newline
                 '\n' => {
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::NewLine));
+                    if let Some(t) = tokens.last_mut() {
+                        t.newline_after = true;
+                    }
                     i += 1;
                     line += 1;
                     line_index = i;
@@ -306,6 +322,55 @@ impl Lexer {
                     }
                 }
 
+                // Open brackets
+                '(' => {
+                    brackets.push(Bracket::Paren(tokens.len()));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenParen(0)));
+                    i += 1;
+                }
+                '{' => {
+                    brackets.push(Bracket::Brace(tokens.len()));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenBrace(0)));
+                    i += 1;
+                }
+                '[' => {
+                    brackets.push(Bracket::SquareBracket(tokens.len()));
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenSquareBracket(0)));
+                    i += 1;
+                }
+
+                // Close brackets
+                ')' => {
+                    let Some(Bracket::Paren(open_index)) = brackets.pop() else {
+                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    };
+                    let close_index = tokens.len();
+                    let Token{token_type: TokenType::OpenParen(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenParen")};
+                    *u = close_index;
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseParen(open_index)));
+                    i += 1;
+                }
+                '}' => {
+                    let Some(Bracket::Brace(open_index)) = brackets.pop() else {
+                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    };
+                    let close_index = tokens.len();
+                    let Token{token_type: TokenType::OpenBrace(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenBrace")};
+                    *u = close_index;
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseBrace(open_index)));
+                    i += 1;
+                }
+                ']' => {
+                    let Some(Bracket::SquareBracket(open_index)) = brackets.pop() else {
+                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    };
+                    let close_index = tokens.len();
+                    let Token{token_type: TokenType::OpenSquareBracket(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenSquareBracket")};
+                    *u = close_index;
+                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseSquareBracket(open_index)));
+                    i += 1;
+                }
+
                 // An identifier
                 c if is_identifier_start(c) => {
                     'chars_in_identifer: loop {
@@ -320,7 +385,7 @@ impl Lexer {
 
                     tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::Identifier(ident)));
                 }
-            
+
                 // Any other character: should be an operator
                 c => {
                     'test_operators: for (operator, operator_token) in OPERATORS {
@@ -336,6 +401,19 @@ impl Lexer {
                 }
             }
         }
+
+        // After this loop, there should be no more items on the bracket stack
+        // Return an error if brackets.pop() returns Some
+        if let Some(b) = brackets.pop() {
+            let open_index = match b {
+                Bracket::Paren(i) => i,
+                Bracket::Brace(i) => i,
+                Bracket::SquareBracket(i) => i,
+            };
+            let location = tokens[open_index].location.clone();
+            return Err(LexError { location, error_type: LexErrorType::UnclosedBracket });
+        }
+
         Ok(tokens)
     }
 }

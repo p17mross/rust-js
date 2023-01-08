@@ -3,7 +3,7 @@ mod operator_precedence;
 
 use std::{fmt::Display, rc::Rc, cell::RefCell};
 
-use crate::{lexer::{Token, TokenType, token::{BinaryOperator, AssignmentOperator}}, engine::{Gc, program::ProgramLocation, Program}};
+use crate::{lexer::{Token, TokenType, token::ValueLiteral}, engine::{Gc, program::ProgramLocation, Program}, parser::operator_precedence::precedences};
 
 use self::ast::*;
 
@@ -11,8 +11,6 @@ use self::ast::*;
 /// All the types of errors that can occur during parsing
 pub enum ParseErrorType {
     UnexpectedToken{found: &'static str, expected: Option<&'static str>},
-    UnmatchedBrace,
-    UnmatchedParen,
     UnexpectedEOF,
     ExpectedExpression{found: Option<&'static str>},
 
@@ -33,11 +31,11 @@ impl Display for ParseErrorType {
                 None => f.write_fmt(format_args!("Expected expression")),
                 Some(found) => f.write_fmt(format_args!("Expected expression, found '{found}'"))
             },
-            Self::UnmatchedBrace => f.write_str("Unmatched brace"),
-            Self::UnmatchedParen => f.write_str("Unmatched paren"),
         }
     }
 }
+
+impl std::error::Error for ParseErrorType {}
 
 #[derive(Debug, Clone)]
 /// An error that occurs during parsing.
@@ -61,13 +59,6 @@ pub struct Parser {
     i: usize,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum EndDelimiterRequirement {
-    Require,
-    Permit,
-    Forbid,
-}
-
 impl Parser {
 
     fn get_location(&self) -> ProgramLocation {
@@ -80,10 +71,9 @@ impl Parser {
         t
     }
 
-    /// Consumes any [TokenType::NewLine] and [TokenType::Semicolon] tokens
+    /// Consumes any [TokenType::Semicolon] tokens
     fn next_statement(&mut self) {
-        while let Some(   Token { location:_, token_type:TokenType::NewLine } 
-                        | Token {location: _, token_type:TokenType::Semicolon}
+        while let Some(Token {token_type:TokenType::Semicolon, ..}
             ) = self.tokens.get(self.i) {
             self.i += 1;
         }
@@ -118,13 +108,12 @@ impl Parser {
                 // Just a variable
                 TokenType::Identifier(i) => Ok(Some(Rc::new(RefCell::new(ASTNodePattern {
                     location: t.location.clone(), 
-                    parent: ASTNodePatternParent::Unset,
                     target: ASTNodePatternType::Variable(i.clone())
                 })))),
                 // Array destructure
-                TokenType::OpenSquareBracket => todo!("Array destructure"),
+                TokenType::OpenSquareBracket(_) => todo!("Array destructure"),
                 // Object destructure
-                TokenType::OpenBrace => todo!("Object destructure"),
+                TokenType::OpenBrace(_) => todo!("Object destructure"),
                 
                 _ => Ok(None),
             }
@@ -148,53 +137,49 @@ impl Parser {
             None => Err(self.get_error(ParseErrorType::UnexpectedEOF)),
             Some(t) => match &t.token_type {
                 // Bracketed expression
-                // TODO: this could also be an arrow function
-                TokenType::OpenParen => {
+                TokenType::OpenParen(close_index) => {
                     let t = t.clone();
-                    let e = self.parse_expression(EndDelimiterRequirement::Permit, true)?;
+                    let close_index = close_index.clone();
 
-                    let Some(Token{location:_, token_type:TokenType::CloseParen}) = self.get_token() else {
-                        return Err(self.get_error(ParseErrorType::UnmatchedParen))
-                    };
+                    let e = self.parse_expression(0)?;
 
-                    let g = ASTNodeExpression::Grouping(Rc::new_cyclic(|p|{
-                        e.set_parent(ASTNodeExpressionParent::Grouping(p.clone()));
+                    assert_eq!(close_index, self.i);
+                    self.i += 1;
+
+                    let g = ASTNodeExpression::Grouping(Rc::new(
                         RefCell::new(ASTNodeGrouping {
                             location: t.location.clone(),
-                            parent: ASTNodeExpressionParent::Unset,
                             expression: e
                         })
-                    }));
+                    ));
 
                     Ok(g)
                 },
 
                 // Close paren
                 // This is always a syntax error as if this will only occur with an empty set of parens
-                TokenType::CloseParen => {
+                TokenType::CloseParen(_) => {
                     Err(self.get_error(ParseErrorType::ExpectedExpression { found: Some(")") }))
                 },
 
                 // Object literal
                 // This cannot be a block as they are not allowed inside expressions
-                TokenType::OpenBrace => Ok(ASTNodeExpression::ObjectLiteral(self.parse_object_literal()?)),
+                TokenType::OpenBrace(_) => Ok(ASTNodeExpression::ObjectLiteral(self.parse_object_literal()?)),
 
                 // Array literal
-                TokenType::OpenSquareBracket => Ok(ASTNodeExpression::ArrayLiteral(self.parse_array_literal()?)),
+                TokenType::OpenSquareBracket(_) => Ok(ASTNodeExpression::ArrayLiteral(self.parse_array_literal()?)),
 
                 // Variable
                 // TODO: error on reserved words
                 // TODO: this could be a function expression
                 TokenType::Identifier(i) => Ok(ASTNodeExpression::Variable(Rc::new(RefCell::new(ASTNodeVariable{
                     location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
                     identifier: i.clone()
                 })))),
 
                 // Value literal
                 TokenType::ValueLiteral(v) => Ok(ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(ASTNodeValueLiteral {
                     location: t.location.clone(),
-                    parent: ASTNodeExpressionParent::Unset,
                     value: v.clone()
                 })))),
                 
@@ -206,232 +191,199 @@ impl Parser {
         }
     }
 
-    fn parse_expression(&mut self, end_paren: EndDelimiterRequirement, allow_comma_operator: bool) -> Result<ASTNodeExpression, ParseError> {
-        #[derive(Debug)]
-        enum OperatorOrValue {
-            Value(ASTNodeExpression),
-            Assignment(ProgramLocation),
-            ComputationAssignment(AssignmentOperator, ProgramLocation),
-            BinaryOperator(BinaryOperator, ProgramLocation),
-            UnaryOperator(UnaryOperator, ProgramLocation),
-            PropertyLookup(String, ProgramLocation),
-            OptionalChainedLookup(String, ProgramLocation),
-            Prefix(PreOrPostfixOperatorType, ProgramLocation),
-            Postfix(PreOrPostfixOperatorType, ProgramLocation),
-            
-        }
-        impl OperatorOrValue {
-            fn is_operator(&self) -> bool {
-                match self {
-                    Self::Value(_) => false,
-                    Self::Assignment(_) => true,
-                    Self::ComputationAssignment(_, _) => true,
-                    Self::BinaryOperator(_, _) => true,
-                    Self::UnaryOperator(_, _) => true,
-                    // In the contexts where this is used, a value of false is useful as the last item was a value
-                    Self::PropertyLookup(_, _) => false,
-                    Self::OptionalChainedLookup(_, _) => false,
+    fn parse_expression(&mut self, precedence: usize) -> Result<ASTNodeExpression, ParseError> {
 
-                    Self::Prefix(_, _) => false,
-                    Self::Postfix(_, _) => true,
+        match precedence {
+            // Base case - just return a value
+            precedences::GROUPING =>  {
+                self.parse_value()
+            }
+            // Precedence of '.', '?.', '[...]', new with argument list, function call
+            precedences::MEMBER_ACCESS | precedences::NEW_WITHOUT_ARGUMENT_LIST => {
+                // Stores the locations of 'new' operators
+                // This disambiguates between a function call and new with argument list
+                let mut new_stack = vec![];
+                // Consume all 'new' tokens
+                'init_new_stack: loop {
+                    // Get a token
+                    let Some(t) = self.get_token() else {
+                        return Err(self.get_error(ParseErrorType::UnexpectedEOF));
+                    };
+                    // If it's not an identifier, break the loop
+                    let Token {token_type: TokenType::Identifier(i), location, ..} = t else {
+                        break 'init_new_stack;
+                    };
+                    // If it's not 'new', break the loop
+                    if i != "new" {
+                        break 'init_new_stack;
+                    }
+                    new_stack.push(location.clone());
                 }
-            }
 
-            fn is_value(&self) -> bool {
-                !self.is_operator()
-            }
-        }
+                // Don't consume the token which broke the loop
+                self.i -= 1;
 
-        let mut items = Vec::new();
-
-        let mut newline_last_loop = false;
-        let mut newline_this_line = false;
-
-        'parse_items: loop {
-            match self.get_token() {
-                None => match end_paren {
-                    EndDelimiterRequirement::Require => return Err(self.get_error(ParseErrorType::UnmatchedParen)),
-                    _ => break 'parse_items
-                },
-
-                Some(t) => match &t.token_type {
-                    // Break on close brace, close square bracket, or semicolon, and don't consume it
-                    TokenType::CloseBrace | TokenType::CloseSquareBracket | TokenType::Semicolon => match end_paren {
-                        EndDelimiterRequirement::Require => return Err(self.get_error(ParseErrorType::UnmatchedParen)),
-                        _ => {
-                            self.i -= 1;
-                            break 'parse_items;
-                        }
-                    },
-                    // Close paren - handle based on end_paren
-                    TokenType::CloseParen => match end_paren {
-                        EndDelimiterRequirement::Forbid => return Err(self.get_error(ParseErrorType::UnexpectedToken { found: ")", expected: None })),
-                        EndDelimiterRequirement::Require => break 'parse_items,
-                        EndDelimiterRequirement::Permit => {
-                            self.i -= 1;
-                            break 'parse_items;
-                        }
-                    },
-                    
-                    TokenType::ValueLiteral(v) => items.push(
-                        OperatorOrValue::Value (
-                            ASTNodeExpression::ValueLiteral (
-                                Rc::new(RefCell::new(ASTNodeValueLiteral {
-                                    location: t.location.clone(),
-                                    parent: ASTNodeExpressionParent::Unset,
-                                    value: v.clone()
-                                }))
-                            )
-                        )
-                    ),
-                    TokenType::Identifier(i) => items.push(
-                        OperatorOrValue::Value (
-                            ASTNodeExpression::Variable (
-                                Rc::new(RefCell::new(ASTNodeVariable {
-                                    location: t.location.clone(),
-                                    parent: ASTNodeExpressionParent::Unset,
-                                    identifier: i.clone()
-                                }))
-                            )
-                        )
-                    ),
-                    
-
-                    TokenType::Assignment(a) => items.push(OperatorOrValue::ComputationAssignment(*a, t.location.clone())),
-                    TokenType::BinaryOperator(b) => items.push(OperatorOrValue::BinaryOperator(*b, t.location.clone())),
-                    TokenType::Comma => if allow_comma_operator {
-                        items.push(OperatorOrValue::BinaryOperator(BinaryOperator::Comma, t.location.clone()))
-                    } else {
-                        self.i -= 1;
-                        break 'parse_items;
-                    },
-
-
-
-                    // Remember newlines to deal with semicolon insertion
-                    TokenType::NewLine => newline_this_line = true,
-                    // An open paren could be an expression in parens or it could be a function call
-                    TokenType::OpenParen => match items.last() {
-                        // Function call
-                        Some(o) if o.is_value() => {
-                            let t = t.clone();
-                            let OperatorOrValue::Value(v) = items.pop().unwrap() else {panic!()};
-                            let args = self.parse_function_args()?;
-                            
-                            let f = Rc::new_cyclic(|p| {
-                                args.borrow_mut().parent = p.clone();
-                                RefCell::new(ASTNodeFunctionCall {
-                                    location: t.location,
-                                    parent: ASTNodeExpressionParent::Unset,
-                                    function: v,
-                                    args
-                                })
-                            });
-
-                            items.push(OperatorOrValue::Value(ASTNodeExpression::FunctionCall(f)))
-                        },
-
-                        // Parenthesised expression
-                        _ => items.push(OperatorOrValue::Value(self.parse_expression(EndDelimiterRequirement::Require, true)?)),
-                    },
-                    
-                    TokenType::OperatorDot => {
-                        let Some(t) = self.get_token() else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                        };
-                        let t_type = t.token_type.clone();
-                        let Token { location, token_type: TokenType::Identifier(i) } = t else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedToken { found: t_type.to_str(), expected: Some("identifier") }))
-                        };
-                        items.push(OperatorOrValue::PropertyLookup(i.clone(), location.clone()));
-                    },
-
-                    TokenType::OperatorOptionalChaining => {
-                        let Some(t) = self.get_token() else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                        };
-                        let t_type = t.token_type.clone();
-                        let Token { location, token_type: TokenType::Identifier(i) } = t else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedToken { found: t_type.to_str(), expected: Some("identifier") }))
-                        };
-                        items.push(OperatorOrValue::OptionalChainedLookup(i.clone(), location.clone()));
-                    },
-
-                    TokenType::OperatorSpread => return Err(self.get_error(ParseErrorType::ExpectedExpression { found: Some("...") })),
-
-                    TokenType::OpenBrace => items.push(OperatorOrValue::Value(ASTNodeExpression::ObjectLiteral(self.parse_object_literal()?))),
-                    TokenType::OpenSquareBracket => items.push(OperatorOrValue::Value(ASTNodeExpression::ArrayLiteral(self.parse_array_literal()?))),
-                    
-                    TokenType::OperatorAssignment => items.push(OperatorOrValue::Assignment(t.location.clone())),
-                    
-                    // Could be binary or unary
-                    TokenType::OperatorAddition => {
-                        match items.last() {
-                            // Binary operator
-                            Some(o) if o.is_value() => {
-                                items.push(OperatorOrValue::UnaryOperator(UnaryOperator::Plus, t.location.clone()))
+                let mut val = self.parse_expression(precedences::GROUPING)?;
+                'parse_tokens: loop {
+                    match self.get_token() {
+                        None => break 'parse_tokens,
+                        Some(t) => match &t.token_type {
+                            // Property lookup
+                            TokenType::OperatorDot => {
+                                let t_location = t.location.clone();
+                                let Some(i) = self.get_token() else {
+                                    return Err(self.get_error(ParseErrorType::UnexpectedEOF))
+                                };
+                                let i = i.clone();
+                                // '.' is always followed by an identifier
+                                let Token{token_type:TokenType::Identifier(i), location: i_location, newline_after: _} = i else {
+                                    let found = i.token_type.to_str();
+                                    return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
+                                };
+                                val = ASTNodeExpression::PropertyLookup(Rc::new(
+                                    RefCell::new(ASTNodePropertyLookup {
+                                        location: t_location,
+                                        lhs: val,
+                                        rhs: ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(
+                                            ASTNodeValueLiteral {
+                                                location: i_location,
+                                                value: ValueLiteral::String(i.clone())
+                                            }
+                                        ))),
+                                        optional: false
+                                    })
+                                ));
                             }
-                            // Unary operator
-                            _ => {
-                                items.push(OperatorOrValue::BinaryOperator(BinaryOperator::Addition, t.location.clone()))
-                            },
-                        }
-                    },
-                    TokenType::OperatorSubtraction => {
-                        match items.last() {
-                            // Binary operator
-                            Some(o) if o.is_value() => {
-                                items.push(OperatorOrValue::UnaryOperator(UnaryOperator::Minus, t.location.clone()))
-                            }
-                            // Unary operator
-                            _ => {
-                                items.push(OperatorOrValue::BinaryOperator(BinaryOperator::Subtraction, t.location.clone()))
-                            },
-                        }
-                    },
-                    
-                    // Could be prefix or postfix
-                    TokenType::OperatorIncrement => {
-                        match items.last() {
-                            // Postfix
-                            Some(o) if o.is_value() => {
-                                items.push(OperatorOrValue::Postfix(PreOrPostfixOperatorType::Addition, t.location.clone()))
-                            }
-                            // Prefix
-                            _ => {
-                                items.push(OperatorOrValue::Prefix(PreOrPostfixOperatorType::Addition, t.location.clone()))
-                            },
-                        }
-                    },
-                    TokenType::OperatorDecrement => {
-                        match items.last() {
-                            // Postfix
-                            Some(o) if o.is_value() => {
-                                items.push(OperatorOrValue::Postfix(PreOrPostfixOperatorType::Subtraction, t.location.clone()))
-                            }
-                            // Prefix
-                            _ => {
-                                items.push(OperatorOrValue::Prefix(PreOrPostfixOperatorType::Subtraction, t.location.clone()))
-                            },
-                        }
-                    },
+                            // Optional chaining
+                            TokenType::OperatorOptionalChaining => {
+                                let t_location = t.location.clone();
+                                let Some(i) = self.get_token() else {
+                                    return Err(self.get_error(ParseErrorType::UnexpectedEOF))
+                                };
+                                let i = i.clone();
 
-                    TokenType::OperatorLogicalNot => items.push(OperatorOrValue::UnaryOperator(UnaryOperator::LogicalNot, t.location.clone())),
-                    TokenType::OperatorBitwiseNot => items.push(OperatorOrValue::UnaryOperator(UnaryOperator::BitwiseNot, t.location.clone())),
+                                let i_location = i.location.clone();
 
-                    TokenType::OperatorFatArrow => todo!("Arrow functions"),
-                    TokenType::OperatorQuestionMark => todo!("Ternary operator"),
-                    TokenType::OperatorColon => todo!("Ternary operator"),
+                                let rhs = match i.token_type {
 
-                    
-                    //token_type => todo!("Token in expression: {:?}", token_type)
+                                    // Optional chained function call 'a?.()'
+                                    TokenType::OpenParen(_) => {
+                                        let args = self.parse_function_args()?;
+                                        val = ASTNodeExpression::FunctionCall(Rc::new(
+                                            RefCell::new(ASTNodeFunctionCall {
+                                                location: i_location,
+                                                function: val,
+                                                args,
+                                                optional: true,
+                                            })
+                                        ));
+                                        continue 'parse_tokens;
+                                    }
+
+                                    // Property lookup 'a?.b'
+                                    TokenType::Identifier(id) => ASTNodeExpression::ValueLiteral(Rc::new(RefCell::new(
+                                        ASTNodeValueLiteral {
+                                            location: i_location,
+                                            value: ValueLiteral::String(id.clone())
+                                        }
+                                    ))),
+                                    // Computed property lookup 'a?.["b"]'
+                                    TokenType::OpenSquareBracket(i) => {
+                                        let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
+                                        
+                                        // Check that the end square bracket is the right one
+                                        assert_eq!(i, self.i);
+                                        self.i += 1;
+                                        
+                                        e
+                                    }
+                                    _ => return Err(self.get_error(ParseErrorType::UnexpectedToken { found: i.token_type.to_str(), expected: Some("identifier, '[', or '('") }))
+                                };
+
+
+                                val = ASTNodeExpression::PropertyLookup(Rc::new(
+                                    RefCell::new(ASTNodePropertyLookup {
+                                        location: t_location,
+                                        lhs: val,
+                                        rhs,
+                                        optional: true
+                                    })
+                                ));
+                            }
+                            // Computed member access
+                            TokenType::OpenSquareBracket(i) => {
+                                let t = t.clone();
+                                let i = i.clone();
+                                let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
+                                
+                                // Check that the end square bracket is the right one
+                                assert_eq!(i, self.i);
+                                self.i += 1;
+
+                                val = ASTNodeExpression::PropertyLookup(Rc::new(
+                                    RefCell::new(ASTNodePropertyLookup{
+                                        location: t.location,
+
+                                        lhs: val,
+                                        rhs: e,
+                                        optional: false,
+                                    })
+                                ));
+                            }
+                            // Function call or arguments to 'new'
+                            TokenType::OpenParen(_) => {
+                                let t = t.clone();
+                                let args = self.parse_function_args()?;
+
+                                if let Some(location) = new_stack.pop() {
+                                    val = ASTNodeExpression::FunctionCall(Rc::new(
+                                        RefCell::new(ASTNodeFunctionCall { 
+                                            location,
+                                            function: val,
+                                            args,
+                                            optional: false
+                                        })
+                                    ));
+                                }
+                                else {
+                                    let location = t.location.clone();
+                                    val = ASTNodeExpression::FunctionCall(Rc::new(
+                                        RefCell::new(ASTNodeFunctionCall { 
+                                            location,
+                                            function: val,
+                                            args,
+                                            optional: false
+                                        })
+                                    ));
+                                }
+                            }
+                        
+                            // Anything else gets passed back up
+                            _ => {
+                                self.i -= 1;
+                                break 'parse_tokens;
+                            }
+                        }
+                    }
                 }
+
+                for location in new_stack.into_iter().rev() {
+                    val = ASTNodeExpression::New(Rc::new(RefCell::new(ASTNodeNew {
+                        location,
+                        function: val,
+                        args: None
+                    })))
+                }
+
+                Ok(val)
             }
+
+            precedences::ANY_EXPRESSION..=precedences::GROUPING => {self.parse_expression(precedence + 1)}
+
+            _ => panic!("Precedence too high")
+
         }
 
-        dbg!(items);
-
-        todo!()
     }
 
     fn parse_let_expression(&mut self) -> Result<Option<Rc<RefCell<ASTNodeLetExpression>>>, ParseError> {
@@ -454,18 +406,15 @@ impl Parser {
             return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
         };
 
-        let value = self.parse_expression(EndDelimiterRequirement::Forbid, false)?;
+        let value = self.parse_expression(0)?;
 
-        let l = Rc::new_cyclic(|p|{
-            pattern.borrow_mut().parent = ASTNodePatternParent::LetExpression(p.clone());
-            value.set_parent(ASTNodeExpressionParent::LetExpression(p.clone()));
+        let l = Rc::new(
             RefCell::new(ASTNodeLetExpression {
                 location,
-                parent: ASTNodeStatementParent::Unset,
                 lhs: pattern,
                 rhs: value,
             })
-        });
+        );
 
         // Consume semicolon or newline
         self.get_token();
@@ -475,17 +424,18 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Option<ASTNodeStatement>, ParseError> {
         match self.get_token() {
-            None => Ok(None),
+            None => Err(self.get_error(ParseErrorType::UnexpectedEOF)),
             Some(t) => {
-                // If found end brace, return
-                if t.token_type == TokenType::CloseBrace {
-                    self.i -= 1;
-                    return Ok(None)
-                }
 
                 // Parse block
-                if t.token_type == TokenType::OpenBrace {
-                    return Ok(Some(ASTNodeStatement::Block(self.parse_block(EndDelimiterRequirement::Require)?)));
+                if let TokenType::OpenBrace(close_index) = t.token_type  {
+                    let b = self.parse_statements()?;
+
+                    // Make sure the end of the block was reached
+                    assert_eq!(close_index, self.i);
+                    self.i += 1;
+
+                    return Ok(Some(ASTNodeStatement::Block(b)));
                 }
 
                 // TODO: remove once more token types are implemented
@@ -499,6 +449,11 @@ impl Parser {
                                 return Ok(Some(ASTNodeStatement::LetExpression(s)));
                             }
                         },
+                        "var" => todo!(),
+                        "if" => todo!(),
+                        "while" => todo!(),
+                        "for" => todo!(),
+                        "function" => todo!(),
 
                         _ => ()
                     }
@@ -510,10 +465,9 @@ impl Parser {
         }
     }
 
-    fn parse_block(&mut self, end_brace: EndDelimiterRequirement) -> Result<Rc<RefCell<ASTNodeBlock>>, ParseError> {
+    fn parse_statements(&mut self) -> Result<Rc<RefCell<ASTNodeBlock>>, ParseError> {
         let block = Rc::new(RefCell::new(ASTNodeBlock {
             location: self.get_location(),
-            parent: ASTNodeBlockParent::Unset,
 
             statements: vec![]
         }));
@@ -523,16 +477,16 @@ impl Parser {
         'statements: loop {
             self.next_statement();
 
+            if self.i == self.tokens.len() {
+                break 'statements;
+            }
+
             let statement = self.parse_statement()?;
 
-            let Some(mut statement) = statement else {
-                // If end of file reached without closing brace
-                if self.get_token().is_none() && end_brace == EndDelimiterRequirement::Require {
-                    return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                }
+            let Some(statement) = statement else {
                 break 'statements;
             };
-            statement.set_parent(ASTNodeStatementParent::Block(Rc::downgrade(&block)));
+
             block_ref.statements.push(statement);
         }
 
@@ -546,15 +500,12 @@ impl Parser {
             i: 0,
         };
 
-        let block = s.parse_block(EndDelimiterRequirement::Forbid)?;
-        let mut block_ref = block.borrow_mut();
+        let block = s.parse_statements()?;
 
         let parsed_program = Rc::new(RefCell::new(ASTNodeProgram {
             program,
             block: block.clone(),
         }));
-
-        block_ref.parent = ASTNodeBlockParent::Program(Rc::downgrade(&parsed_program));
 
         Ok(parsed_program)
     }
