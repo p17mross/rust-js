@@ -6,6 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num = "*"
-unicode-id-start = "*"
-uid = "*"
+num = "*" # Provides BigInt type
+unicode-id-start = "*" # Provides functions to test whether a char can be in an identifier
+uid = "*" # Provides unique IDs used in GC - TODO: check whether still needed after GC is fully implemented
