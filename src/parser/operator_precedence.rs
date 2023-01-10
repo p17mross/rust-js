@@ -10,6 +10,7 @@ pub(crate) mod precedences {
     pub const COMPUTED_MEMBER_ACCESS: usize = 17;
     pub const NEW_WITH_ARGUMENT_LIST: usize = 17;
     pub const FUNCTION_CALL: usize = 17;
+    pub const ASSIGNMENT_TARGET: usize = 17;
 
     pub const NEW_WITHOUT_ARGUMENT_LIST: usize = 16;
 

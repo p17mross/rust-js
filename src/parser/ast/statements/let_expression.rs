@@ -1,5 +1,3 @@
-use std::{rc::Rc, cell::RefCell};
-
 use crate::{engine::program::ProgramLocation};
 
 use super::*;
@@ -8,7 +6,7 @@ use super::*;
 pub struct ASTNodeLetExpression {
     pub location: ProgramLocation,
 
-    pub lhs: Rc<RefCell<ASTNodePattern>>,
+    pub lhs: ASTNodePattern,
     pub rhs: ASTNodeExpression,
 }
 
@@ -16,7 +14,7 @@ pub struct ASTNodeLetExpression {
 impl ASTNodeLetExpression {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Let expression at {}:{}\n", self.location.line, self.location.column);
-        s += &format!("|-lhs: {}\n", self.lhs.borrow().to_tree().indent_tree());
+        s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
         s
     }

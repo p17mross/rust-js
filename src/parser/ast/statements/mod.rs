@@ -32,16 +32,16 @@ pub struct ASTNodePattern {
 #[derive(Debug)]
 pub enum ASTNodeStatement {
     Expression(ASTNodeExpression),
-    Block(Rc<RefCell<ASTNodeBlock>>),
-    LetExpression(Rc<RefCell<ASTNodeLetExpression>>),
+    Block(Box<ASTNodeBlock>),
+    LetExpression(Box<ASTNodeLetExpression>),
 }
 
 impl ASTNodeStatement {
     pub fn get_location(&self) -> ProgramLocation {
         match self {
             ASTNodeStatement::Expression(e) => e.get_location(),
-            ASTNodeStatement::Block(b) => b.borrow().location.clone(),
-            ASTNodeStatement::LetExpression(l) => l.borrow().location.clone(),
+            ASTNodeStatement::Block(b) => b.location.clone(),
+            ASTNodeStatement::LetExpression(l) => l.location.clone(),
         }
     }
 }
@@ -74,8 +74,8 @@ impl ASTNodePattern {
 impl ASTNodeStatement {
     pub fn to_tree(&self) -> String {
         match self {
-            Self::Block(n) => n.borrow().to_tree(),
-            Self::LetExpression(n) => n.borrow().to_tree(),
+            Self::Block(n) => n.to_tree(),
+            Self::LetExpression(n) => n.to_tree(),
             Self::Expression(e) => e.to_tree(),
         }
     }

@@ -9,6 +9,12 @@ pub struct ASTNodeValueLiteral {
 
 impl ASTNodeValueLiteral {
     pub fn to_tree(&self) -> String {
-        format!("String Literal at {}:{}: {:?}", self.location.line, self.location.column, self.value)
+        let v = match &self.value {
+            ValueLiteral::BigInt(b) => format!("BigInt literal {b}"),
+            ValueLiteral::Number(n) => format!("Number literal {n}"),
+            ValueLiteral::String(s) => format!("String literal \"{s}\""),
+        };
+
+        format!("Value Literal at {}:{}: {v}", self.location.line, self.location.column)
     }
 }

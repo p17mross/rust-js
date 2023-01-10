@@ -33,7 +33,7 @@ pub struct Program {
     /// The text of the program.
     /// Stored as a [Vec<char>] rather than [String] for easier indexing.
     pub program: Vec<char>,
-    pub ast: Option<Rc<RefCell<ASTNodeProgram>>>,
+    pub ast: Option<ASTNodeProgram>,
 }
 
 impl Debug for Program {
@@ -50,7 +50,7 @@ impl GarbageCollectable for Program {
     fn get_children(&self) -> Vec<GarbageCollectionId> {
         match &self.ast {
             None => vec![],
-            Some(a) => a.borrow().get_children()
+            Some(a) => a.get_children()
         }
     }
 }

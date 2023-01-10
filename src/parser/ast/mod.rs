@@ -4,20 +4,18 @@ mod statements;
 pub use expressions::*;
 pub use statements::*;
 
-use std::{rc::Rc, cell::RefCell, fmt::Debug};
+use std::fmt::Debug;
 use crate::engine::{Gc, Program, garbagecollection::GarbageCollectable, program::ProgramLocation};
 
 // Format for ASTNode files: 
 // 1) Struct/enum definitions
-// 2) Impls on these types (e.g. get_parent())
-// 3) Trait impls on these types (e.g. Debug, From)
-// 4) to_tree() impls
-// 5) check_parent() impls
+// 2) Trait impls on these types (e.g. Debug, From)
+// 3) to_tree() impls
 
 
 pub struct ASTNodeProgram {
     pub program: Gc<Program>,
-    pub block: Rc<RefCell<ASTNodeBlock>>,
+    pub block: ASTNodeBlock,
 }
 
 impl GarbageCollectable for ASTNodeProgram {
@@ -27,23 +25,19 @@ impl GarbageCollectable for ASTNodeProgram {
 }
 
 impl ASTNodeProgram {
-    pub fn new(program: Gc<Program>) -> Rc<RefCell<Self>> {
-        let block = Rc::new(RefCell::new(ASTNodeBlock {
-            location: ProgramLocation { 
-                program: program.clone(),
-                line: 0, 
-                column: 0, 
-                index: 0 
-            }, 
-            statements: vec![],
-        }));
-
-        let s = Rc::new(RefCell::new(Self {
-            program,
-            block: block.clone()
-        }));
-
-        s
+    pub fn new(program: Gc<Program>) -> Self {
+        Self {
+            program: program.clone(),
+            block: ASTNodeBlock {
+                location: ProgramLocation { 
+                    program: program.clone(),
+                    line: 0, 
+                    column: 0, 
+                    index: 0 
+                }, 
+                statements: vec![],
+            },
+        }
     }
 }
 
@@ -67,7 +61,7 @@ impl StringExtTreeIndent for String {
 impl ASTNodeProgram {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Program from {}\n", self.program.borrow().source);
-        s += &self.block.borrow().to_tree();
+        s += &self.block.to_tree();
         s
     }
 }

@@ -9,7 +9,7 @@ pub struct ASTNodeFunctionCall {
     pub location: ProgramLocation,
 
     pub function: ASTNodeExpression,
-    pub args: Rc<RefCell<ASTNodeFunctionCallArgs>>,
+    pub args: Vec<FunctionCallArgument>,
 
     /// Whether the function call is optionally chained e.g. 'a?.(b)'
     pub optional: bool,
@@ -20,22 +20,30 @@ pub struct ASTNodeNew {
     pub location: ProgramLocation,
 
     pub function: ASTNodeExpression,
-    pub args: Option<Rc<RefCell<ASTNodeFunctionCallArgs>>>,
+    pub args: Vec<FunctionCallArgument>,
 }
 
 #[derive(Debug)]
-pub struct ASTNodeFunctionCallArgs {
-    pub location: ProgramLocation,
+pub struct FunctionCallArgument {
+    location: ProgramLocation,
 
-    pub args: Vec<ASTNodeExpression>,
-    pub rest: Option<ASTNodeExpression>,
+    expression: ASTNodeExpression,
+    spread: bool,
 }
 
 impl ASTNodeFunctionCall {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Function call at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
-        s += &format!("|-args: {}", self.args.borrow().to_tree().indent_tree());
+
+        if self.args.len() == 0 {
+            s += "|-no args";
+        } else {
+            s += "|-args: ";
+            for arg in &self.args {
+                s += &format!("|-{}", arg.to_tree().indent_tree());
+            }
+        }
         s
     }
 }
@@ -44,25 +52,27 @@ impl ASTNodeNew {
     pub fn to_tree(&self) -> String {
         let mut s = format!("New at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
-        s += &format!("|-args: {}", match &self.args {
-            Some(a) => a.borrow().to_tree().indent_tree(),
-            None => "[]".to_string()
-        });
+
+        if self.args.len() == 0 {
+            s += "|-no args";
+        } else {
+            s += "|-args: ";
+            for arg in &self.args {
+                s += &format!("|-{}", arg.to_tree().indent_tree());
+            }
+        }
+
         s
     }
 }
 
-impl ASTNodeFunctionCallArgs {
+impl FunctionCallArgument {
     pub fn to_tree(&self) -> String {
-        let mut s = format!("Function call at {}:{}\n", self.location.line, self.location.column);
-        for (i, arg) in self.args.iter().enumerate() {
-            s += &format!("|-args[{i}]: {}\n", arg.to_tree().indent_tree());
-        }
-        if let Some(rest) = &self.rest {
-            s += &format!("|-rest: {}", rest.to_tree().indent_tree());
-        }
-        
-        s
-
+        let self_description = if self.spread {
+            format!("Spread at {}:{} from: ", self.location.line, self.location.column)
+        } else {
+            "".to_string()
+        };
+        format!("{}: {}", self_description, self.expression.to_tree())
     }
 }

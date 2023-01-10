@@ -5,7 +5,7 @@ mod object_literal;
 mod property_lookup;
 mod unary_operators;
 mod value_literals;
-mod pre_and_postfix;
+mod update_expression;
 mod assignment;
 
 pub use array_literal::*;
@@ -15,34 +15,25 @@ pub use object_literal::*;
 pub use property_lookup::*;
 pub use unary_operators::*;
 pub use value_literals::*;
-pub use pre_and_postfix::*;
+pub use update_expression::*;
 pub use assignment::*;
-
-use std::{rc::Rc, cell::RefCell};
 
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
-#[derive(Debug, Clone)]
-pub enum ASTNodeExpression {
-    ArrayLiteral(Rc<RefCell<ASTNodeArrayLiteral>>),
-    BinaryOperator(Rc<RefCell<ASTNodeBinaryOperator>>),
-    FunctionCall(Rc<RefCell<ASTNodeFunctionCall>>),
-    Grouping(Rc<RefCell<ASTNodeGrouping>>),
-    New(Rc<RefCell<ASTNodeNew>>),
-    ObjectLiteral(Rc<RefCell<ASTNodeObjectLiteral>>),
-    PropertyLookup(Rc<RefCell<ASTNodePropertyLookup>>),
-    UnaryOperator(Rc<RefCell<ASTNodeUnaryOperator>>),
-    ValueLiteral(Rc<RefCell<ASTNodeValueLiteral>>),
-    Variable(Rc<RefCell<ASTNodeVariable>>),
-}
-
 #[derive(Debug)]
-pub struct ASTNodeGrouping{
-    pub location: ProgramLocation,
-
-    pub expression: ASTNodeExpression,
+pub enum ASTNodeExpression {
+    ArrayLiteral(Box<ASTNodeArrayLiteral>),
+    BinaryOperator(Box<ASTNodeBinaryOperator>),
+    FunctionCall(Box<ASTNodeFunctionCall>),
+    New(Box<ASTNodeNew>),
+    ObjectLiteral(Box<ASTNodeObjectLiteral>),
+    PropertyLookup(Box<ASTNodePropertyLookup>),
+    UnaryOperator(Box<ASTNodeUnaryOperator>),
+    UpdateExpression(Box<ASTNodeUpdateExpression>),
+    ValueLiteral(Box<ASTNodeValueLiteral>),
+    Variable(Box<ASTNodeVariable>),
 }
 
 #[derive(Debug)]
@@ -56,38 +47,34 @@ pub struct ASTNodeVariable {
 impl ASTNodeExpression {
     pub fn get_location(&self) -> ProgramLocation {
         match self {
-            Self::ArrayLiteral(a) => a.borrow().location.clone(),
-            Self::BinaryOperator(b) => b.borrow().location.clone(),
-            Self::FunctionCall(f) => f.borrow().location.clone(),
-            Self::Grouping(g) => g.borrow().location.clone(),
-            Self::New(n) => n.borrow().location.clone(),
-            Self::ObjectLiteral(o) => o.borrow().location.clone(),
-            Self::PropertyLookup(l) => l.borrow().location.clone(),
-            Self::UnaryOperator(u) => u.borrow().location.clone(),
-            Self::ValueLiteral(v) => v.borrow().location.clone(),
-            Self::Variable(v) => v.borrow().location.clone(),
+            Self::ArrayLiteral(a) => a.location.clone(),
+            Self::BinaryOperator(b) => b.location.clone(),
+            Self::FunctionCall(f) => f.location.clone(),
+            Self::New(n) => n.location.clone(),
+            Self::ObjectLiteral(o) => o.location.clone(),
+            Self::PropertyLookup(l) => l.location.clone(),
+            Self::UnaryOperator(u) => u.location.clone(),
+            Self::UpdateExpression(u) => u.location.clone(),
+            Self::ValueLiteral(v) => v.location.clone(),
+            Self::Variable(v) => v.location.clone(),
         }
     }
 
     pub fn get_type(&self) -> String {
         match self {
             Self::ArrayLiteral(_) => "Array literal".to_string(),
-            Self::BinaryOperator(b) => format!("Binary operator {:?}", b.borrow().operator_type),
+            Self::BinaryOperator(b) => format!("Binary operator {:?}", b.operator_type),
             Self::FunctionCall(_) => "Function call".to_string(),
-            Self::Grouping(_) => "Grouping".to_string(),
             Self::New(_) => "New".to_string(),
             Self::ObjectLiteral(_) => "Object literal".to_string(),
             Self::PropertyLookup(_) => "Property lookup".to_string(),
-            Self::UnaryOperator(u) => format!("Unary operator {:?}", u.borrow().operator_type),
+            Self::UnaryOperator(u) => format!("Unary operator {:?}", u.operator_type),
+            Self::UpdateExpression(u) => {
+                format!("{:?} {:?}", u.side, u.operator_type)
+            },
             Self::ValueLiteral(_) => "Value literal".to_string(),
             Self::Variable(_) => "Variable".to_string(),
         }
-    }
-}
-
-impl ASTNodeGrouping {
-    pub fn to_tree(&self) -> String {
-        format!("Grouping at {}:{}: {}", self.location.line, self.location.column, self.expression.to_tree())
     }
 }
 
@@ -100,16 +87,16 @@ impl ASTNodeVariable {
 impl ASTNodeExpression {
     pub fn to_tree(&self) -> String {
         match self {
-            Self::ArrayLiteral(a) => a.borrow().to_tree(),
-            Self::BinaryOperator(b) => b.borrow().to_tree(),
-            Self::FunctionCall(f) => f.borrow().to_tree(),
-            Self::Grouping(g) => g.borrow().to_tree(),
-            Self::New(n) => n.borrow().to_tree(),
-            Self::ObjectLiteral(o) => o.borrow().to_tree(),
-            Self::PropertyLookup(l) => l.borrow().to_tree(),
-            Self::UnaryOperator(u) => u.borrow().to_tree(),
-            Self::ValueLiteral(v) => v.borrow().to_tree(),
-            Self::Variable(v) => v.borrow().to_tree(),
+            Self::ArrayLiteral(a) => a.to_tree(),
+            Self::BinaryOperator(b) => b.to_tree(),
+            Self::FunctionCall(f) => f.to_tree(),
+            Self::New(n) => n.to_tree(),
+            Self::ObjectLiteral(o) => o.to_tree(),
+            Self::PropertyLookup(l) => l.to_tree(),
+            Self::UnaryOperator(u) => u.to_tree(),
+            Self::UpdateExpression(u) => u.to_tree(),
+            Self::ValueLiteral(v) => v.to_tree(),
+            Self::Variable(v) => v.to_tree(),
         }
     }
 }
