@@ -67,11 +67,23 @@ impl Parser {
         self.tokens.get(self.i).unwrap().location.clone()
     }
 
-    fn get_token(&mut self) -> Option<&Token> {
+    /// Gets a token from self.tokens and increments self.i.\
+    /// ### Returns:
+    /// * Ok(t) if self.i points inside self.tokens
+    /// * Err(UnexpectedEOF) if self.i points past the end of self.tokens
+    fn try_get_token(&mut self) -> Result<&Token, ParseError> {
         let t = self.tokens.get(self.i);
         // Don't increment i past the end of the list
-        if t.is_some() {self.i += 1;}
-        t
+        match t {
+            Some(t) => Ok(t),
+            None => Err(self.get_error(ParseErrorType::UnexpectedEOF))
+        }
+    }
+
+    /// Gets a token from self.tokens and increments self.i, and returns a reference to the token.\
+    /// Panics if self.i points past the end of self.tokens - for non-panicking situations use self.try_get_token instead.
+    fn get_token(&mut self) -> &Token {
+        self.try_get_token().expect("self.i should have pointed inside self.tokens")
     }
 
     /// Consumes any [TokenType::Semicolon] tokens\
@@ -111,27 +123,25 @@ impl Parser {
     }
 
     fn parse_pattern(&mut self) -> Result<ASTNodePattern, ParseError> {
-        match self.get_token() {
-            None => {
-                Err(self.get_error(ParseErrorType::UnexpectedEOF))
+        let t = self.try_get_token()?;
+
+        match &t.token_type {
+            // Just a variable
+            TokenType::Identifier(i) => Ok(ASTNodePattern {
+                location: t.location.clone(), 
+                target: ASTNodePatternType::Variable(i.clone())
+            }),
+            // Array destructure
+            TokenType::OpenSquareBracket(_) => todo!("Array destructure"),
+            // Object destructure
+            TokenType::OpenBrace(_) => todo!("Object destructure"),
+            
+            t => {
+                let t = t.clone();
+                Err(self.get_error(ParseErrorType::UnexpectedToken { found: t.to_str(), expected: Some("Pattern") }))
             },
-            Some(t) => match &t.token_type {
-                // Just a variable
-                TokenType::Identifier(i) => Ok(ASTNodePattern {
-                    location: t.location.clone(), 
-                    target: ASTNodePatternType::Variable(i.clone())
-                }),
-                // Array destructure
-                TokenType::OpenSquareBracket(_) => todo!("Array destructure"),
-                // Object destructure
-                TokenType::OpenBrace(_) => todo!("Object destructure"),
-                
-                t => {
-                    let t = t.clone();
-                    Err(self.get_error(ParseErrorType::UnexpectedToken { found: t.to_str(), expected: Some("Pattern") }))
-                },
-            }
         }
+        
     }
 
     fn parse_array_literal(&mut self) -> Result<ASTNodeArrayLiteral, ParseError> {
@@ -143,7 +153,7 @@ impl Parser {
     }
 
     fn parse_function_args(&mut self) -> Result<Vec<FunctionCallArgument>, ParseError> {
-        let t = self.get_token().expect("Unclosed bracket should have been caught in the lexer");
+        let t = self.get_token();
         match t.token_type {
             TokenType::CloseParen(_) => return Ok(vec![]),
             _ => todo!("Parsing function args")
@@ -151,54 +161,53 @@ impl Parser {
     }
 
     fn parse_value(&mut self) -> Result<ASTNodeExpression, ParseError> {
-        match self.get_token() {
-            None => Err(self.get_error(ParseErrorType::UnexpectedEOF)),
-            Some(t) => match &t.token_type {
-                // Bracketed expression
-                TokenType::OpenParen(close_index) => {
-                    let close_index = close_index.clone();
+        let t = self.try_get_token()?;
+        match &t.token_type {
+            // Bracketed expression
+            TokenType::OpenParen(close_index) => {
+                let close_index = close_index.clone();
 
-                    let e = self.parse_expression(0)?;
+                let e = self.parse_expression(0)?;
 
-                    assert_eq!(close_index, self.i);
-                    self.i += 1;
+                assert_eq!(close_index, self.i);
+                self.i += 1;
 
-                    Ok(e)
-                },
+                Ok(e)
+            },
 
-                // Close paren
-                // This is always a syntax error as if this will only occur with an empty set of parens
-                TokenType::CloseParen(_) => {
-                    Err(self.get_error(ParseErrorType::ExpectedExpression { found: Some(")") }))
-                },
+            // Close paren
+            // This is always a syntax error as if this will only occur with an empty set of parens
+            TokenType::CloseParen(_) => {
+                Err(self.get_error(ParseErrorType::ExpectedExpression { found: Some(")") }))
+            },
 
-                // Object literal
-                // This cannot be a block as they are not allowed inside expressions
-                TokenType::OpenBrace(_) => Ok(ASTNodeExpression::ObjectLiteral(Box::new(self.parse_object_literal()?))),
+            // Object literal
+            // This cannot be a block as they are not allowed inside expressions
+            TokenType::OpenBrace(_) => Ok(ASTNodeExpression::ObjectLiteral(Box::new(self.parse_object_literal()?))),
 
-                // Array literal
-                TokenType::OpenSquareBracket(_) => Ok(ASTNodeExpression::ArrayLiteral(Box::new(self.parse_array_literal()?))),
+            // Array literal
+            TokenType::OpenSquareBracket(_) => Ok(ASTNodeExpression::ArrayLiteral(Box::new(self.parse_array_literal()?))),
 
-                // Variable
-                // TODO: error on reserved words
-                // TODO: this could be a function expression
-                TokenType::Identifier(i) => Ok(ASTNodeExpression::Variable(Box::new(ASTNodeVariable{
-                    location: t.location.clone(),
-                    identifier: i.clone()
-                }))),
+            // Variable
+            // TODO: error on reserved words
+            // TODO: this could be a function expression
+            TokenType::Identifier(i) => Ok(ASTNodeExpression::Variable(Box::new(ASTNodeVariable{
+                location: t.location.clone(),
+                identifier: i.clone()
+            }))),
 
-                // Value literal
-                TokenType::ValueLiteral(v) => Ok(ASTNodeExpression::ValueLiteral(Box::new(ASTNodeValueLiteral {
-                    location: t.location.clone(),
-                    value: v.clone()
-                }))),
-                
-                _ => {
-                    let e = ParseErrorType::ExpectedExpression { found: Some(t.token_type.to_str()) };
-                    Err(self.get_error(e))
-                }
+            // Value literal
+            TokenType::ValueLiteral(v) => Ok(ASTNodeExpression::ValueLiteral(Box::new(ASTNodeValueLiteral {
+                location: t.location.clone(),
+                value: v.clone()
+            }))),
+            
+            _ => {
+                let e = ParseErrorType::ExpectedExpression { found: Some(t.token_type.to_str()) };
+                Err(self.get_error(e))
             }
         }
+        
     }
 
     /// Parses an expression with precedence 16 or 17.\
@@ -210,9 +219,7 @@ impl Parser {
         // Consume all 'new' tokens
         'init_new_stack: loop {
             // Get a token
-            let Some(t) = self.get_token() else {
-                return Err(self.get_error(ParseErrorType::UnexpectedEOF));
-            };
+            let t = self.try_get_token()?;
             // If it's not an identifier, break the loop
             let Token {token_type: TokenType::Identifier(i), location, ..} = t else {
                 break 'init_new_stack;
@@ -229,139 +236,134 @@ impl Parser {
 
         let mut val = self.parse_expression(precedences::GROUPING)?;
         'parse_tokens: loop {
-            match self.get_token() {
-                None => break 'parse_tokens,
-                Some(t) => match &t.token_type {
-                    // Property lookup
-                    TokenType::OperatorDot => {
-                        let t_location = t.location.clone();
-                        let Some(i) = self.get_token() else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                        };
-                        let i = i.clone();
-                        // '.' is always followed by an identifier
-                        let Token{token_type:TokenType::Identifier(i), location: i_location, newline_after: _} = i else {
-                            let found = i.token_type.to_str();
-                            return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
-                        };
-                        val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
-                                location: t_location,
-                                lhs: val,
-                                rhs: ASTNodeExpression::ValueLiteral(Box::new(
-                                    ASTNodeValueLiteral {
-                                        location: i_location,
-                                        value: ValueLiteral::String(i.clone())
-                                    }
-                                )),
+            let Ok(t) = self.try_get_token() else {break 'parse_tokens};
+            match &t.token_type {
+                // Property lookup
+                TokenType::OperatorDot => {
+                    let t_location = t.location.clone();
+                    let i = self.try_get_token()?;
+                    let i = i.clone();
+                    // '.' is always followed by an identifier
+                    let Token{token_type:TokenType::Identifier(i), location: i_location, newline_after: _} = i else {
+                        let found = i.token_type.to_str();
+                        return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
+                    };
+                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
+                            location: t_location,
+                            lhs: val,
+                            rhs: ASTNodeExpression::ValueLiteral(Box::new(
+                                ASTNodeValueLiteral {
+                                    location: i_location,
+                                    value: ValueLiteral::String(i.clone())
+                                }
+                            )),
+                            optional: false
+                        })
+                    );
+                }
+                // Optional chaining
+                TokenType::OperatorOptionalChaining => {
+                    let t_location = t.location.clone();
+                    let i = self.try_get_token()?;
+                    let i = i.clone();
+
+                    let i_location = i.location.clone();
+
+                    let rhs = match i.token_type {
+
+                        // Optional chained function call 'a?.()'
+                        TokenType::OpenParen(_) => {
+                            let args = self.parse_function_args()?;
+                            val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall {
+                                    location: i_location,
+                                    function: val,
+                                    args,
+                                    optional: true,
+                                }
+                            ));
+                            continue 'parse_tokens;
+                        }
+
+                        // Property lookup 'a?.b'
+                        TokenType::Identifier(id) => ASTNodeExpression::ValueLiteral(Box::new(
+                            ASTNodeValueLiteral {
+                                location: i_location,
+                                value: ValueLiteral::String(id.clone())
+                            }
+                        )),
+                        // Computed property lookup 'a?.["b"]'
+                        TokenType::OpenSquareBracket(i) => {
+                            let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
+                            
+                            // Check that the end square bracket is the right one
+                            assert_eq!(i, self.i);
+                            self.i += 1;
+                            
+                            e
+                        }
+                        _ => return Err(self.get_error(ParseErrorType::UnexpectedToken { found: i.token_type.to_str(), expected: Some("identifier, '[', or '('") }))
+                    };
+
+
+                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
+                            location: t_location,
+                            lhs: val,
+                            rhs,
+                            optional: true
+                        })
+                    );
+                }
+                // Computed member access
+                TokenType::OpenSquareBracket(i) => {
+                    let t = t.clone();
+                    let i = i.clone();
+                    let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
+                    
+                    // Check that the end square bracket is the right one
+                    assert_eq!(i, self.i);
+                    self.i += 1;
+
+                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup{
+                            location: t.location,
+
+                            lhs: val,
+                            rhs: e,
+                            optional: false,
+                        })
+                    );
+                }
+                // Function call or arguments to 'new'
+                TokenType::OpenParen(_) => {
+                    let t = t.clone();
+                    let args = self.parse_function_args()?;
+
+                    if let Some(location) = new_stack.pop() {
+                        val = ASTNodeExpression::New(Box::new(ASTNodeNew { 
+                                location,
+                                function: val,
+                                args,
+                            })
+                        );
+                    }
+                    else {
+                        let location = t.location.clone();
+                        val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall { 
+                                location,
+                                function: val,
+                                args,
                                 optional: false
                             })
                         );
                     }
-                    // Optional chaining
-                    TokenType::OperatorOptionalChaining => {
-                        let t_location = t.location.clone();
-                        let Some(i) = self.get_token() else {
-                            return Err(self.get_error(ParseErrorType::UnexpectedEOF))
-                        };
-                        let i = i.clone();
-
-                        let i_location = i.location.clone();
-
-                        let rhs = match i.token_type {
-
-                            // Optional chained function call 'a?.()'
-                            TokenType::OpenParen(_) => {
-                                let args = self.parse_function_args()?;
-                                val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall {
-                                        location: i_location,
-                                        function: val,
-                                        args,
-                                        optional: true,
-                                    }
-                                ));
-                                continue 'parse_tokens;
-                            }
-
-                            // Property lookup 'a?.b'
-                            TokenType::Identifier(id) => ASTNodeExpression::ValueLiteral(Box::new(
-                                ASTNodeValueLiteral {
-                                    location: i_location,
-                                    value: ValueLiteral::String(id.clone())
-                                }
-                            )),
-                            // Computed property lookup 'a?.["b"]'
-                            TokenType::OpenSquareBracket(i) => {
-                                let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
-                                
-                                // Check that the end square bracket is the right one
-                                assert_eq!(i, self.i);
-                                self.i += 1;
-                                
-                                e
-                            }
-                            _ => return Err(self.get_error(ParseErrorType::UnexpectedToken { found: i.token_type.to_str(), expected: Some("identifier, '[', or '('") }))
-                        };
-
-
-                        val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
-                                location: t_location,
-                                lhs: val,
-                                rhs,
-                                optional: true
-                            })
-                        );
-                    }
-                    // Computed member access
-                    TokenType::OpenSquareBracket(i) => {
-                        let t = t.clone();
-                        let i = i.clone();
-                        let e = self.parse_expression(precedences::ANY_EXPRESSION)?;
-                        
-                        // Check that the end square bracket is the right one
-                        assert_eq!(i, self.i);
-                        self.i += 1;
-
-                        val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup{
-                                location: t.location,
-
-                                lhs: val,
-                                rhs: e,
-                                optional: false,
-                            })
-                        );
-                    }
-                    // Function call or arguments to 'new'
-                    TokenType::OpenParen(_) => {
-                        let t = t.clone();
-                        let args = self.parse_function_args()?;
-
-                        if let Some(location) = new_stack.pop() {
-                            val = ASTNodeExpression::New(Box::new(ASTNodeNew { 
-                                    location,
-                                    function: val,
-                                    args,
-                                })
-                            );
-                        }
-                        else {
-                            let location = t.location.clone();
-                            val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall { 
-                                    location,
-                                    function: val,
-                                    args,
-                                    optional: false
-                                })
-                            );
-                        }
-                    }
-                
-                    // Anything else gets passed back up
-                    _ => {
-                        self.i -= 1;
-                        break 'parse_tokens;
-                    }
+                }
+            
+                // Anything else gets passed back up
+                _ => {
+                    self.i -= 1;
+                    break 'parse_tokens;
                 }
             }
+            
         }
 
         for location in new_stack.into_iter().rev() {
@@ -381,8 +383,8 @@ impl Parser {
     fn parse_postfix(&mut self) -> Result<ASTNodeExpression, ParseError> {
         let a = self.parse_expression(precedences::ASSIGNMENT_TARGET)?;
 
-        match self.get_token() {
-            Some(Token {token_type, location, ..}) if token_type == &TokenType::OperatorIncrement || token_type == &TokenType::OperatorDecrement => {
+        match self.try_get_token() {
+            Ok(Token {token_type, location, ..}) if token_type == &TokenType::OperatorIncrement || token_type == &TokenType::OperatorDecrement => {
                 let target = match a {
                     ASTNodeExpression::PropertyLookup(p) => UpdateExpressionTarget::Property(p),
                     ASTNodeExpression::Variable(v) => UpdateExpressionTarget::Variable(v),
@@ -446,9 +448,7 @@ impl Parser {
         let pattern = self.parse_pattern()?;
 
 
-        let Some(t) = self.get_token().cloned() else {
-            return Err(self.get_error(ParseErrorType::UnexpectedEOF));
-        };
+        let t = self.try_get_token().cloned()?;
 
         if t.token_type != TokenType::OperatorAssignment {
             return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
@@ -463,7 +463,7 @@ impl Parser {
         };
 
         // Consume semicolon or newline
-        self.get_token();
+        self.i += 1;
 
         Ok(l)
     }
@@ -477,68 +477,59 @@ impl Parser {
         
         dbg!(&self.tokens[self.i].location);
         
-        match self.get_token() {
-            None => Err(self.get_error(ParseErrorType::UnexpectedEOF)),
-            Some(t) => {
+        let t = self.try_get_token()?.clone();
 
-                let t = t.clone();
+        // Parse block
+        if let TokenType::OpenBrace(close_index) = t.token_type  {
+            let b = self.parse_statements()?;
 
-                // Parse block
-                if let TokenType::OpenBrace(close_index) = t.token_type  {
-                    let b = self.parse_statements()?;
+            // Make sure the end of the block was reached
+            assert_eq!(close_index, self.i);
+            self.i += 1;
 
-                    // Make sure the end of the block was reached
-                    assert_eq!(close_index, self.i);
-                    self.i += 1;
+            return Ok(Some(ASTNodeStatement::Block(Box::new(b))));
+        }
 
-                    return Ok(Some(ASTNodeStatement::Block(Box::new(b))));
-                }
+        if let TokenType::Identifier(i) = &t.token_type {
+            match i.as_str() {
+                // This could be a let declaration, but it can also be an expresion starting with the identifier 'let'
+                "let" => {
+                    match self.tokens.get(self.i) {
+                        // A let binding
+                        Some(Token {
+                            // With a token_type of:
+                            token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
+                            | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
+                            | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
+                        ) => (), // Don't do anything - just keep parsing as a let expression
 
-                // TODO: remove once more token types are implemented
-                let t_clone = t.token_type.clone();
-
-                if let TokenType::Identifier(i) = &t.token_type {
-                    match i.as_str() {
-                        // This could be a let declaration, but it can also be an expresion starting with the identifier 'let'
-                        "let" => {
-                            match self.tokens.get(self.i) {
-                                // A let binding
-                                Some(Token {
-                                    // With a token_type of:
-                                    token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
-                                    | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
-                                    | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
-                                ) => (), // Don't do anything - just keep parsing as a let expression
-
-                                // Anything else is just an expression
-                                _ => {
-                                    // Don't consume the 'let' token
-                                    self.i -= 1;
-                                    return Ok(None)
-                                },
-                            }
-
-                            return Ok(Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))));
+                        // Anything else is just an expression
+                        _ => {
+                            // Don't consume the 'let' token
+                            self.i -= 1;
+                            return Ok(None)
                         },
-                        "var" => todo!(),
-                        "if" => todo!(),
-                        "while" => todo!(),
-                        "for" => todo!(),
-                        "function" => todo!(),
-                        "do" => todo!(),
-
-                        _ => ()
                     }
-                }
 
-                dbg!(self.i);
+                    return Ok(Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))));
+                },
+                "var" => todo!(),
+                "if" => todo!(),
+                "while" => todo!(),
+                "for" => todo!(),
+                "function" => todo!(),
+                "do" => todo!(),
 
-                // No expression could be parsed - reset self.i and try to parse as an expression
-                self.i -= 1;
-                Ok(None)
-
+                _ => ()
             }
         }
+
+        dbg!(self.i);
+
+        // No expression could be parsed - reset self.i and try to parse as an expression
+        self.i -= 1;
+        Ok(None)
+
     }
 
     fn parse_statements(&mut self) -> Result<ASTNodeBlock, ParseError> {
