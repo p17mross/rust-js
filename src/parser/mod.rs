@@ -75,7 +75,10 @@ impl Parser {
         let t = self.tokens.get(self.i);
         // Don't increment i past the end of the list
         match t {
-            Some(t) => Ok(t),
+            Some(t) => {
+                self.i += 1;
+                Ok(t)
+            },
             None => Err(self.get_error(ParseErrorType::UnexpectedEOF))
         }
     }
@@ -404,10 +407,13 @@ impl Parser {
                     side: UpdateExpressionSide::Postfix,
                 })))
             },
-
-            _ => {
+            Ok(_) => {
                 // Don't consume the token if it's not an increment or decrement
                 self.i -= 1;
+                Ok(a)
+            }
+            Err(_) => {
+                // Don't decrement self.i as try_get_token won't hae incremented it
                 Ok(a)
             },
 
@@ -469,68 +475,79 @@ impl Parser {
     }
 
     /// Parses a statement, for example a let binding or an if statement.\
-    /// ### Returns:
-    /// * Ok(Some(...)) if a statement could be parsed successfully.\
-    /// * Ok(None) if no statement could be parsed, but it may be parseable as an expression instead.\
-    /// * Err(...) if an error is encountered while parsing.\
-    fn parse_statement(&mut self) -> Result<Option<ASTNodeStatement>, ParseError> {
-        
-        dbg!(&self.tokens[self.i].location);
-        
+    /// If the statement is an expression, it will be parsed in this function too.
+    fn parse_statement(&mut self) -> Result<ASTNodeStatement, ParseError> {
         let t = self.try_get_token()?.clone();
 
-        // Parse block
-        if let TokenType::OpenBrace(close_index) = t.token_type  {
-            let b = self.parse_statements()?;
+        // Some = successfully parsed statement
+        // None = try to parse expression
+        let statement = match t.token_type {
+            TokenType::OpenBrace(close_index) => {
+                let b = self.parse_statements()?;
+    
+                // Make sure the end of the block was reached
+                assert_eq!(close_index, self.i);
+                self.i += 1;
+    
+                Some(ASTNodeStatement::Block(Box::new(b)))
+            },
+            TokenType::Identifier(i) => {
+                match i.as_str() {
+                    // This could be a let declaration, but it can also be an expresion starting with the identifier 'let'
+                    "let" => {
+                        match self.tokens.get(self.i) {
+                            // A let binding
+                            Some(Token {
+                                // With a token_type of:
+                                token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
+                                | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
+                                | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
+                            ) => Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))), // Don't do anything - just keep parsing as a let expression
+    
+                            // Anything else is just an expression
+                            _ => None,
+                        }
+    
+                        
+                    },
+                    "var" => todo!(),
+                    "if" => todo!(),
+                    "while" => todo!(),
+                    "for" => todo!(),
+                    "function" => todo!(),
+                    "do" => todo!(),
+    
+                    _ => None
+                }
+            },
 
-            // Make sure the end of the block was reached
-            assert_eq!(close_index, self.i);
-            self.i += 1;
+            // No statement - parse as expression
+            _ => None
+        };
 
-            return Ok(Some(ASTNodeStatement::Block(Box::new(b))));
-        }
+        self.i -= 1;
 
-        if let TokenType::Identifier(i) = &t.token_type {
-            match i.as_str() {
-                // This could be a let declaration, but it can also be an expresion starting with the identifier 'let'
-                "let" => {
-                    match self.tokens.get(self.i) {
-                        // A let binding
-                        Some(Token {
-                            // With a token_type of:
-                            token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
-                            | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
-                            | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
-                        ) => (), // Don't do anything - just keep parsing as a let expression
+        // Get a statement either straight from Some or by parsing an expression if None
+        let statement = match statement {
+            Some(s) => s,
+            None => ASTNodeStatement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?),
+        };
 
-                        // Anything else is just an expression
-                        _ => {
-                            // Don't consume the 'let' token
-                            self.i -= 1;
-                            return Ok(None)
-                        },
-                    }
+        // Get last token of this statement and one after to parse semicolon insertion
+        let this_t = self.tokens.get(self.i - 1).expect("Should have been Some as this token was just parsed");
+        let next_t = self.tokens.get(self.i);
 
-                    return Ok(Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))));
-                },
-                "var" => todo!(),
-                "if" => todo!(),
-                "while" => todo!(),
-                "for" => todo!(),
-                "function" => todo!(),
-                "do" => todo!(),
-
-                _ => ()
+        // For this to be a valid statement, either the next token has to be a semicolon or this token has to have a newline after it
+        match next_t {
+            None => Ok(statement),
+            Some(next_t) => match next_t.token_type {
+                TokenType::Semicolon => Ok(statement),
+                _ if this_t.newline_after => Ok(statement),
+                _ => Err(self.get_error(ParseErrorType::UnexpectedToken { found: next_t.token_type.to_str(), expected: Some(";") }))
             }
         }
-
-        dbg!(self.i);
-
-        // No expression could be parsed - reset self.i and try to parse as an expression
-        self.i -= 1;
-        Ok(None)
-
     }
+
 
     fn parse_statements(&mut self) -> Result<ASTNodeBlock, ParseError> {
         let mut block = ASTNodeBlock {
@@ -540,19 +557,13 @@ impl Parser {
         };
 
         'statements: loop {
+            // Break on close brace or EOF
             let should_break = self.next_statement();
             if should_break {
                 break 'statements
             }
 
-            if self.i + 1 == self.tokens.len() {
-                break 'statements;
-            }
-
-            let statement = match self.parse_statement()? {
-                Some(s) => s,
-                None => ASTNodeStatement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?)   
-            };
+            let statement = self.parse_statement()?;
 
             block.statements.push(statement);
         }
