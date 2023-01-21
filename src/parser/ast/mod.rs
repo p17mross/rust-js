@@ -9,8 +9,9 @@ use crate::engine::{Gc, Program, garbagecollection::GarbageCollectable, program:
 
 // Format for ASTNode files: 
 // 1) Struct/enum definitions
-// 2) Trait impls on these types (e.g. Debug, From)
-// 3) to_tree() impls
+// 2) Method impls on types
+// 3) Trait impls on these types (e.g. Debug, From)
+// 4) to_tree() impls
 
 
 pub struct ASTNodeProgram {

@@ -6,13 +6,22 @@ use super::*;
 
 #[derive(Debug)]
 pub enum UnaryOperator {
+    /// A '+'
     Plus,
+    /// A '-'
     Minus,
+    /// A logical not ('!')
     LogicalNot,
+    /// A bitwise not ('~')
     BitwiseNot,
+    /// 'await'
     Await,
+    /// 'typeof'
     TypeOf,
+    /// 'void'
     Void,
+    /// 'delete' - which can actually take any expression, not just a property lookup
+    Delete,
 }
 
 #[derive(Debug)]

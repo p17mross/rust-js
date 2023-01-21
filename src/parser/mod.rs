@@ -395,8 +395,8 @@ impl Parser {
                 };
 
                 let operator_type = match token_type {
-                    TokenType::OperatorIncrement => UpdateExpressionOperatorType::Addition,
-                    TokenType::OperatorDecrement => UpdateExpressionOperatorType::Subtraction,
+                    TokenType::OperatorIncrement => UpdateExpressionOperatorType::Increment,
+                    TokenType::OperatorDecrement => UpdateExpressionOperatorType::Decrement,
                     _ => panic!("Expected only '++' or '--' token due to outer match expression"),
                 };
 
@@ -420,6 +420,65 @@ impl Parser {
         }
     }
 
+    /// Parses an expression with precedence 14.\
+    fn parse_unary_operator(&mut self) -> Result<ASTNodeExpression, ParseError> {
+        let t = self.try_get_token()?;
+        let location = t.location.clone();
+
+        let op = match &t.token_type {
+            TokenType::OperatorLogicalNot => Some(UnaryOperator::LogicalNot),
+            TokenType::OperatorBitwiseNot => Some(UnaryOperator::BitwiseNot),
+            TokenType::OperatorAddition => Some(UnaryOperator::Plus),
+            TokenType::OperatorSubtraction => Some(UnaryOperator::Minus),
+            TokenType::Identifier(i) => match i.as_str() {
+                "typeof" => Some(UnaryOperator::TypeOf),
+                "void" => Some(UnaryOperator::Void),
+                "delete" => Some(UnaryOperator::Delete),
+
+                // TODO: await
+                _ => None,
+            },
+            _ => None,
+        };
+
+        // Is a prefix increment / decrement
+        if let TokenType::OperatorIncrement | TokenType::OperatorDecrement = t.token_type {
+            let operator_type = match &t.token_type {
+                TokenType::OperatorIncrement => UpdateExpressionOperatorType::Increment,
+                TokenType::OperatorDecrement => UpdateExpressionOperatorType::Decrement,
+                _ => panic!()
+            };
+
+            let e = self.parse_expression(precedences::UNARY_OPERATOR)?;
+            let Ok(target) = e.try_into() else {
+                return Err(self.get_error(ParseErrorType::InvalidUpdateExpressionOperand(UpdateExpressionSide::Prefix)))
+            };
+
+            return Ok(ASTNodeExpression::UpdateExpression(Box::new(ASTNodeUpdateExpression {
+                location,
+                target,
+                operator_type,
+                side: UpdateExpressionSide::Prefix,
+            })))
+        }
+
+        match op {
+            Some(operator_type) => {
+                let expression = self.parse_expression(precedences::UNARY_OPERATOR)?;
+                Ok(ASTNodeExpression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
+                    location,
+                    operator_type,
+                    expression
+                })))
+            },
+            None => {
+                // Token was not a unary/prefix operator, so don't consume it
+                self.i -= 1;
+                // Parse with one higher precedence
+                self.parse_expression(precedences::UNARY_OPERATOR + 1)
+            }
+        }
+    }
 
     #[inline]
     /// Recursively parses an expression with the given precedence.\
@@ -437,6 +496,8 @@ impl Parser {
             // Postfix increment and decrement
             precedences::POSTFIX => self.parse_postfix(),
 
+            // Unary '+' and '-', '!', '~', prefix increment and decrement, 'typeof', 'void', 'delete', 'await'
+            precedences::UNARY_OPERATOR => self.parse_unary_operator(),
 
             precedences::ANY_EXPRESSION..=precedences::GROUPING => {self.parse_expression(precedence + 1)}
 
