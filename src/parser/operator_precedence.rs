@@ -1,3 +1,40 @@
+use crate::lexer::token::BinaryOperator;
+
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Associativity {
+    LeftToRight,
+    RightToLeft
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct BinaryPrecedence {
+    pub associativity: Associativity,
+    pub operators: &'static [BinaryOperator],
+}
+
+use BinaryOperator::*;
+use Associativity::*;
+
+pub const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
+    /* Precedence 0 - Not a real precedence, but having it here makes offsets nicer */ None,
+    /* Precedence 1  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Comma] }),
+    /* Precedence 2  */ None,
+    /* Precedence 3  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[LogicalOr, NullishCoalescing] }),
+    /* Precedence 4  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[LogicalAnd] }),
+    /* Precedence 5  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[BitwiseOr] }),
+    /* Precedence 6  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[BitwiseXor] }),
+    /* Precedence 7  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[BitwiseAnd] }),
+    /* Precedence 8  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Equality, Inequality, StrictEquality, StrictInequality] }),
+    /* Precedence 9  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual, In, InstanceOf] }),
+    /* Precedence 10 */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[ShiftLeft, ShiftRight, UnsignedShiftRight] }),
+    /* Precedence 11 */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Addition, Subtraction] }),
+    /* Precedence 12 */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Multiplication, Division, Remainder] }),
+    /* Precedence 13 */ Some(BinaryPrecedence{ associativity: RightToLeft, operators: &[Exponentiation] }),
+    /* Precedences 14 - 18 have no binary operators */
+];
+
 #[allow(dead_code)]
 pub(crate) mod precedences {
     pub const GROUPING: usize = 18;

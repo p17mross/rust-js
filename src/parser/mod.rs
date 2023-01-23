@@ -3,9 +3,9 @@ mod operator_precedence;
 
 use std::fmt::Display;
 
-use crate::{lexer::{Token, TokenType, token::ValueLiteral}, engine::{Gc, program::ProgramLocation, Program}, parser::operator_precedence::precedences};
+use crate::{lexer::{Token, TokenType, token::{ValueLiteral, BinaryOperator}}, engine::{Gc, program::ProgramLocation, Program}, parser::operator_precedence::{precedences, BINARY_PRECEDENCES, BinaryPrecedence}};
 
-use self::ast::*;
+use self::{ast::*, operator_precedence::Associativity};
 
 #[derive(Debug, Clone)]
 /// All the types of errors that can occur during parsing
@@ -480,6 +480,79 @@ impl Parser {
         }
     }
 
+    /// Parses a series of binary operators with a given precedence
+    fn parse_binary_operator(&mut self, precedence: usize) -> Result<ASTNodeExpression, ParseError>{
+        // This unwrap should never fail as this function should only ever get called with values of P which have binary operators
+        let BinaryPrecedence {associativity, operators: operators_in_precedence} = BINARY_PRECEDENCES[precedence].unwrap();
+
+        let mut values = vec![];
+        let mut operators = vec![];
+
+        loop {
+            // Parse a value and then maybe an operator
+            values.push(self.parse_expression(precedence + 1)?);
+            match self.try_get_token() {
+                Err(_) => break,
+                Ok(Token {token_type: TokenType::BinaryOperator(b), location, ..}) if operators_in_precedence.contains(b) => {
+                    operators.push((b.clone(), location.clone()));
+                },
+                // Addition and subtraction are their own tokens, so check for them separately
+                Ok(Token {token_type: TokenType::OperatorAddition, location, ..}) if precedence == precedences::ADDITION => {
+                    operators.push((BinaryOperator::Addition, location.clone()));
+                },
+                Ok(Token {token_type: TokenType::OperatorSubtraction, location, ..}) if precedence == precedences::SUBTRACTION => {
+                    operators.push((BinaryOperator::Subtraction, location.clone()));
+                },
+                // Comma operator is its own token, so check for it separately
+                Ok(Token {token_type: TokenType::Comma, location, ..}) if precedence == precedences::COMMA => {
+                    operators.push((BinaryOperator::Comma, location.clone()))
+                }
+                Ok(_) => {
+                    // Don't consume the token if it's not an operator with this precedence
+                    self.i -= 1;
+                    break;
+                }
+            }
+        };
+
+        // If there are no operators with the current precedence, just return the value
+        if operators.len() == 0 {
+            return Ok(values.remove(0))
+        }
+
+        // Collapse the values into one using the correct associativity
+        match associativity {
+            Associativity::LeftToRight => {
+                let mut values = values.into_iter();
+                let mut lhs = values.next().unwrap();
+
+                for (rhs, (operator_type, location)) in values.zip(operators) {
+                    lhs = ASTNodeExpression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                        location,
+                        operator_type,
+                        lhs,
+                        rhs
+                    }))
+                }
+                Ok(lhs)
+            },
+            Associativity::RightToLeft => {
+                let mut values = values.into_iter().rev();
+                let mut rhs = values.next().unwrap();
+
+                for (lhs, (operator_type, location)) in values.zip(operators) {
+                    rhs = ASTNodeExpression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                        location,
+                        operator_type,
+                        lhs,
+                        rhs
+                    }))
+                }
+                Ok(rhs)
+            },
+        }
+    }
+
     #[inline]
     /// Recursively parses an expression with the given precedence.\
     /// This function does not parse anything, but just calls the relevent function for the given precedence.
@@ -487,19 +560,25 @@ impl Parser {
 
         match precedence {
             // Base case - just return a value
-            precedences::GROUPING =>  {
+            18 =>  {
                 self.parse_value()
             }
             // '.', '?.', '[...]', new with argument list, function call
-            precedences::MEMBER_ACCESS | precedences::NEW_WITHOUT_ARGUMENT_LIST => self.parse_assignment_target_or_new(),
+            17 | 16 => self.parse_assignment_target_or_new(),
 
             // Postfix increment and decrement
-            precedences::POSTFIX => self.parse_postfix(),
+            15 => self.parse_postfix(),
 
             // Unary '+' and '-', '!', '~', prefix increment and decrement, 'typeof', 'void', 'delete', 'await'
-            precedences::UNARY_OPERATOR => self.parse_unary_operator(),
+            14 => self.parse_unary_operator(),
+
+            // Precedences 13 down to 3 have only binary operators
+            3 ..= 13 => self.parse_binary_operator(precedence),
+
+            1 => self.parse_binary_operator(precedence),
 
             precedences::ANY_EXPRESSION..=precedences::GROUPING => {self.parse_expression(precedence + 1)}
+
 
             _ => panic!("Precedence too high")
 
