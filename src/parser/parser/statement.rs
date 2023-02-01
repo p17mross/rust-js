@@ -1,0 +1,153 @@
+use crate::lexer::{Token, TokenType};
+
+use super::*;
+
+impl Parser {
+    /// Consumes any [semicolon](TokenType::Semicolon) tokens\
+    /// Returns true if the end of the file or a [closing brace](TokenType::CloseBrace) token was reached.
+    fn next_statement(&mut self) -> bool {
+        // Loop over the tokens
+        loop {
+            match self.tokens.get(self.i) {
+                // EOF or close brace means the end of the block has been reached, so return true
+                None | Some(Token {token_type: TokenType::CloseBrace(_), ..}) => {
+                    return true;
+                },
+                // Semicolon - keep looping
+                Some(Token {token_type: TokenType::Semicolon, ..}) => {
+                    self.i += 1;
+                },
+                // Any other token means next statement has been reached so return false
+                Some(_) => {
+                    return false;
+                }
+            }
+        }
+    }
+
+    /// Parses a `let a = b` binding
+    fn parse_let_expression(&mut self) -> Result<ASTNodeLetExpression, ParseError> {
+
+        // Save location for later
+        let location = self.get_location();
+
+        let pattern = self.parse_pattern()?;
+
+        // TODO: let bindings can have no expression e.g. `let a;`
+        // TODO: let bindings can have multiple statements e.g. `let a = 0, b = 1;`
+
+        let t = self.try_get_token().cloned()?;
+
+        if t.token_type != TokenType::OperatorAssignment {
+            return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
+        };
+
+        let value = self.parse_expression(precedences::COMMA + 1 )?;
+
+        let l = ASTNodeLetExpression {
+            location,
+            lhs: pattern,
+            rhs: value,
+        };
+
+        // Consume semicolon or newline
+        self.i += 1;
+
+        Ok(l)
+    }
+
+    /// Parses a statement, for example a let binding or an if statement.\
+    /// If the statement is an expression, it will be parsed in this function too.
+    fn parse_statement(&mut self) -> Result<ASTNodeStatement, ParseError> {
+        let t = self.try_get_token()?.clone();
+
+        // Some = successfully parsed statement
+        // None = try to parse expression
+        let statement = match t.token_type {
+            TokenType::OpenBrace(close_index) => {
+                let b = self.parse_statements()?;
+    
+                // Make sure the end of the block was reached
+                assert_eq!(close_index, self.i);
+                self.i += 1;
+    
+                Some(ASTNodeStatement::Block(Box::new(b)))
+            },
+            TokenType::Identifier(i) => {
+                match i.as_str() {
+                    // This could be a let declaration, but it can also be an expression starting with the identifier 'let'
+                    "let" => {
+                        match self.tokens.get(self.i) {
+                            // A let binding
+                            Some(Token {
+                                // With a token_type of:
+                                token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
+                                | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
+                                | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
+                            ) => Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))), // Don't do anything - just keep parsing as a let expression
+    
+                            // Anything else is just an expression
+                            _ => None,
+                        }
+                    },
+                    "var" => todo!(),
+                    "if" => todo!(),
+                    "while" => todo!(),
+                    "for" => todo!(),
+                    "function" => todo!(),
+                    "do" => todo!(),
+    
+                    _ => None
+                }
+            },
+
+            // No statement - parse as expression
+            _ => None
+        };
+
+        self.i -= 1;
+
+        // Get a statement either straight from Some or by parsing an expression if None
+        let statement = match statement {
+            Some(s) => s,
+            None => ASTNodeStatement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?),
+        };
+
+        // Get last token of this statement and one after to parse semicolon insertion
+        let this_t = self.tokens.get(self.i - 1).expect("Should have been Some as this token was just parsed");
+        let next_t = self.tokens.get(self.i);
+
+        // For this to be a valid statement, either the next token has to be a semicolon or this token has to have a newline after it
+        match next_t {
+            None => Ok(statement),
+            Some(next_t) => match next_t.token_type {
+                TokenType::Semicolon => Ok(statement),
+                _ if this_t.newline_after => Ok(statement),
+                _ => Err(self.get_error(ParseErrorType::UnexpectedToken { found: next_t.token_type.to_str(), expected: Some(";") }))
+            }
+        }
+    }
+
+    /// Parses a sequence of statements.\
+    /// Ends on EOF or on a [closing brace](TokenType::CloseBrace), which is not consumed.
+    pub(super) fn parse_statements(&mut self) -> Result<ASTNodeBlock, ParseError> {
+        let mut block = ASTNodeBlock {
+            location: self.get_location(),
+            statements: vec![]
+        };
+
+        'statements: loop {
+            // Break on close brace or EOF
+            let should_break = self.next_statement();
+            if should_break {
+                break 'statements
+            }
+
+            // Parse a statement
+            let statement = self.parse_statement()?;
+            block.statements.push(statement);
+        }
+
+        Ok(block)
+    }
+}
