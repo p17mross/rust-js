@@ -13,6 +13,12 @@ pub enum ParseErrorType {
     ExpectedExpression{found: Option<&'static str>},
     /// The argument to an increment or decrement operator was not an assignment target
     InvalidUpdateExpressionOperand(UpdateExpressionSide),
+    /// The LHS of an assignment is not valid
+    InvalidAssignmentLHS,
+    /// An update assignment operator was used on a destructuring assignment
+    InvalidDestructuringAssignmentOperator,
+    /// There were items after the rest element of an array destructure
+    ItemsAfterRestElementInArrayDestructure,
 
     /// Any other syntax errors
     SyntaxError,
@@ -31,7 +37,10 @@ impl Display for ParseErrorType {
                 None => f.write_fmt(format_args!("expected expression")),
                 Some(found) => f.write_fmt(format_args!("expected expression, found '{found}'"))
             },
-            Self::InvalidUpdateExpressionOperand(s) => f.write_fmt(format_args!("invalid {} operand", s))
+            Self::InvalidUpdateExpressionOperand(s) => f.write_fmt(format_args!("invalid {} operand", s)),
+            Self::InvalidAssignmentLHS => f.write_str("Invalid assignment left hand side"),
+            Self::InvalidDestructuringAssignmentOperator => f.write_str("Only the '=' operator may be used in a destructuring assignment"),
+            Self::ItemsAfterRestElementInArrayDestructure => f.write_str("The rest element of an array destructure must be the last item"),
         }
     }
 }
@@ -41,7 +50,7 @@ impl std::error::Error for ParseErrorType {}
 #[derive(Debug, Clone)]
 /// An error that occurs during parsing
 pub struct ParseError {
-    location: ProgramLocation,
+    pub location: ProgramLocation,
     pub error_type: ParseErrorType,
 }
 

@@ -11,7 +11,7 @@ pub enum ValueLiteral {
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 /// An enum for all arithmetic assignment operators
-pub(crate) enum AssignmentOperator {
+pub(crate) enum UpdateAssignmentOperator {
     /// `+=`
     Addition,
     /// `-=`
@@ -178,8 +178,8 @@ pub(crate) enum TokenType {
     /// `~`
     OperatorBitwiseNot,
 
-    /// An assignment operator
-    Assignment(AssignmentOperator),
+    /// An update assignment operator
+    UpdateAssignment(UpdateAssignmentOperator),
 
     /// A binary operator
     BinaryOperator(BinaryOperator),
@@ -235,21 +235,21 @@ impl TokenType {
             Self::OperatorLogicalNot => "!",
 
             Self::OperatorAssignment => "=",
-            Self::Assignment(AssignmentOperator::Addition) => "+=",
-            Self::Assignment(AssignmentOperator::Subtraction) => "-=",
-            Self::Assignment(AssignmentOperator::Multiplication) => "*=",
-            Self::Assignment(AssignmentOperator::Division) => "/=",
-            Self::Assignment(AssignmentOperator::Remainder) => "%=",
-            Self::Assignment(AssignmentOperator::Exponentiation) => "**=",
-            Self::Assignment(AssignmentOperator::ShiftLeft) => "<<=",
-            Self::Assignment(AssignmentOperator::ShiftRight) => ">>=",
-            Self::Assignment(AssignmentOperator::UnsignedShiftRight) => ">>>=",
-            Self::Assignment(AssignmentOperator::BitwiseOr) => "|=",
-            Self::Assignment(AssignmentOperator::BitwiseAnd) => "&=",
-            Self::Assignment(AssignmentOperator::BitwiseXor) => "^=",
-            Self::Assignment(AssignmentOperator::LogicalOr) => "||=",
-            Self::Assignment(AssignmentOperator::LogicalAnd) => "&&=",
-            Self::Assignment(AssignmentOperator::NullishCoalescing) => "?=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Addition) => "+=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Subtraction) => "-=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Multiplication) => "*=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Division) => "/=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Remainder) => "%=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::Exponentiation) => "**=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::ShiftLeft) => "<<=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::ShiftRight) => ">>=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::UnsignedShiftRight) => ">>>=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseOr) => "|=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseAnd) => "&=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseXor) => "^=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::LogicalOr) => "||=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::LogicalAnd) => "&&=",
+            Self::UpdateAssignment(UpdateAssignmentOperator::NullishCoalescing) => "?=",
 
             Self::BinaryOperator(BinaryOperator::Equality) => "==",
             Self::BinaryOperator(BinaryOperator::StrictEquality) => "===",
@@ -300,23 +300,23 @@ pub(crate) const OPERATORS: [(&str, TokenType); 50] = [
     ("==",   TokenType::BinaryOperator(BinaryOperator::Equality)),
     
     ("=",    TokenType::OperatorAssignment),
-    ("-=",   TokenType::Assignment(AssignmentOperator::Subtraction)),
-    ("*=",   TokenType::Assignment(AssignmentOperator::Multiplication)),
-    ("**=",  TokenType::Assignment(AssignmentOperator::Exponentiation)),
-    ("+=",   TokenType::Assignment(AssignmentOperator::Addition)),
-    ("/=",   TokenType::Assignment(AssignmentOperator::Division)),
-    ("%=",   TokenType::Assignment(AssignmentOperator::Remainder)),
+    ("-=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Subtraction)),
+    ("*=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Multiplication)),
+    ("**=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::Exponentiation)),
+    ("+=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Addition)),
+    ("/=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Division)),
+    ("%=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Remainder)),
 
-    ("||=",  TokenType::Assignment(AssignmentOperator::LogicalOr)),
-    ("&&=",  TokenType::Assignment(AssignmentOperator::LogicalAnd)),
-    ("|=",   TokenType::Assignment(AssignmentOperator::BitwiseOr)),
-    ("&=",   TokenType::Assignment(AssignmentOperator::BitwiseAnd)),
-    ("^=",   TokenType::Assignment(AssignmentOperator::BitwiseXor)),
-    ("??=",  TokenType::Assignment(AssignmentOperator::NullishCoalescing)),
+    ("||=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::LogicalOr)),
+    ("&&=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::LogicalAnd)),
+    ("|=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseOr)),
+    ("&=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseAnd)),
+    ("^=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseXor)),
+    ("??=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::NullishCoalescing)),
 
-    ("<<=",  TokenType::Assignment(AssignmentOperator::ShiftLeft)),
-    (">>=",  TokenType::Assignment(AssignmentOperator::ShiftRight)),
-    (">>>=", TokenType::Assignment(AssignmentOperator::UnsignedShiftRight)),
+    ("<<=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::ShiftLeft)),
+    (">>=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::ShiftRight)),
+    (">>>=", TokenType::UpdateAssignment(UpdateAssignmentOperator::UnsignedShiftRight)),
 
     ("++",   TokenType::OperatorIncrement),
     ("--",   TokenType::OperatorDecrement),

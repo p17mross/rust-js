@@ -6,6 +6,7 @@ use super::*;
 pub enum ASTNodeArrayItem {
     Item(ASTNodeExpression),
     Spread(ASTNodeExpression),
+    Empty(ProgramLocation),
 }
 
 #[derive(Debug)]
@@ -16,10 +17,20 @@ pub struct ASTNodeArrayLiteral {
 }
 
 impl ASTNodeArrayItem {
+    pub fn get_location(&self) -> ProgramLocation {
+        match self {
+            Self::Item(e) | Self::Spread(e) => e.get_location(),
+            Self::Empty(l) => l.clone(),
+        }
+    }
+}
+
+impl ASTNodeArrayItem {
     pub fn to_tree(&self) -> String {
         match self {
             Self::Item(e) => e.to_tree(),
             Self::Spread(e) => format!("Spread from {}", e.to_tree()),
+            Self::Empty(_) => "Empty Slot".to_string()
         }
     }
 }

@@ -383,10 +383,13 @@ impl Parser {
             // Precedences 13 down to 3 have only binary operators
             3 ..= 13 => self.parse_binary_operator(precedence),
 
+            // Assignment operators
+            2 => self.parse_assignment(),
+
             // Precedence 1 is the comma operator, which is a binary operator
             1 => self.parse_binary_operator(precedence),
 
-            precedences::ANY_EXPRESSION..=precedences::GROUPING => {self.parse_expression(precedence + 1)}
+            precedences::ANY_EXPRESSION => self.parse_expression(1),
 
             _ => panic!("Precedence too high")
 

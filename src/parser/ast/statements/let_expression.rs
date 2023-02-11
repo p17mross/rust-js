@@ -6,7 +6,7 @@ use super::*;
 pub struct ASTNodeLetExpression {
     pub location: ProgramLocation,
 
-    pub lhs: ASTNodePattern,
+    pub lhs: ASTNodeDestructuringAssignmentTarget,
     pub rhs: ASTNodeExpression,
 }
 

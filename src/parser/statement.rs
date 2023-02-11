@@ -31,7 +31,7 @@ impl Parser {
         // Save location for later
         let location = self.get_location();
 
-        let pattern = self.parse_pattern()?;
+        let pattern = self.parse_destructuring_assignment_target()?;
 
         // TODO: let bindings can have no expression e.g. `let a;`
         // TODO: let bindings can have multiple statements e.g. `let a = 0, b = 1;`

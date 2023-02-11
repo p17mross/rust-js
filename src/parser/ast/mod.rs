@@ -1,11 +1,13 @@
 mod expressions;
 mod statements;
+mod assignment;
 
 pub use expressions::*;
 pub use statements::*;
+pub use assignment::*;
 
 use std::fmt::Debug;
-use crate::engine::{Gc, Program, garbagecollection::GarbageCollectable, program::ProgramLocation};
+use crate::engine::{Gc, Program, garbage_collection::GarbageCollectable, program::ProgramLocation};
 
 // Format for ASTNode files: 
 // 1) Struct/enum definitions
@@ -20,7 +22,7 @@ pub struct ASTNodeProgram {
 }
 
 impl GarbageCollectable for ASTNodeProgram {
-    fn get_children(&self) -> Vec<crate::engine::garbagecollection::GarbageCollectionId> {
+    fn get_children(&self) -> Vec<crate::engine::garbage_collection::GarbageCollectionId> {
         vec![self.program.get_id()]
     }
 }

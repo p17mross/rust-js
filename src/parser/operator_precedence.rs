@@ -1,16 +1,21 @@
 use crate::lexer::token::BinaryOperator;
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A binary operator's associativity.\
 pub enum Associativity {
+    /// Operators are grouped left to right, e.g. `a + b + c` is equivalent to `(a + b) + c`
     LeftToRight,
+    /// Operators are grouped right to left, e.g. `a ** b ** c` is equivalent to `a ** (b ** c)`
     RightToLeft
 }
 
 #[derive(Debug, Clone, Copy)]
+/// A certain precedence of binary operator.\
+/// Stores which operators are in this precedence level and which associativity they are
 pub struct BinaryPrecedence {
+    /// Whether the operators in this precedence are left or right associative
     pub associativity: Associativity,
+    /// Which operators are included in the precedence
     pub operators: &'static [BinaryOperator],
 }
 
@@ -92,7 +97,7 @@ pub(crate) mod precedences {
 
     pub const ASSIGNMENT: usize = 2;
     pub const TERNARY_OPERATOR: usize = 2;
-    pub const ARROW_FUNTION: usize = 2;
+    pub const ARROW_FUNCTION: usize = 2;
     pub const YIELD: usize = 2;
     pub const SPREAD: usize = 2;
 

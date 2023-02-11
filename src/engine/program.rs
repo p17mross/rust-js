@@ -2,7 +2,7 @@ use std::{path::PathBuf, fs, fmt::{Display, Debug}};
 
 use crate::{Lexer, Parser, parser::ast::ASTNodeProgram};
 
-use super::{error::{SyntaxError, ProgramFromFileError}, Gc, garbagecollection::{GarbageCollectable, GarbageCollectionId}};
+use super::{error::{SyntaxError, ProgramFromFileError}, Gc, garbage_collection::{GarbageCollectable, GarbageCollectionId}};
 
 #[derive(Debug, Clone)]
 /// An enum for the source of a [Program].

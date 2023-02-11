@@ -1,5 +1,5 @@
-pub(crate) mod garbagecollection;
-pub(crate) use garbagecollection::Gc;
+pub(crate) mod garbage_collection;
+pub(crate) use garbage_collection::Gc;
 
 pub mod program;
 pub use program::Program;
