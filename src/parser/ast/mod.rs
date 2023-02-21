@@ -33,7 +33,7 @@ impl ASTNodeProgram {
             program: program.clone(),
             block: Block {
                 location: ProgramLocation { 
-                    program: program.clone(),
+                    program,
                     line: 0, 
                     column: 0, 
                     index: 0 

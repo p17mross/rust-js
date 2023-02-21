@@ -34,7 +34,7 @@ impl FunctionCall {
         let mut s = format!("Function call at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
 
-        if self.args.len() == 0 {
+        if self.args.is_empty() {
             s += "|-no args";
         } else {
             s += "|-args: ";
@@ -51,7 +51,7 @@ impl ASTNodeNew {
         let mut s = format!("New at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
 
-        if self.args.len() == 0 {
+        if self.args.is_empty() {
             s += "|-no args";
         } else {
             s += "|-args: ";

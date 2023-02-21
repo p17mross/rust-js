@@ -15,7 +15,7 @@ impl Parser {
         match &t.token_type {
             // Bracketed expression
             TokenType::OpenParen(close_index) => {
-                let close_index = close_index.clone();
+                let close_index = *close_index;
 
                 let e = self.parse_expression(0)?;
 

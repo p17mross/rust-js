@@ -111,7 +111,7 @@ impl Parser {
                 // Computed member access
                 TokenType::OpenSquareBracket(close_square_bracket_index) => {
                     let operator_token = operator_token.clone();
-                    let close_square_bracket_index = close_square_bracket_index.clone();
+                    let close_square_bracket_index = *close_square_bracket_index;
                     let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
                     
                     // Check that the end square bracket is the right one
@@ -296,7 +296,7 @@ impl Parser {
 
                 // A binary operator in this precedence
                 Ok(Token {token_type: TokenType::BinaryOperator(b), location, ..}) if operators_in_precedence.contains(b) => {
-                    operators.push((b.clone(), location.clone()));
+                    operators.push((*b, location.clone()));
                 },
 
                 // Addition and subtraction are their own tokens, so check for them separately
@@ -321,7 +321,7 @@ impl Parser {
         };
 
         // If there are no operators, just return the value
-        if operators.len() == 0 {
+        if operators.is_empty() {
             return Ok(values.remove(0))
         }
 

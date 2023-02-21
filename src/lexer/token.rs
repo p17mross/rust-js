@@ -361,10 +361,10 @@ impl PrettyPrint for Vec<Token> {
 #[test]
 /// Tests that no item in OPERATORS starts with an item before it in the array
 fn test_operator_ordering() {
-    for i in 0..OPERATORS.len() {
-        for j in i + 1..OPERATORS.len() {
-            if OPERATORS[j].0.starts_with(OPERATORS[i].0) {
-                panic!("Item '{}' at index {j} starts with item '{}' at index {i}", OPERATORS[j].0, OPERATORS[i].0)
+    for (i, first) in OPERATORS.iter().enumerate() {
+        for (j, second) in OPERATORS[i + 1..].iter().enumerate() {
+            if second.0.starts_with(first.0) {
+                panic!("Item '{}' at index {j} starts with item '{}' at index {i}", second.0, first.0)
             }
         }
     }
