@@ -89,7 +89,7 @@ impl Parser {
                             let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
                             
                             // Check that the end square bracket is the right one
-                            assert_eq!(i, self.i);
+                            debug_assert_eq!(i, self.i);
                             self.i += 1;
                             
                             computed_expression
@@ -115,7 +115,7 @@ impl Parser {
                     let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
                     
                     // Check that the end square bracket is the right one
-                    assert_eq!(close_square_bracket_index, self.i);
+                    debug_assert_eq!(close_square_bracket_index, self.i);
                     self.i += 1;
 
                     val = Expression::PropertyLookup(Box::new(PropertyLookup {

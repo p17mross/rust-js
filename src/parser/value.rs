@@ -19,7 +19,7 @@ impl Parser {
 
                 let e = self.parse_expression(0)?;
 
-                assert_eq!(close_index, self.i);
+                debug_assert_eq!(close_index, self.i);
                 self.i += 1;
 
                 Ok(e)

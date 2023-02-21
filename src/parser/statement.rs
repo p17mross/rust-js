@@ -68,7 +68,7 @@ impl Parser {
                 let b = self.parse_statements()?;
     
                 // Make sure the end of the block was reached
-                assert_eq!(close_index, self.i);
+                debug_assert_eq!(close_index, self.i);
                 self.i += 1;
     
                 Some(Statement::Block(Box::new(b)))
