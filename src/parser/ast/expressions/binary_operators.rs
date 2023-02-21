@@ -9,8 +9,8 @@ pub struct ASTNodeBinaryOperator {
     pub location: ProgramLocation,
 
     pub operator_type: BinaryOperator,
-    pub lhs: ASTNodeExpression,
-    pub rhs: ASTNodeExpression,
+    pub lhs: Expression,
+    pub rhs: Expression,
 }
 
 impl ASTNodeBinaryOperator {

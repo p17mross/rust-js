@@ -1,7 +1,7 @@
 use super::*;
 
 impl Parser {
-    pub(super) fn parse_destructuring_assignment_target(&mut self) -> Result<ASTNodeDestructuringAssignmentTarget, ParseError> {
+    pub(super) fn parse_destructuring_assignment_target(&mut self) -> Result<DestructuringAssignmentTarget, ParseError> {
         todo!("Destructuring assignment");
     }
 

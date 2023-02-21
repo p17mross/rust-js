@@ -5,13 +5,13 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct ASTNodeObjectLiteral {
+pub struct ObjectLiteral {
     pub location: ProgramLocation,
 
-    pub properties: HashMap<String, ASTNodeExpression>
+    pub properties: HashMap<String, Expression>
 }
 
-impl ASTNodeObjectLiteral {
+impl ObjectLiteral {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Object Literal at {}:{}", self.location.line, self.location.column);
 

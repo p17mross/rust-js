@@ -1,37 +1,37 @@
 use std::collections::HashMap;
 
-use super::{ASTNodeExpression, StringExtTreeIndent};
+use super::{Expression, StringExtTreeIndent};
 
 #[derive(Debug)]
-pub enum ASTNodeAssignmentTarget {
+pub enum AssignmentTarget {
     Variable(String),
     PropertyLookup{
-        expression: ASTNodeExpression,
-        property: ASTNodeExpression
+        expression: Expression,
+        property: Expression
     }
 }
 
 #[derive(Debug)]
-pub struct ASTNodeDestructureBinding {
-    destructure: ASTNodeDestructuringAssignmentTarget,
-    default_value: Option<ASTNodeExpression>,
+pub struct DestructureBinding {
+    destructure: DestructuringAssignmentTarget,
+    default_value: Option<Expression>,
 }
 
 #[derive(Debug)]
-pub enum ASTNodeDestructuringAssignmentTarget {
+pub enum DestructuringAssignmentTarget {
     Variable(String),
     PropertyLookup {
-        expression: ASTNodeExpression,
-        property: ASTNodeExpression
+        expression: Expression,
+        property: Expression
     },
     ArrayDestructure {
-        items: Vec<Option<ASTNodeDestructureBinding>>, 
-        rest: Option<Box<ASTNodeDestructuringAssignmentTarget>>,
+        items: Vec<Option<DestructureBinding>>, 
+        rest: Option<Box<DestructuringAssignmentTarget>>,
     },
-    ObjectDestructure (HashMap<String, ASTNodeDestructureBinding>)
+    ObjectDestructure (HashMap<String, DestructureBinding>)
 }
 
-impl ASTNodeAssignmentTarget {
+impl AssignmentTarget {
     pub fn to_tree(&self) -> String {
         match self {
             Self::Variable(v) => format!("Variable '{v}'"),
@@ -44,7 +44,7 @@ impl ASTNodeAssignmentTarget {
     }
 }
 
-impl ASTNodeDestructureBinding {
+impl DestructureBinding {
     pub fn to_tree(&self) -> String {
         let mut s = "Destructuring binding\n".to_string();
         s += &format!("|-destructure: {}\n", self.destructure.to_tree().indent_tree());
@@ -57,7 +57,7 @@ impl ASTNodeDestructureBinding {
     }
 }
 
-impl ASTNodeDestructuringAssignmentTarget {
+impl DestructuringAssignmentTarget {
     pub fn to_tree(&self) -> String {
         match self {
             Self::Variable(v) => format!("Variable '{v}'"),

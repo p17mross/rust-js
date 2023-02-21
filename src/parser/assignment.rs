@@ -3,7 +3,7 @@ use super::*;
 impl Parser {
     /// Parses an expression with precedence 2.\
     /// Any operator with a lower precedence will be ignored for the caller to parse.
-    pub(super) fn parse_assignment(&mut self) -> Result<ASTNodeExpression, ParseError> {
+    pub(super) fn parse_assignment(&mut self) -> Result<Expression, ParseError> {
         let pattern_start = self.i;
 
         let e = self.parse_expression(precedences::ASSIGNMENT + 1);
@@ -14,10 +14,10 @@ impl Parser {
                     None => return Ok(e),
                     Some(t) => match t.token_type {
                         TokenType::UpdateAssignment(_) | TokenType::OperatorAssignment => match e {
-                            ASTNodeExpression::Variable(v) => ASTNodeDestructuringAssignmentTarget::Variable(v.identifier),
-                            ASTNodeExpression::PropertyLookup(p) => ASTNodeDestructuringAssignmentTarget::PropertyLookup { expression: p.lhs, property: p.rhs },
-                            ASTNodeExpression::ObjectLiteral(_) => self.parse_destructuring_assignment_target()?,
-                            ASTNodeExpression::ArrayLiteral(_) => self.parse_destructuring_assignment_target()?,
+                            Expression::Variable(v) => DestructuringAssignmentTarget::Variable(v.identifier),
+                            Expression::PropertyLookup(p) => DestructuringAssignmentTarget::PropertyLookup { expression: p.lhs, property: p.rhs },
+                            Expression::ObjectLiteral(_) => self.parse_destructuring_assignment_target()?,
+                            Expression::ArrayLiteral(_) => self.parse_destructuring_assignment_target()?,
                             _ => return Err(self.get_error(ParseErrorType::InvalidAssignmentLHS))
                         }
                         _ => return Ok(e),
@@ -47,7 +47,7 @@ impl Parser {
 
                     let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
 
-                    ASTNodeExpression::Assignment(Box::new(ASTNodeAssignment {
+                    Expression::Assignment(Box::new(Assignment {
                         location,
                         lhs: target, 
                         rhs
@@ -58,14 +58,14 @@ impl Parser {
                     self.i += 1;
 
                     let lhs = match target {
-                        ASTNodeDestructuringAssignmentTarget::Variable(v) => ASTNodeAssignmentTarget::Variable(v),
-                        ASTNodeDestructuringAssignmentTarget::PropertyLookup { expression, property } => ASTNodeAssignmentTarget::PropertyLookup { expression, property },
+                        DestructuringAssignmentTarget::Variable(v) => AssignmentTarget::Variable(v),
+                        DestructuringAssignmentTarget::PropertyLookup { expression, property } => AssignmentTarget::PropertyLookup { expression, property },
                         _ => return Err(self.get_error(ParseErrorType::InvalidDestructuringAssignmentOperator))
                     };
 
                     let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
 
-                    ASTNodeExpression::UpdateAssignment(Box::new(ASTNodeUpdateAssignment {
+                    Expression::UpdateAssignment(Box::new(UpdateAssignment {
                         location,
                         operator_type,
                         lhs,

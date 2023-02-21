@@ -18,7 +18,7 @@ use crate::engine::{Gc, Program, garbage_collection::GarbageCollectable, program
 
 pub struct ASTNodeProgram {
     pub program: Gc<Program>,
-    pub block: ASTNodeBlock,
+    pub block: Block,
 }
 
 impl GarbageCollectable for ASTNodeProgram {
@@ -31,7 +31,7 @@ impl ASTNodeProgram {
     pub fn new(program: Gc<Program>) -> Self {
         Self {
             program: program.clone(),
-            block: ASTNodeBlock {
+            block: Block {
                 location: ProgramLocation { 
                     program: program.clone(),
                     line: 0, 

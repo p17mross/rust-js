@@ -23,30 +23,30 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub enum ASTNodeExpression {
-    ArrayLiteral(Box<ASTNodeArrayLiteral>),
-    Assignment(Box<ASTNodeAssignment>),
+pub enum Expression {
+    ArrayLiteral(Box<ArrayLiteral>),
+    Assignment(Box<Assignment>),
     BinaryOperator(Box<ASTNodeBinaryOperator>),
-    FunctionCall(Box<ASTNodeFunctionCall>),
+    FunctionCall(Box<FunctionCall>),
     New(Box<ASTNodeNew>),
-    ObjectLiteral(Box<ASTNodeObjectLiteral>),
-    PropertyLookup(Box<ASTNodePropertyLookup>),
+    ObjectLiteral(Box<ObjectLiteral>),
+    PropertyLookup(Box<PropertyLookup>),
     UnaryOperator(Box<ASTNodeUnaryOperator>),
-    UpdateAssignment(Box<ASTNodeUpdateAssignment>),
-    UpdateExpression(Box<ASTNodeUpdateExpression>),
+    UpdateAssignment(Box<UpdateAssignment>),
+    UpdateExpression(Box<UpdateExpression>),
     ValueLiteral(Box<ASTNodeValueLiteral>),
-    Variable(Box<ASTNodeVariable>),
+    Variable(Box<Variable>),
 }
 
 #[derive(Debug)]
-pub struct ASTNodeVariable {
+pub struct Variable {
     pub location: ProgramLocation,
 
     pub identifier: String,
 }
 
 
-impl ASTNodeExpression {
+impl Expression {
     pub fn get_location(&self) -> ProgramLocation {
         match self {
             Self::ArrayLiteral(a) => a.location.clone(),
@@ -84,13 +84,13 @@ impl ASTNodeExpression {
     }
 }
 
-impl ASTNodeVariable {
+impl Variable {
     pub fn to_tree(&self) -> String {
         format!("Variable at {}:{}: \"{}\"", self.location.line, self.location.column, self.identifier)
     }
 }
 
-impl ASTNodeExpression {
+impl Expression {
     pub fn to_tree(&self) -> String {
         match self {
             Self::ArrayLiteral(a) => a.to_tree(),

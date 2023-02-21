@@ -1,25 +1,25 @@
-use crate::{engine::program::ProgramLocation, parser::ast::{ASTNodeDestructuringAssignmentTarget, ASTNodeAssignmentTarget, StringExtTreeIndent}, lexer::token::UpdateAssignmentOperator};
+use crate::{engine::program::ProgramLocation, parser::ast::{DestructuringAssignmentTarget, AssignmentTarget, StringExtTreeIndent}, lexer::token::UpdateAssignmentOperator};
 
-use super::ASTNodeExpression;
+use super::Expression;
 
 #[derive(Debug)]
-pub struct ASTNodeAssignment {
+pub struct Assignment {
     pub location: ProgramLocation,
 
-    pub lhs: ASTNodeDestructuringAssignmentTarget,
-    pub rhs: ASTNodeExpression,
+    pub lhs: DestructuringAssignmentTarget,
+    pub rhs: Expression,
 }
 
 #[derive(Debug)]
-pub struct ASTNodeUpdateAssignment {
+pub struct UpdateAssignment {
     pub location: ProgramLocation,
 
     pub(crate) operator_type: UpdateAssignmentOperator,
-    pub lhs: ASTNodeAssignmentTarget,
-    pub rhs: ASTNodeExpression,
+    pub lhs: AssignmentTarget,
+    pub rhs: Expression,
 }
 
-impl ASTNodeAssignment {
+impl Assignment {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
@@ -28,7 +28,7 @@ impl ASTNodeAssignment {
     }
 }
 
-impl ASTNodeUpdateAssignment {
+impl UpdateAssignment {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Update Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-operator type: {:?}\n", self.operator_type);

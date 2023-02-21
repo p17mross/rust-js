@@ -29,7 +29,7 @@ pub struct ASTNodeUnaryOperator {
     pub location: ProgramLocation,
 
     pub operator_type: UnaryOperator,
-    pub expression: ASTNodeExpression,
+    pub expression: Expression,
 }
 
 

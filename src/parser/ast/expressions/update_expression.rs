@@ -1,6 +1,6 @@
 use crate::{engine::program::ProgramLocation, parser::{ast::StringExtTreeIndent}};
 
-use super::{ASTNodePropertyLookup, ASTNodeVariable, ASTNodeExpression};
+use super::{PropertyLookup, Variable, Expression};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateExpressionOperatorType {
@@ -16,12 +16,12 @@ pub enum UpdateExpressionSide {
 
 #[derive(Debug)]
 pub enum UpdateExpressionTarget {
-    Variable(Box<ASTNodeVariable>),
-    Property(Box<ASTNodePropertyLookup>)
+    Variable(Box<Variable>),
+    Property(Box<PropertyLookup>)
 }
 
 #[derive(Debug)]
-pub struct ASTNodeUpdateExpression {
+pub struct UpdateExpression {
     pub location: ProgramLocation,
 
     pub target: UpdateExpressionTarget,
@@ -29,13 +29,13 @@ pub struct ASTNodeUpdateExpression {
     pub side: UpdateExpressionSide,
 }
 
-impl TryFrom<ASTNodeExpression> for UpdateExpressionTarget {
+impl TryFrom<Expression> for UpdateExpressionTarget {
     type Error = ();
 
-    fn try_from(value: ASTNodeExpression) -> Result<Self, Self::Error> {
+    fn try_from(value: Expression) -> Result<Self, Self::Error> {
         match value {
-            ASTNodeExpression::PropertyLookup(p) => Ok(Self::Property(p)),
-            ASTNodeExpression::Variable(v) => Ok(Self::Variable(v)),
+            Expression::PropertyLookup(p) => Ok(Self::Property(p)),
+            Expression::Variable(v) => Ok(Self::Variable(v)),
             _ => Err(())
         }
     }
@@ -51,7 +51,7 @@ impl std::fmt::Display for UpdateExpressionSide {
     }
 }
 
-impl ASTNodeUpdateExpression {
+impl UpdateExpression {
     pub fn to_tree(&self) -> String {
         format!("{:?} {:?} at {}:{}\n|-property: {}", self.side, self.operator_type, self.location.line, self.location.column, self.target.to_tree().indent_tree())
     }

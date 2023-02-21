@@ -5,13 +5,13 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct ASTNodeBlock {
+pub struct Block {
     pub location: ProgramLocation,
 
-    pub statements: Vec<ASTNodeStatement>,
+    pub statements: Vec<Statement>,
 }
 
-impl ASTNodeBlock {
+impl Block {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Block at {}:{}", self.location.line, self.location.column);
         for statement in self.statements.iter() {

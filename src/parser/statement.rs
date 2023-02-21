@@ -26,7 +26,7 @@ impl Parser {
     }
 
     /// Parses a `let a = b` binding
-    fn parse_let_expression(&mut self) -> Result<ASTNodeLetExpression, ParseError> {
+    fn parse_let_expression(&mut self) -> Result<LetExpression, ParseError> {
 
         // Save location for later
         let location = self.get_location();
@@ -44,7 +44,7 @@ impl Parser {
 
         let value = self.parse_expression(precedences::COMMA + 1 )?;
 
-        let l = ASTNodeLetExpression {
+        let l = LetExpression {
             location,
             lhs: pattern,
             rhs: value,
@@ -58,7 +58,7 @@ impl Parser {
 
     /// Parses a statement, for example a let binding or an if statement.\
     /// If the statement is an expression, it will be parsed in this function too.
-    fn parse_statement(&mut self) -> Result<ASTNodeStatement, ParseError> {
+    fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         let t = self.try_get_token()?.clone();
 
         // Some = successfully parsed statement
@@ -71,7 +71,7 @@ impl Parser {
                 assert_eq!(close_index, self.i);
                 self.i += 1;
     
-                Some(ASTNodeStatement::Block(Box::new(b)))
+                Some(Statement::Block(Box::new(b)))
             },
             TokenType::Identifier(i) => {
                 match i.as_str() {
@@ -84,7 +84,7 @@ impl Parser {
                                 token_type: TokenType::Identifier(_) // Identifier: a single variable let binding e.g. 'let a = b;'
                                 | TokenType::OpenBrace(_) // An object destructuring e.g. 'let {a} = {a: 10};'
                                 | TokenType::OpenSquareBracket(_), ..} // An array destructure e.g. 'let [a, b] = [10, 20];' 
-                            ) => Some(ASTNodeStatement::LetExpression(Box::new(self.parse_let_expression()?))), // Don't do anything - just keep parsing as a let expression
+                            ) => Some(Statement::LetExpression(Box::new(self.parse_let_expression()?))), // Don't do anything - just keep parsing as a let expression
     
                             // Anything else is just an expression
                             _ => None,
@@ -110,7 +110,7 @@ impl Parser {
         // Get a statement either straight from Some or by parsing an expression if None
         let statement = match statement {
             Some(s) => s,
-            None => ASTNodeStatement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?),
+            None => Statement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?),
         };
 
         // Get last token of this statement and one after to parse semicolon insertion
@@ -130,8 +130,8 @@ impl Parser {
 
     /// Parses a sequence of statements.\
     /// Ends on EOF or on a [closing brace](TokenType::CloseBrace), which is not consumed.
-    pub(super) fn parse_statements(&mut self) -> Result<ASTNodeBlock, ParseError> {
-        let mut block = ASTNodeBlock {
+    pub(super) fn parse_statements(&mut self) -> Result<Block, ParseError> {
+        let mut block = Block {
             location: self.get_location(),
             statements: vec![]
         };

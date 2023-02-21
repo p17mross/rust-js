@@ -9,18 +9,18 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub enum ASTNodeStatement {
-    Expression(ASTNodeExpression),
-    Block(Box<ASTNodeBlock>),
-    LetExpression(Box<ASTNodeLetExpression>),
+pub enum Statement {
+    Expression(Expression),
+    Block(Box<Block>),
+    LetExpression(Box<LetExpression>),
 }
 
-impl ASTNodeStatement {
+impl Statement {
     pub fn get_location(&self) -> ProgramLocation {
         match self {
-            ASTNodeStatement::Expression(e) => e.get_location(),
-            ASTNodeStatement::Block(b) => b.location.clone(),
-            ASTNodeStatement::LetExpression(l) => l.location.clone(),
+            Statement::Expression(e) => e.get_location(),
+            Statement::Block(b) => b.location.clone(),
+            Statement::LetExpression(l) => l.location.clone(),
         }
     }
 

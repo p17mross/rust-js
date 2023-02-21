@@ -3,20 +3,20 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub enum ASTNodeArrayItem {
-    Item(ASTNodeExpression),
-    Spread(ASTNodeExpression),
+pub enum ArrayItem {
+    Item(Expression),
+    Spread(Expression),
     Empty(ProgramLocation),
 }
 
 #[derive(Debug)]
-pub struct ASTNodeArrayLiteral {
+pub struct ArrayLiteral {
     pub location: ProgramLocation,
 
-    pub items: Vec<ASTNodeArrayItem>
+    pub items: Vec<ArrayItem>
 }
 
-impl ASTNodeArrayItem {
+impl ArrayItem {
     pub fn get_location(&self) -> ProgramLocation {
         match self {
             Self::Item(e) | Self::Spread(e) => e.get_location(),
@@ -25,7 +25,7 @@ impl ASTNodeArrayItem {
     }
 }
 
-impl ASTNodeArrayItem {
+impl ArrayItem {
     pub fn to_tree(&self) -> String {
         match self {
             Self::Item(e) => e.to_tree(),
@@ -35,7 +35,7 @@ impl ASTNodeArrayItem {
     }
 }
 
-impl ASTNodeArrayLiteral {
+impl ArrayLiteral {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Array Literal at {}:{}", self.location.line, self.location.column);
 

@@ -3,7 +3,7 @@ use super::*;
 impl Parser {
     /// Parses an expression with precedence 16 or 17.\
     /// Any operator with a lower precedence will be ignored for the caller to parse.
-    fn parse_assignment_target_or_new(&mut self) -> Result<ASTNodeExpression, ParseError> {
+    fn parse_assignment_target_or_new(&mut self) -> Result<Expression, ParseError> {
         // Stores the locations of 'new' operators
         // This disambiguates between a function call and new with argument list
         let mut new_stack = vec![];
@@ -44,10 +44,10 @@ impl Parser {
                     };
 
                     // Wrap val in a PropertyLookup with the parsed identifier
-                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
+                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
                         location: operator_token_location,
                         lhs: val,
-                        rhs: ASTNodeExpression::ValueLiteral(Box::new(
+                        rhs: Expression::ValueLiteral(Box::new(
                             ASTNodeValueLiteral {
                                 location: argument_token_location,
                                 value: ValueLiteral::String(identifier.clone())
@@ -67,7 +67,7 @@ impl Parser {
                         // Optional chained function call 'a?.()'
                         TokenType::OpenParen(_) => {
                             let args = self.parse_function_args()?;
-                            val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall {
+                            val = Expression::FunctionCall(Box::new(FunctionCall {
                                     location: argument_token_location,
                                     function: val,
                                     args,
@@ -78,7 +78,7 @@ impl Parser {
                         }
 
                         // Property lookup 'a?.b'
-                        TokenType::Identifier(id) => ASTNodeExpression::ValueLiteral(Box::new(
+                        TokenType::Identifier(id) => Expression::ValueLiteral(Box::new(
                             ASTNodeValueLiteral {
                                 location: argument_token_location,
                                 value: ValueLiteral::String(id.clone())
@@ -101,7 +101,7 @@ impl Parser {
                         }))
                     };
 
-                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
+                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
                         location: operator_token_location,
                         lhs: val,
                         rhs,
@@ -118,7 +118,7 @@ impl Parser {
                     assert_eq!(close_square_bracket_index, self.i);
                     self.i += 1;
 
-                    val = ASTNodeExpression::PropertyLookup(Box::new(ASTNodePropertyLookup {
+                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
                         location: operator_token.location,
 
                         lhs: val,
@@ -133,7 +133,7 @@ impl Parser {
 
                     // If there is something on new_stack, these are arguments to a 'new _' call 
                     if let Some(location) = new_stack.pop() {
-                        val = ASTNodeExpression::New(Box::new(ASTNodeNew { 
+                        val = Expression::New(Box::new(ASTNodeNew { 
                             location,
                             function: val,
                             args,
@@ -142,7 +142,7 @@ impl Parser {
                     // Otherwise, they are function call arguments
                     else {
                         let location = operator_token.location.clone();
-                        val = ASTNodeExpression::FunctionCall(Box::new(ASTNodeFunctionCall { 
+                        val = Expression::FunctionCall(Box::new(FunctionCall { 
                             location,
                             function: val,
                             args,
@@ -161,7 +161,7 @@ impl Parser {
         }
 
         for location in new_stack.into_iter().rev() {
-            val = ASTNodeExpression::New(Box::new(ASTNodeNew {
+            val = Expression::New(Box::new(ASTNodeNew {
                 location,
                 function: val,
                 args: Vec::new(),
@@ -174,7 +174,7 @@ impl Parser {
     /// Parses an expression with precedence 15 - this function parses postfix increments and decrements.\
     /// If no postfix is found, an expression will be parsed instead.\
     /// Any subsequent increment or decrement tokens wll be ignored for the caller to parse or error on.
-    fn parse_postfix(&mut self) -> Result<ASTNodeExpression, ParseError> {
+    fn parse_postfix(&mut self) -> Result<Expression, ParseError> {
         let target = self.parse_expression(precedences::ASSIGNMENT_TARGET)?;
 
         match self.try_get_token() {
@@ -182,8 +182,8 @@ impl Parser {
             Ok(Token {token_type, location, ..})
             if token_type == &TokenType::OperatorIncrement || token_type == &TokenType::OperatorDecrement => {
                 let target = match target {
-                    ASTNodeExpression::PropertyLookup(p) => UpdateExpressionTarget::Property(p),
-                    ASTNodeExpression::Variable(v) => UpdateExpressionTarget::Variable(v),
+                    Expression::PropertyLookup(p) => UpdateExpressionTarget::Property(p),
+                    Expression::Variable(v) => UpdateExpressionTarget::Variable(v),
                     _ => return Err(self.get_error(ParseErrorType::InvalidUpdateExpressionOperand(UpdateExpressionSide::Postfix)))
                 };
 
@@ -193,7 +193,7 @@ impl Parser {
                     _ => panic!("Expected only '++' or '--' token due to outer match expression"),
                 };
 
-                Ok(ASTNodeExpression::UpdateExpression(Box::new(ASTNodeUpdateExpression {
+                Ok(Expression::UpdateExpression(Box::new(UpdateExpression {
                     location: location.clone(),
                     target,
                     operator_type,
@@ -214,7 +214,7 @@ impl Parser {
     }
 
     /// Parses an expression with precedence 14.\
-    fn parse_unary_operator(&mut self) -> Result<ASTNodeExpression, ParseError> {
+    fn parse_unary_operator(&mut self) -> Result<Expression, ParseError> {
         let maybe_unary_operator_token = self.try_get_token()?;
         let location = maybe_unary_operator_token.location.clone();
 
@@ -248,7 +248,7 @@ impl Parser {
                 return Err(self.get_error(ParseErrorType::InvalidUpdateExpressionOperand(UpdateExpressionSide::Prefix)))
             };
 
-            return Ok(ASTNodeExpression::UpdateExpression(Box::new(ASTNodeUpdateExpression {
+            return Ok(Expression::UpdateExpression(Box::new(UpdateExpression {
                 location,
                 target,
                 operator_type,
@@ -260,7 +260,7 @@ impl Parser {
             // If a unary operator was parsed
             Some(operator_type) => {
                 let expression = self.parse_expression(precedences::UNARY_OPERATOR)?;
-                Ok(ASTNodeExpression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
+                Ok(Expression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
                     location,
                     operator_type,
                     expression
@@ -277,7 +277,7 @@ impl Parser {
     }
 
     /// Parses a series of binary operators with a given precedence
-    fn parse_binary_operator(&mut self, precedence: usize) -> Result<ASTNodeExpression, ParseError>{
+    fn parse_binary_operator(&mut self, precedence: usize) -> Result<Expression, ParseError>{
         // This unwrap should never fail as this function should only ever get called with precedences which have binary operators
         let BinaryPrecedence {associativity, operators: operators_in_precedence} = BINARY_PRECEDENCES[precedence].unwrap();
 
@@ -334,7 +334,7 @@ impl Parser {
 
                 // Iterate over value-operator pairs
                 for (rhs, (operator_type, location)) in values.zip(operators) {
-                    lhs = ASTNodeExpression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                    lhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
                         location,
                         operator_type,
                         lhs,
@@ -350,7 +350,7 @@ impl Parser {
 
                 // Iterate over value-operator pairs
                 for (lhs, (operator_type, location)) in values.zip(operators) {
-                    rhs = ASTNodeExpression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                    rhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
                         location,
                         operator_type,
                         lhs,
@@ -365,7 +365,7 @@ impl Parser {
     #[inline(always)]
     /// Recursively parses an expression with the given precedence.\
     /// This function does not parse anything, but just calls the relevant function for the given precedence.
-    pub(super) fn parse_expression(&mut self, precedence: usize) -> Result<ASTNodeExpression, ParseError> {
+    pub(super) fn parse_expression(&mut self, precedence: usize) -> Result<Expression, ParseError> {
         match precedence {
             // Base case - parse a value
             18 =>  {

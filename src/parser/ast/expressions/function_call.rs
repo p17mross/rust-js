@@ -3,10 +3,10 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct ASTNodeFunctionCall {
+pub struct FunctionCall {
     pub location: ProgramLocation,
 
-    pub function: ASTNodeExpression,
+    pub function: Expression,
     pub args: Vec<FunctionCallArgument>,
 
     /// Whether the function call is optionally chained e.g. 'a?.(b)'
@@ -17,7 +17,7 @@ pub struct ASTNodeFunctionCall {
 pub struct ASTNodeNew {
     pub location: ProgramLocation,
 
-    pub function: ASTNodeExpression,
+    pub function: Expression,
     pub args: Vec<FunctionCallArgument>,
 }
 
@@ -25,11 +25,11 @@ pub struct ASTNodeNew {
 pub struct FunctionCallArgument {
     location: ProgramLocation,
 
-    expression: ASTNodeExpression,
+    expression: Expression,
     spread: bool,
 }
 
-impl ASTNodeFunctionCall {
+impl FunctionCall {
     pub fn to_tree(&self) -> String {
         let mut s = format!("Function call at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
