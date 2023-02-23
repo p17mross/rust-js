@@ -1,3 +1,9 @@
+#![warn(
+    clippy::all,
+    clippy::pedantic,
+    //clippy::nursery
+)]
+
 pub(crate) mod lexer;
 pub mod parser;
 pub(crate) mod util;
