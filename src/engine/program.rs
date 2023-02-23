@@ -57,10 +57,10 @@ impl GarbageCollectable for Program {
 
 impl Program {
     /// Parses the ast and sets self.ast to Some(AstNode)
-    fn load_ast(s: Gc<Self>) -> Result<(), SyntaxError> {
+    fn load_ast(s: &Gc<Self>) -> Result<(), SyntaxError> {
         // Lex
         let lexer = Lexer::new();
-        let tokens = lexer.lex(s.clone())?;
+        let tokens = lexer.lex(s)?;
         // Parse
         let ast = Parser::parse(s.clone(), tokens)?;
 
@@ -71,13 +71,13 @@ impl Program {
     }
 
     /// Create a [Program] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
-    pub fn from_console(s: String) -> Result<Gc<Self>, SyntaxError> {
+    pub fn from_console(s: &str) -> Result<Gc<Self>, SyntaxError> {
         let program = Gc::new(Self {
             source: ProgramSource::Console,
             program: s.chars().collect(),
             ast: None
         });
-        Self::load_ast(program.clone())?;
+        Self::load_ast(&program)?;
         Ok(program)
     }
 
@@ -88,7 +88,7 @@ impl Program {
             program: program.chars().collect(),
             ast: None
         });
-        Self::load_ast(program.clone())?;
+        Self::load_ast(&program)?;
         Ok(program)
     }
 }

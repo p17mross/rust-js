@@ -92,9 +92,7 @@ pub struct Lexer {
     brackets: Vec<Bracket>,
 }
 
-#[allow(clippy::too_many_lines)]
 impl Lexer {
-
     pub fn new() -> Self {
         Self {
             i: 0,
@@ -107,8 +105,7 @@ impl Lexer {
     }
 
     /// Constructs a list of self.tokens from a string.
-    pub(crate) fn lex(mut self, program: Gc<Program>) -> Result<Vec<Token>, LexError> {
-
+    pub(crate) fn lex(mut self, program: &Gc<Program>) -> Result<Vec<Token>, LexError> {
         // The value of `self.i` from the start of the previous loop
         // Used to detect if `self.i` has not changed since the last loop, to detect infinite loops
         let mut prev_i = 0;
@@ -134,10 +131,10 @@ impl Lexer {
 
             match c {
                 // String literal
-                quote if quote == '"' || quote == '\'' || quote == '`' => self.lex_string_literal(&program, program_text, quote, token_start)?,
+                quote if quote == '"' || quote == '\'' || quote == '`' => self.lex_string_literal(program, program_text, quote, token_start)?,
 
                 // Number or BigInt literal
-                digit if ('0'..='9').contains(&digit) => self.lex_numeric_literal(&program, program_text, token_start)?,
+                digit if ('0'..='9').contains(&digit) => self.lex_numeric_literal(program, program_text, token_start)?,
 
                 // Newline
                 '\n' => {
@@ -177,26 +174,26 @@ impl Lexer {
 
                 // Close brackets
                 ')' => {
-                    let open_index = self.match_brackets(&program, Bracket::Paren(0), token_start)?;
+                    let open_index = self.match_brackets(program, Bracket::Paren(0), token_start)?;
                     self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
                     self.i += 1;
                 }
                 '}' => {
-                    let open_index = self.match_brackets(&program, Bracket::Brace(0), token_start)?;
+                    let open_index = self.match_brackets(program, Bracket::Brace(0), token_start)?;
                     self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
                     self.i += 1;
                 }
                 ']' => {
-                    let open_index = self.match_brackets(&program, Bracket::SquareBracket(0), token_start)?;
+                    let open_index = self.match_brackets(program, Bracket::SquareBracket(0), token_start)?;
                     self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
                     self.i += 1;
                 }
 
                 // An identifier
-                c if is_identifier_start(c) => self.lex_identifier(program_text, token_start, &program),
+                c if is_identifier_start(c) => self.lex_identifier(program_text, token_start, program),
 
                 // Any other character: should be an operator
-                c => self.lex_operator(program_text, &program, token_start, c)?,
+                c => self.lex_operator(program_text, program, token_start, c)?,
             }
         }
 
@@ -243,7 +240,7 @@ impl Lexer {
         }
     }
 
-    fn lex_operator(&mut self, program_text: &Vec<char>, program: &Gc<Program>, token_start: usize, c: char) -> Result<(), LexError> {
+    fn lex_operator(&mut self, program_text: &[char], program: &Gc<Program>, token_start: usize, c: char) -> Result<(), LexError> {
         'test_operators: for (operator, operator_token) in OPERATORS {
             let Some(slice) = program_text.get(self.i..self.i+operator.len()) else {continue 'test_operators};
             // Get operators
