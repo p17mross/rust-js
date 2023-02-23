@@ -71,7 +71,7 @@ impl Parser {
                                     location: argument_token_location,
                                     function: val,
                                     args,
-                                    optional: true,
+                                    call_type: FunctionCallType::OptionalChainedFunctionCall,
                                 }
                             ));
                             continue 'parse_tokens;
@@ -133,10 +133,11 @@ impl Parser {
 
                     // If there is something on new_stack, these are arguments to a 'new _' call 
                     if let Some(location) = new_stack.pop() {
-                        val = Expression::New(Box::new(ASTNodeNew { 
+                        val = Expression::FunctionCall(Box::new(FunctionCall { 
                             location,
                             function: val,
                             args,
+                            call_type: FunctionCallType::New
                         }));
                     }
                     // Otherwise, they are function call arguments
@@ -146,7 +147,7 @@ impl Parser {
                             location,
                             function: val,
                             args,
-                            optional: false
+                            call_type: FunctionCallType::FunctionCall
                         }));
                     }
                 }
@@ -161,10 +162,11 @@ impl Parser {
         }
 
         for location in new_stack.into_iter().rev() {
-            val = Expression::New(Box::new(ASTNodeNew {
+            val = Expression::FunctionCall(Box::new(FunctionCall {
                 location,
                 function: val,
                 args: Vec::new(),
+                call_type: FunctionCallType::New,
             }))
         }
 
