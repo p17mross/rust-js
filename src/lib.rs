@@ -4,6 +4,8 @@
     //clippy::nursery
 )]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::enum_glob_use)]
+#![allow(clippy::wildcard_imports)]
 
 pub(crate) mod lexer;
 pub mod parser;

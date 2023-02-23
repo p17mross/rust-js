@@ -20,6 +20,7 @@ pub struct UpdateAssignment {
 }
 
 impl Assignment {
+    #[must_use]
     pub fn to_tree(&self) -> String {
         let mut s = format!("Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
@@ -29,6 +30,7 @@ impl Assignment {
 }
 
 impl UpdateAssignment {
+    #[must_use]
     pub fn to_tree(&self) -> String {
         let mut s = format!("Update Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-operator type: {:?}\n", self.operator_type);

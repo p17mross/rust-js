@@ -198,7 +198,7 @@ impl TokenType {
             Self::ValueLiteral(_) => "value literal",
 
             Self::Semicolon => ";",
-            Self::Comma => ",",
+            Self::Comma | Self::BinaryOperator(BinaryOperator::Comma) => ",",
             Self::OperatorDot => ".",
             Self::OperatorQuestionMark => "?",
             Self::OperatorOptionalChaining => "?.",
@@ -261,7 +261,6 @@ impl TokenType {
             Self::BinaryOperator(BinaryOperator::LessThanOrEqual) => "<=",
 
             Self::BinaryOperator(BinaryOperator::NullishCoalescing) => "??",
-            Self::BinaryOperator(BinaryOperator::Comma) => ",",
 
             Self::BinaryOperator(BinaryOperator::In) => "in",
             Self::BinaryOperator(BinaryOperator::InstanceOf) => "instanceof",
@@ -363,9 +362,7 @@ impl PrettyPrint for Vec<Token> {
 fn test_operator_ordering() {
     for (i, first) in OPERATORS.iter().enumerate() {
         for (j, second) in OPERATORS[i + 1..].iter().enumerate() {
-            if second.0.starts_with(first.0) {
-                panic!("Item '{}' at index {j} starts with item '{}' at index {i}", second.0, first.0)
-            }
+            assert!(!second.0.starts_with(first.0), "Item '{}' at index {j} starts with item '{}' at index {i}", second.0, first.0);
         }
     }
 }

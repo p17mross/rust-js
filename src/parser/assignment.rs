@@ -16,8 +16,7 @@ impl Parser {
                         TokenType::UpdateAssignment(_) | TokenType::OperatorAssignment => match e {
                             Expression::Variable(v) => DestructuringAssignmentTarget::Variable(v.identifier),
                             Expression::PropertyLookup(p) => DestructuringAssignmentTarget::PropertyLookup { expression: p.lhs, property: p.rhs },
-                            Expression::ObjectLiteral(_) => self.parse_destructuring_assignment_target()?,
-                            Expression::ArrayLiteral(_) => self.parse_destructuring_assignment_target()?,
+                            Expression::ObjectLiteral(_) | Expression::ArrayLiteral(_) => self.parse_destructuring_assignment_target()?,
                             _ => return Err(self.get_error(ParseErrorType::InvalidAssignmentLHS))
                         }
                         _ => return Ok(e),

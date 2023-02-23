@@ -180,12 +180,12 @@ impl Lexer {
                 }
                 '}' => {
                     let open_index = self.match_brackets(program, Bracket::Brace(0), token_start)?;
-                    self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
+                    self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseBrace(open_index)));
                     self.i += 1;
                 }
                 ']' => {
                     let open_index = self.match_brackets(program, Bracket::SquareBracket(0), token_start)?;
-                    self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
+                    self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::CloseSquareBracket(open_index)));
                     self.i += 1;
                 }
 
@@ -200,10 +200,11 @@ impl Lexer {
         // After this loop, there should be no more items on the bracket stack
         // Return an error if self.brackets.pop() returns Some
         if let Some(b) = self.brackets.pop() {
+            // Get the index of the opening bracket
             let open_index = match b {
-                Bracket::Paren(i) => i,
-                Bracket::Brace(i) => i,
-                Bracket::SquareBracket(i) => i,
+                Bracket::Paren(i)
+                | Bracket::Brace(i)
+                | Bracket::SquareBracket(i) => i,
             };
             let location = self.tokens[open_index].location.clone();
             return Err(LexError { location, error_type: LexErrorType::UnclosedBracket });
@@ -321,7 +322,7 @@ impl Lexer {
                     s += &match program_text.get(self.i) {
                         None => return Err(LexError::new(program.clone(), self.line, self.line_index, self.i, LexErrorType::UnclosedString(quote))),
                         // self.line continuation
-                        Some('\n') => "".to_string(),
+                        Some('\n') => String::new(),
                         // Newline
                         Some('n') => "\n".to_string(),
                         // Carriage return
@@ -331,11 +332,9 @@ impl Lexer {
                         // Backspace
                         Some('b') => "\u{0008}".to_string(),
                         // Form feed
-                        Some('f') => "\u{000C}".to_string(),
-                        // Vertical tab
-                        Some('v') => "\u{000C}".to_string(),
+                        Some('f' | 'v') => "\u{000C}".to_string(),
                         // TODO: unicode strings
-                        Some('u') | Some('x') => todo!(),
+                        Some('u' | 'x') => todo!(),
                         // Any other character
                         Some(c) => c.to_string()
                     };
@@ -411,14 +410,14 @@ impl Lexer {
 
         if base == NumberLiteralBase::Decimal {
             let n = number.parse::<f64>().expect("Should have been a valid float");
-            self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
+            self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))));
         }
         else {
             // Parse string to number
             let n = num::BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint");
             let n = n.to_f64().unwrap_or(f64::INFINITY);
 
-            self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
+            self.tokens.push(Token::new(program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))));
         }
 
         Ok(())
