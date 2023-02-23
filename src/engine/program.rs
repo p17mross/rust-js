@@ -69,7 +69,7 @@ impl Program {
         Ok(())
     }
 
-    /// Create a [Program] from a string with a [ProgramSource] of [ProgramSource::Console]
+    /// Create a [Program] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
     pub fn from_console(s: String) -> Result<Gc<Self>, SyntaxError> {
         let program = Gc::new(Self {
             source: ProgramSource::Console,

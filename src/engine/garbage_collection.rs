@@ -35,7 +35,7 @@ impl<T: GarbageCollectable + Debug + ?Sized> Debug for Gc<T> {
 pub struct CollectedError;
 
 #[derive(Debug)]
-/// An error type to combine [CollectedError] and [BorrowError]
+/// An error type to combine [`CollectedError`] and [`BorrowError`]
 pub enum GarbageCollectionBorrowError {
     CollectedError(CollectedError),
     BorrowError(BorrowError),
@@ -55,7 +55,7 @@ impl From<BorrowError> for GarbageCollectionBorrowError {
 
 
 #[derive(Debug)]
-/// An error type to combine [CollectedError] and [BorrowMutError]
+/// An error type to combine [`CollectedError`] and [`BorrowMutError`]
 pub enum GarbageCollectionBorrowMutError {
     CollectedError(CollectedError),
     BorrowMutError(BorrowMutError),

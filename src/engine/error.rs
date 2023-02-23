@@ -4,11 +4,11 @@ use crate::{lexer::LexError, parser::ParseError};
 
 #[derive(Debug)]
 /// A general type for any syntax error that can occur.
-/// Combines [LexError] and [ParseError] for easier error handling.
+/// Combines [`LexError`] and [`ParseError`] for easier error handling.
 pub enum SyntaxError {
-    /// A [LexError]
+    /// A [`LexError`]
     LexError(LexError),
-    /// A [ParseError]
+    /// A [`ParseError`]
     ParseError(ParseError)
 }
 
@@ -38,7 +38,7 @@ impl std::error::Error for SyntaxError {}
 
 #[derive(Debug)]
 /// An general type for any error that can occur while reading a program from a file.
-/// Combines [std::io::Error] and [SyntaxError] for easier error handling.
+/// Combines [`std::io::Error`] and [`SyntaxError`] for easier error handling.
 pub enum ProgramFromFileError {
     IoError(std::io::Error),
     SyntaxError(SyntaxError)

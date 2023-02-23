@@ -22,15 +22,15 @@ pub struct Parser {
 }
 
 impl Parser {
-    /// Returns the location of the token at self.tokens[self.i]
+    /// Returns the location of the token at `self.tokens[self.i]`
     fn get_location(&self) -> ProgramLocation {
         self.tokens.get(self.i).unwrap().location.clone()
     }
 
-    /// Gets a token from self.tokens and increments self.i unless it points beyond the end of self.tokens.\
+    /// Gets a token from `self.tokens` and increments `self.i` unless it points beyond the end of `self.tokens`.\
     /// ### Returns:
-    /// * Ok(t) if self.i points inside self.tokens
-    /// * Err(UnexpectedEOF) if self.i points past the end of self.tokens
+    /// * `Ok(t)` if `self.i` points inside `self.tokens`
+    /// * `Err(UnexpectedEOF)` if `self.i` points past the end of `self.tokens`
     fn try_get_token(&mut self) -> Result<&Token, ParseError> {
         let t = self.tokens.get(self.i);
         // Don't increment i past the end of the list
@@ -43,8 +43,8 @@ impl Parser {
         }
     }
 
-    /// Gets a token from self.tokens and increments self.i, and returns a reference to the token.\
-    /// Panics if self.i points past the end of self.tokens - for non-panicking situations use self.try_get_token instead.
+    /// Gets a token from `self.tokens` and increments `self.i`, and returns a reference to the token.\
+    /// Panics if `self.i` points past the end of `self.tokens` - for non-panicking situations use `self.try_get_token` instead.
     fn get_token(&mut self) -> &Token {
         self.try_get_token().expect("self.i should have pointed inside self.tokens")
     }
