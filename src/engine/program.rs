@@ -59,7 +59,8 @@ impl Program {
     /// Parses the ast and sets self.ast to Some(AstNode)
     fn load_ast(s: Gc<Self>) -> Result<(), SyntaxError> {
         // Lex
-        let tokens = Lexer::lex(s.clone())?;
+        let lexer = Lexer::new(s.clone());
+        let tokens = lexer.lex()?;
         // Parse
         let ast = Parser::parse(s.clone(), tokens)?;
 

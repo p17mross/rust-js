@@ -24,7 +24,7 @@ pub enum LexErrorType {
     NewlineInString(char),
     /// When an identifier starts immediately after a numeric literal
     IdentifierAfterNumber,
-    /// When the start of a numberic literal occurs with no digits following
+    /// When the start of a numeric literal occurs with no digits following
     MissingDigits(NumberLiteralBase),
     /// When an invalid unicode occurs outside of a string
     InvalidChar(char),
@@ -69,49 +69,68 @@ impl Display for LexError {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
+enum Bracket {
+    Paren(usize),
+    Brace(usize),
+    SquareBracket(usize)
+}
+
+#[derive(Debug)]
 /// Struct responsible for lexical analysis.
-pub struct Lexer {}
+pub struct Lexer {
+    /// The program which is being lexed
+    program: Gc<Program>,
 
+
+    /// The current index into `self.program.program`
+    i: usize,
+    /// The current line number
+    line: usize,
+    /// The index into `program` of the start of the current line
+    line_index: usize,
+
+    /// The self.tokens which are being produced
+    tokens: Vec<Token>,
+    /// The stack of bracket token types and locations. Used to detect bracket mismatches.
+    brackets: Vec<Bracket>,
+}
+
+#[allow(clippy::too_many_lines)]
 impl Lexer {
-    /// Constructs a list of tokens from a string.
-    pub(crate) fn lex(p: Gc<Program>) -> Result<Vec<Token>, LexError> {
-        // Stores the tokens
-        let mut tokens: Vec<Token> = vec![];
 
-        enum Bracket {
-            Paren(usize),
-            Brace(usize),
-            SquareBracket(usize)
+    pub fn new(program: Gc<Program>) -> Self {
+        Self {
+            program,
+
+            i: 0,
+            line: 1,
+            line_index: 0,
+
+            tokens: Vec::new(),
+            brackets: Vec::new()
         }
+    }
 
-        let mut brackets = vec![];
+    /// Constructs a list of self.tokens from a string.
+    pub(crate) fn lex(mut self) -> Result<Vec<Token>, LexError> {
 
-        let p_ref = p.borrow();
-
-        // The current index into `program`
-        let mut i = 0;
-        // The current line
-        let mut line = 1;
-        // The index into `program` of the start of the current line
-        let mut line_index = 0;
-
-        // The value of `i` from the start of the previous loop
-        // Used to detect if `i` has not changed since the last loop, to detect infinite loops
+        // The value of `self.i` from the start of the previous loop
+        // Used to detect if `self.i` has not changed since the last loop, to detect infinite loops
         let mut prev_i = 0;
+
+        let program_text = &self.program.borrow().program;
 
         'tokens: loop {
             // Panic if an infinite loop is detected
-            if i == prev_i && i != 0 {
-                panic!("Loop detected: line {line}:{}\ntokens so far:{tokens:?}", i-line_index);
-            }
-            prev_i = i;
+            assert_ne!(prev_i, self.i, "Infinite loop detected while parsing");
+            prev_i = self.i;
 
-            // Store the current `i` to calculate the token's line and column
-            let token_start = i;
+            // Store the current `self.i` to calculate the token's self.line and column
+            let token_start = self.i;
 
             // Get char or break on EOF
-            let Some(&c) = p_ref.program.get(i) else {
+            let Some(&c) = program_text.get(self.i) else {
                 break 'tokens;
             };
 
@@ -120,27 +139,27 @@ impl Lexer {
                 quote if quote == '"' || quote == '\'' || quote == '`' => {
                     let mut s = String::new();
                     'string: loop {
-                        i += 1;
-                        match p_ref.program.get(i) {
+                        self.i += 1;
+                        match program_text.get(self.i) {
                             // Error on EOF
-                            None => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::UnclosedString(quote))),
+                            None => return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::UnclosedString(quote))),
                             // Error on newlines in the string
                             // Does not error for backtick enclosed strings
-                            Some('\n') if quote != '`' => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::NewlineInString(quote))),
-                            // If in a backtick string, update line on newline
+                            Some('\n') if quote != '`' => return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::NewlineInString(quote))),
+                            // If in a backtick string, update self.line on newline
                             Some('\n') => {
-                                line += 1;
-                                line_index = i;
+                                self.line += 1;
+                                self.line_index = self.i;
                             }
                             // Detect the end of the string
                             Some(&c) if c == quote => break 'string,
                             // Parse escape sequences
                             Some('\\') => {
-                                i += 1;
+                                self.i += 1;
                                 // Add character to string
-                                s += &match p_ref.program.get(i) {
-                                    None => return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::UnclosedString(quote))),
-                                    // Line continuation
+                                s += &match program_text.get(self.i) {
+                                    None => return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::UnclosedString(quote))),
+                                    // self.line continuation
                                     Some('\n') => "".to_string(),
                                     // Newline
                                     Some('n') => "\n".to_string(),
@@ -166,8 +185,8 @@ impl Lexer {
                             }
                         }
                     }
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::String(s))));
-                    i += 1;
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::String(s))));
+                    self.i += 1;
                 }
 
                 // Number or BigInt literal
@@ -176,31 +195,31 @@ impl Lexer {
                     let mut base = NumberLiteralBase::Decimal;
                     // Could be '0' literal, octal string e.g. '012' meaning 10, or start of '0x', '0b', etc.
                     if digit == '0' {
-                        i += 1;
-                        match p_ref.program.get(i) {
+                        self.i += 1;
+                        match program_text.get(self.i) {
                             // If EOF here, generate `NumberLiteral(0)`
                             None => {
-                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
+                                self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
                                 break 'tokens;
                             },
                             Some(&c) => base = match c {
                                 // Hex literal
-                                'x' | 'X' => {i += 1; NumberLiteralBase::Hex},
+                                'x' | 'X' => {self.i += 1; NumberLiteralBase::Hex},
                                 // Octal literal
-                                'o' | 'O' | '0' => {i += 1; NumberLiteralBase::Octal},
+                                'o' | 'O' | '0' => {self.i += 1; NumberLiteralBase::Octal},
                                 // Binary literal
-                                'b' | 'B' => {i += 1; NumberLiteralBase::Binary},
+                                'b' | 'B' => {self.i += 1; NumberLiteralBase::Binary},
                                 // Bigint '0n' literal
                                 'n' => {
                                     // Error if the next char is an identifier
-                                    if let Some(&c) = p_ref.program.get(i + 1) {
+                                    if let Some(&c) = program_text.get(self.i + 1) {
                                         if is_identifier_start(c) {
-                                            return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))
+                                            return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::IdentifierAfterNumber))
                                         }
                                     }
                                     // Generate `BigIntLiteral(0)` token
-                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from(0)))));
-                                    i += 2;
+                                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from(0)))));
+                                    self.i += 2;
                                     continue 'tokens;
                                 },
                                 // TODO: error here in strict mode
@@ -208,10 +227,10 @@ impl Lexer {
                                 c if ('1'..='9').contains(&c) => NumberLiteralBase::Octal,
                                 // Error if identifier encountered
                                 c if is_identifier_start(c) => {
-                                    return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))
+                                    return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::IdentifierAfterNumber))
                                 }
                                 _ => {
-                                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
+                                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(0.0))));
                                     continue 'tokens;
                                 }
                             }
@@ -219,26 +238,26 @@ impl Lexer {
                     }
                     
                     // Start of the digits
-                    let digits_start = i;
+                    let digits_start = self.i;
                     // Whether there has been a decimal point yet
                     let mut had_decimal = false;
                     // The number for the string
                     let mut number = String::new();
 
                     'digits: loop {
-                        match p_ref.program.get(i) {
+                        match program_text.get(self.i) {
                             // Error on EOF
                             None => {
-                                if digits_start == i {
-                                    return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MissingDigits(base)))
+                                if digits_start == self.i {
+                                    return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::MissingDigits(base)))
                                 } 
                                 break 'digits;
                             },
                             // Indicates a BigInt literal instead of a number
                             Some('n') => {
-                                if had_decimal {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))}
-                                tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint")))));
-                                i += 1;
+                                if had_decimal {return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::IdentifierAfterNumber))}
+                                self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint")))));
+                                self.i += 1;
                                 continue 'tokens;
                             },
                             // A digit
@@ -249,171 +268,171 @@ impl Lexer {
                                 had_decimal = true;
                             }
                             // Error if an identifier is found
-                            Some(&id) if is_identifier_start(id) => {return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::IdentifierAfterNumber))},
+                            Some(&id) if is_identifier_start(id) => {return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::IdentifierAfterNumber))},
                             // Any other character means the end of the number
                             _ => {
-                                i -=1;
+                                self.i -=1;
                                 break 'digits;
                             }
                         }
-                        i += 1;
+                        self.i += 1;
                     }
-                    i += 1;
+                    self.i += 1;
                     if base == NumberLiteralBase::Decimal {
                         let n = number.parse::<f64>().expect("Should have been a valid float");
-                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
+                        self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
                     }
                     else {
                         // Parse string to number
                         let n = num::BigInt::from_str_radix(&number, base.get_radix()).expect("Should have been a valid bigint");
                         let n = n.to_f64().unwrap_or(f64::INFINITY);
 
-                        tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
+                        self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::ValueLiteral(ValueLiteral::Number(n))))
                     }
                 }
 
                 // Newline
                 '\n' => {
-                    if let Some(t) = tokens.last_mut() {
+                    if let Some(t) = self.tokens.last_mut() {
                         t.newline_after = true;
                     }
-                    i += 1;
-                    line += 1;
-                    line_index = i;
+                    self.i += 1;
+                    self.line += 1;
+                    self.line_index = self.i;
                 }       
                 
                 // Ignore whitespace
-                w if w.is_whitespace() => {i += 1}
+                w if w.is_whitespace() => {self.i += 1}
 
-                // Single line comments
-                '/' if p_ref.program.get(i + 1) == Some(&'/') => {
-                    i += 2;
+                // Single self.line comments
+                '/' if program_text.get(self.i + 1) == Some(&'/') => {
+                    self.i += 2;
                     // Find newline to end comment
                     'comment: loop {
-                        match p_ref.program.get(i) {
+                        match program_text.get(self.i) {
                             None => break 'tokens,
                             Some('\n') => {
                                 break 'comment
                             },
-                            _ => i += 1,
+                            _ => self.i += 1,
                         }
                     }
                 }
 
-                // Multi-line comments
-                '/' if p_ref.program.get(i + 1) == Some(&'*') => {
-                    i += 2;
+                // Multi-self.line comments
+                '/' if program_text.get(self.i + 1) == Some(&'*') => {
+                    self.i += 2;
                     // Find '*/' to end comment
                     'comment: loop {
-                        match p_ref.program.get(i) {
+                        match program_text.get(self.i) {
                             None => break 'tokens,
-                            // Still track line / columns in a comment
+                            // Still track self.line / columns in a comment
                             Some('\n') => {
-                                i += 1;
-                                line += 1;
-                                line_index = i;
+                                self.i += 1;
+                                self.line += 1;
+                                self.line_index = self.i;
                             }
-                            Some('*') if p_ref.program.get(i + 1) == Some(&'/') => {
-                                i += 2;
+                            Some('*') if program_text.get(self.i + 1) == Some(&'/') => {
+                                self.i += 2;
                                 break 'comment
                             },
-                            _ => i += 1,
+                            _ => self.i += 1,
                         }
                     }
                 }
 
                 // Open brackets
                 '(' => {
-                    brackets.push(Bracket::Paren(tokens.len()));
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenParen(0)));
-                    i += 1;
+                    self.brackets.push(Bracket::Paren(self.tokens.len()));
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::OpenParen(0)));
+                    self.i += 1;
                 }
                 '{' => {
-                    brackets.push(Bracket::Brace(tokens.len()));
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenBrace(0)));
-                    i += 1;
+                    self.brackets.push(Bracket::Brace(self.tokens.len()));
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::OpenBrace(0)));
+                    self.i += 1;
                 }
                 '[' => {
-                    brackets.push(Bracket::SquareBracket(tokens.len()));
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::OpenSquareBracket(0)));
-                    i += 1;
+                    self.brackets.push(Bracket::SquareBracket(self.tokens.len()));
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::OpenSquareBracket(0)));
+                    self.i += 1;
                 }
 
                 // Close brackets
                 ')' => {
-                    let Some(Bracket::Paren(open_index)) = brackets.pop() else {
-                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    let Some(Bracket::Paren(open_index)) = self.brackets.pop() else {
+                        return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::MismatchedBracket));
                     };
-                    let close_index = tokens.len();
-                    let Token{token_type: TokenType::OpenParen(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenParen")};
+                    let close_index = self.tokens.len();
+                    let Token{token_type: TokenType::OpenParen(u), ..} = &mut self.tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenParen")};
                     *u = close_index;
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseParen(open_index)));
-                    i += 1;
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::CloseParen(open_index)));
+                    self.i += 1;
                 }
                 '}' => {
-                    let Some(Bracket::Brace(open_index)) = brackets.pop() else {
-                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    let Some(Bracket::Brace(open_index)) = self.brackets.pop() else {
+                        return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::MismatchedBracket));
                     };
-                    let close_index = tokens.len();
-                    let Token{token_type: TokenType::OpenBrace(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenBrace")};
+                    let close_index = self.tokens.len();
+                    let Token{token_type: TokenType::OpenBrace(u), ..} = &mut self.tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenBrace")};
                     *u = close_index;
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseBrace(open_index)));
-                    i += 1;
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::CloseBrace(open_index)));
+                    self.i += 1;
                 }
                 ']' => {
-                    let Some(Bracket::SquareBracket(open_index)) = brackets.pop() else {
-                        return Err(LexError::new(p.clone(), line, line_index, i, LexErrorType::MismatchedBracket));
+                    let Some(Bracket::SquareBracket(open_index)) = self.brackets.pop() else {
+                        return Err(LexError::new(self.program.clone(), self.line, self.line_index, self.i, LexErrorType::MismatchedBracket));
                     };
-                    let close_index = tokens.len();
-                    let Token{token_type: TokenType::OpenSquareBracket(u), ..} = &mut tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenSquareBracket")};
+                    let close_index = self.tokens.len();
+                    let Token{token_type: TokenType::OpenSquareBracket(u), ..} = &mut self.tokens[open_index] else {panic!("Token pointed to by open_index should have been an OpenSquareBracket")};
                     *u = close_index;
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::CloseSquareBracket(open_index)));
-                    i += 1;
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::CloseSquareBracket(open_index)));
+                    self.i += 1;
                 }
 
                 // An identifier
                 c if is_identifier_start(c) => {
                     'chars_in_identifer: loop {
-                        match p_ref.program.get(i) {
+                        match program_text.get(self.i) {
                             None => {break 'chars_in_identifer},
-                            Some(&c) if is_identifier_continue(c) => i += 1,
+                            Some(&c) if is_identifier_continue(c) => self.i += 1,
                             _ => break 'chars_in_identifer,
                         }
                     }
 
-                    let ident: String = p_ref.program[token_start..i].iter().collect();
+                    let ident: String = program_text[token_start..self.i].iter().collect();
 
-                    tokens.push(Token::new(p.clone(), line, line_index, token_start, TokenType::Identifier(ident)));
+                    self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, TokenType::Identifier(ident)));
                 }
 
                 // Any other character: should be an operator
                 c => {
                     'test_operators: for (operator, operator_token) in OPERATORS {
-                        let Some(slice) = p_ref.program.get(i..i+operator.len()) else {continue 'test_operators};
+                        let Some(slice) = program_text.get(self.i..self.i+operator.len()) else {continue 'test_operators};
                         // Get operators
                         if slice.iter().map(char::to_owned).eq(operator.chars()) {
-                            i += operator.len();
-                            tokens.push(Token::new(p.clone(), line, line_index, token_start, operator_token));
+                            self.i += operator.len();
+                            self.tokens.push(Token::new(self.program.clone(), self.line, self.line_index, token_start, operator_token));
                             continue 'tokens;
                         }
                     }
-                    return Err(LexError::new(p.clone(), line, line_index, token_start, LexErrorType::InvalidChar(c)));
+                    return Err(LexError::new(self.program.clone(), self.line, self.line_index, token_start, LexErrorType::InvalidChar(c)));
                 }
             }
         }
 
         // After this loop, there should be no more items on the bracket stack
-        // Return an error if brackets.pop() returns Some
-        if let Some(b) = brackets.pop() {
+        // Return an error if self.brackets.pop() returns Some
+        if let Some(b) = self.brackets.pop() {
             let open_index = match b {
                 Bracket::Paren(i) => i,
                 Bracket::Brace(i) => i,
                 Bracket::SquareBracket(i) => i,
             };
-            let location = tokens[open_index].location.clone();
+            let location = self.tokens[open_index].location.clone();
             return Err(LexError { location, error_type: LexErrorType::UnclosedBracket });
         }
 
-        Ok(tokens)
+        Ok(self.tokens)
     }
 }
