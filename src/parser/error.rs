@@ -75,7 +75,7 @@ impl Parser {
             },
             _ => {
                 ParseError {
-                    location: self.tokens.get(self.i - 1).unwrap().location.clone(),
+                    location: self.tokens.get(self.i.saturating_sub(1)).unwrap().location.clone(),
                     error_type
                 }
             }
