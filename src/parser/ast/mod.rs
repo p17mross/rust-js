@@ -48,7 +48,7 @@ impl ASTNodeProgram {
 
 impl Debug for ASTNodeProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("ASTNodeProgram from {:?} {{{:?}}}", self.program.borrow().source, self.block))
+        write!(f, "ASTNodeProgram from {:?} {{{:?}}}", self.program.borrow().source, self.block)
     }
 }
 

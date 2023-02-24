@@ -28,8 +28,8 @@ impl Display for SyntaxError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Pass on formatting to either variant
         match self {
-            Self::LexError(e) => f.write_fmt(format_args!("{e}")),
-            Self::ParseError(e) => f.write_fmt(format_args!("{e}")),
+            Self::LexError(e) => write!(f, "{e}"),
+            Self::ParseError(e) => write!(f, "{e}"),
         }
     }
 }
@@ -59,8 +59,8 @@ impl From<SyntaxError> for ProgramFromFileError {
 impl Display for ProgramFromFileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::IoError(e) => f.write_fmt(format_args!("{e}")),
-            Self::SyntaxError(e) => f.write_fmt(format_args!("{e}")),
+            Self::IoError(e) => write!(f, "{e}"),
+            Self::SyntaxError(e) => write!(f, "{e}"),
         }
     }
 }

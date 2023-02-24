@@ -20,13 +20,13 @@ pub struct Gc<T: GarbageCollectable + ?Sized> {
 
 impl<T: GarbageCollectable + Display + ?Sized> Display for Gc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.borrow()))
+        write!(f, "{}", self.borrow())
     }
 }
 
 impl<T: GarbageCollectable + Debug + ?Sized> Debug for Gc<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{:?}", self.borrow()))
+        write!(f, "{:?}", self.borrow())
     }
 }
 

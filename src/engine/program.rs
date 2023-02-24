@@ -21,7 +21,7 @@ impl Display for ProgramSource {
         match self {
             Self::Console => f.write_str("console code"),
             Self::EvalString => f.write_str(""),
-            Self::File(p) => f.write_fmt(format_args!("{}", p.to_str().unwrap_or("Unprintable file"))),
+            Self::File(p) => write!(f, "{}", p.to_str().unwrap_or("Unprintable file")),
         }
     }
 }
@@ -38,11 +38,11 @@ pub struct Program {
 
 impl Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
+        write!(f, 
             "Program {{source: {}, ast: {}}}", 
             self.source, 
             if self.ast.is_some() {"Some"} else {"None"}
-        ))
+        )
     }
 }
 
@@ -108,6 +108,6 @@ pub struct ProgramLocation {
 
 impl Debug for ProgramLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}:{} in {}", self.line, self.column, self.program.borrow().source))
+        write!(f, "{}:{} in {}", self.line, self.column, self.program.borrow().source)
     }
 }

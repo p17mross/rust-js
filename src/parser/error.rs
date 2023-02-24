@@ -30,14 +30,14 @@ impl Display for ParseErrorType {
             Self::SyntaxError => f.write_str("invalid syntax"),
             Self::UnexpectedEOF => f.write_str("unexpected EOF"),
             Self::UnexpectedToken { found, expected } => match expected {
-                None => f.write_fmt(format_args!("unexpected token '{found}'")),
-                Some(expected) => f.write_fmt(format_args!("unexpected token: expected '{expected}', found '{found}'"))
+                None => write!(f, "unexpected token '{found}'"),
+                Some(expected) => write!(f, "unexpected token: expected '{expected}', found '{found}'")
             },
             Self::ExpectedExpression { found} => match found {
-                None => f.write_fmt(format_args!("expected expression")),
-                Some(found) => f.write_fmt(format_args!("expected expression, found '{found}'"))
+                None => write!(f, "expected expression"),
+                Some(found) => write!(f, "expected expression, found '{found}'")
             },
-            Self::InvalidUpdateExpressionOperand(s) => f.write_fmt(format_args!("invalid {} operand", s)),
+            Self::InvalidUpdateExpressionOperand(s) => write!(f, "invalid {s} operand"),
             Self::InvalidAssignmentLHS => f.write_str("Invalid assignment left hand side"),
             Self::InvalidDestructuringAssignmentOperator => f.write_str("Only the '=' operator may be used in a destructuring assignment"),
             Self::ItemsAfterRestElementInArrayDestructure => f.write_str("The rest element of an array destructure must be the last item"),
@@ -56,7 +56,7 @@ pub struct ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}:{}:{}\nSyntax Error: {}", self.location.program.borrow().source, self.location.line, self.location.column, self.error_type))
+        write!(f, "{}:{}:{}\nSyntax Error: {}", self.location.program.borrow().source, self.location.line, self.location.column, self.error_type)
     }
 }
 

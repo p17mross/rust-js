@@ -38,11 +38,11 @@ pub enum LexErrorType {
 impl Display for LexErrorType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnclosedString(c) => f.write_fmt(format_args!("{c}{c} literal not terminated before end of script")),
-            Self::NewlineInString(c) => f.write_fmt(format_args!("{c}{c} literal contains an unescaped line break")),
+            Self::UnclosedString(c) => write!(f, "{c}{c} literal not terminated before end of script"),
+            Self::NewlineInString(c) => write!(f, "{c}{c} literal contains an unescaped line break"),
             Self::IdentifierAfterNumber => f.write_str("Identifier starts immediately after numeric literal"),
-            Self::MissingDigits(n) => f.write_fmt(format_args!("Missing {} digits after '{}'", n.get_name(), n.get_start())),
-            Self::InvalidChar(c) => f.write_fmt(format_args!("Illegal character U+{:x}", *c as u32)),
+            Self::MissingDigits(n) => write!(f, "Missing {} digits after '{}'", n.get_name(), n.get_start()),
+            Self::InvalidChar(c) => write!(f, "Illegal character U+{:x}", *c as u32),
             Self::MismatchedBracket => f.write_str("Mismatched bracket"),
             Self::UnclosedBracket => f.write_str("Unclosed bracket")
         }
@@ -65,7 +65,7 @@ impl LexError {
 
 impl Display for LexError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}:{}:{}\nSyntax Error: {}", self.location.program.borrow().source, self.location.line, self.location.column, self.error_type))
+        write!(f, "{}:{}:{}\nSyntax Error: {}", self.location.program.borrow().source, self.location.line, self.location.column, self.error_type)
     }
 }
 
