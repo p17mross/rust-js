@@ -28,6 +28,7 @@ impl GarbageCollectable for ASTNodeProgram {
 }
 
 impl ASTNodeProgram {
+    #[must_use]
     pub fn new(program: Gc<Program>) -> Self {
         Self {
             program: program.clone(),

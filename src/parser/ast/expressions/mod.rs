@@ -46,6 +46,7 @@ pub struct Variable {
 
 
 impl Expression {
+    #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         match self {
             Self::ArrayLiteral(a) => a.location.clone(),
@@ -62,6 +63,7 @@ impl Expression {
         }
     }
 
+    #[must_use]
     pub fn get_type(&self) -> String {
         match self {
             Self::ArrayLiteral(_) => "Array literal".to_string(),

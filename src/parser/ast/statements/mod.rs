@@ -16,6 +16,7 @@ pub enum Statement {
 }
 
 impl Statement {
+    #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         match self {
             Statement::Expression(e) => e.get_location(),
@@ -23,8 +24,10 @@ impl Statement {
             Statement::LetExpression(l) => l.location.clone(),
         }
     }
+}
 
-    pub fn to_tree(&self) -> String {
+impl ToTree for Statement {
+    fn to_tree(&self) -> String {
         match self {
             Self::Block(n) => n.to_tree(),
             Self::LetExpression(n) => n.to_tree(),
