@@ -45,13 +45,13 @@ impl Parser {
                 TokenType::OpenSquareBracket(close_square_bracket_index) => {
                     let operator_token_location = operator_token.location.clone();
                     val = self.parse_computed_member_access(operator_token_location, val)?;
-                    debug_assert_eq!(close_square_bracket_index, self.i);
+                    debug_assert_eq!(close_square_bracket_index, self.i - 1);
                 }
                 // Function call or arguments to 'new'
                 TokenType::OpenParen(close_paren_index) => {
                     let operator_token_location = operator_token.location.clone();
                     val = self.parse_function_call_or_new(operator_token_location, &mut new_stack, val)?;
-                    debug_assert_eq!(close_paren_index, self.i);
+                    debug_assert_eq!(close_paren_index, self.i - 1);
                 },
             
                 // Anything else gets passed back up
