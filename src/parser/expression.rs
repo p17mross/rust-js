@@ -30,127 +30,29 @@ impl Parser {
 
         'parse_tokens: loop {
             let Ok(operator_token) = self.try_get_token() else {break 'parse_tokens};
-            match &operator_token.token_type {
+            match operator_token.token_type.clone() {
                 // Property lookup
                 TokenType::OperatorDot => {
-                    // Clone the location and token to avoid multiple references to self
                     let operator_token_location = operator_token.location.clone();
-                    let argument_token = self.try_get_token()?.clone();
-
-                    // '.' should always be followed by an identifier, so error if it isn't
-                    let Token{token_type:TokenType::Identifier(identifier), location: argument_token_location, newline_after: _} = argument_token else {
-                        let found = argument_token.token_type.to_str();
-                        return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
-                    };
-
-                    // Wrap val in a PropertyLookup with the parsed identifier
-                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
-                        location: operator_token_location,
-                        lhs: val,
-                        rhs: Expression::ValueLiteral(Box::new(
-                            ASTNodeValueLiteral {
-                                location: argument_token_location,
-                                value: ValueLiteral::String(identifier.clone())
-                            }
-                        )),
-                        optional: false
-                    }));
-                }
+                    val = self.parse_property_lookup(operator_token_location, val)?;
+                },
                 // Optional chaining
                 TokenType::OperatorOptionalChaining => {
                     let operator_token_location = operator_token.location.clone();
-                    let argument_token = self.try_get_token()?.clone();
-                    let argument_token_location = argument_token.location.clone();
-
-                    let rhs = match argument_token.token_type {
-
-                        // Optional chained function call 'a?.()'
-                        TokenType::OpenParen(_) => {
-                            let args = self.parse_function_args()?;
-                            val = Expression::FunctionCall(Box::new(FunctionCall {
-                                    location: argument_token_location,
-                                    function: val,
-                                    args,
-                                    call_type: FunctionCallType::OptionalChainedFunctionCall,
-                                }
-                            ));
-                            continue 'parse_tokens;
-                        }
-
-                        // Property lookup 'a?.b'
-                        TokenType::Identifier(id) => Expression::ValueLiteral(Box::new(
-                            ASTNodeValueLiteral {
-                                location: argument_token_location,
-                                value: ValueLiteral::String(id.clone())
-                            }
-                        )),
-                        // Computed property lookup 'a?.["b"]'
-                        TokenType::OpenSquareBracket(i) => {
-                            let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
-                            
-                            // Check that the end square bracket is the right one
-                            debug_assert_eq!(i, self.i);
-                            self.i += 1;
-                            
-                            computed_expression
-                        }
-                        // Any other token is an error
-                        _ => return Err(self.get_error(ParseErrorType::UnexpectedToken {
-                            found: argument_token.token_type.to_str(),
-                            expected: Some("identifier, '[', or '('")
-                        }))
-                    };
-
-                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
-                        location: operator_token_location,
-                        lhs: val,
-                        rhs,
-                        optional: true
-                    }));
+                    val = self.parse_optional_chaining(operator_token_location, val)?;
                 }
                 // Computed member access
                 TokenType::OpenSquareBracket(close_square_bracket_index) => {
-                    let operator_token = operator_token.clone();
-                    let close_square_bracket_index = *close_square_bracket_index;
-                    let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
-                    
-                    // Check that the end square bracket is the right one
+                    let operator_token_location = operator_token.location.clone();
+                    val = self.parse_computed_member_access(operator_token_location, val)?;
                     debug_assert_eq!(close_square_bracket_index, self.i);
-                    self.i += 1;
-
-                    val = Expression::PropertyLookup(Box::new(PropertyLookup {
-                        location: operator_token.location,
-
-                        lhs: val,
-                        rhs: computed_expression,
-                        optional: false,
-                    }));
                 }
                 // Function call or arguments to 'new'
-                TokenType::OpenParen(_) => {
-                    let operator_token = operator_token.clone();
-                    let args = self.parse_function_args()?;
-
-                    // If there is something on new_stack, these are arguments to a 'new _' call 
-                    if let Some(location) = new_stack.pop() {
-                        val = Expression::FunctionCall(Box::new(FunctionCall { 
-                            location,
-                            function: val,
-                            args,
-                            call_type: FunctionCallType::New
-                        }));
-                    }
-                    // Otherwise, they are function call arguments
-                    else {
-                        let location = operator_token.location.clone();
-                        val = Expression::FunctionCall(Box::new(FunctionCall { 
-                            location,
-                            function: val,
-                            args,
-                            call_type: FunctionCallType::FunctionCall
-                        }));
-                    }
-                }
+                TokenType::OpenParen(close_paren_index) => {
+                    let operator_token_location = operator_token.location.clone();
+                    val = self.parse_function_call_or_new(operator_token_location, &mut new_stack, val)?;
+                    debug_assert_eq!(close_paren_index, self.i);
+                },
             
                 // Anything else gets passed back up
                 _ => {
@@ -167,8 +69,145 @@ impl Parser {
                 function: val,
                 args: Vec::new(),
                 call_type: FunctionCallType::New,
-            }))
+            }));
         }
+
+        Ok(val)
+    }
+
+    /// Parse a [`FunctionCall`]
+    /// 
+    /// ### Params
+    /// * `operator_token_location`: the location of the [open paren][TokenType::OpenParen] token
+    /// * `new_stack`: the stack of locations of `new` tokens. The top value of the stack will be popped and a [new][FunctionCallType::New] will be called.
+    ///     If the stack is empty, a [function call][FunctionCallType::FunctionCall] will be returned.
+    /// * `val`: the expression to be the left hand side of the call expression
+    fn parse_function_call_or_new(&mut self, operator_token_location: ProgramLocation, new_stack: &mut Vec<ProgramLocation>, val: Expression) -> Result<Expression, ParseError> {
+        let args = self.parse_function_args()?;
+
+        // Get the location and call type based on whether there is something on the call stack
+        let (location, call_type) = match new_stack.pop() {
+            Some(location) => (location, FunctionCallType::New),
+            None => (operator_token_location, FunctionCallType::FunctionCall)
+        };
+
+        let val = Expression::FunctionCall(Box::new(FunctionCall { 
+            location,
+            function: val,
+            args,
+            call_type,
+        }));
+        
+
+        Ok(val)
+    }
+
+    /// Parse a [`PropertyLookup`] using the computed member access syntax (`a["some property"]`)
+    /// 
+    /// ### Params
+    /// * `operator_token_location`: the location of the [open square bracket][TokenType::OpenSquareBracket] token
+    /// * `val`: the expression to be the left hand side of the property lookup
+    fn parse_computed_member_access(&mut self, operator_token_location: ProgramLocation, val: Expression) -> Result<Expression, ParseError> {
+        let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
+        
+        self.i += 1;
+        
+        let val = Expression::PropertyLookup(Box::new(PropertyLookup {
+            location: operator_token_location,
+
+            lhs: val,
+            rhs: computed_expression,
+            optional: false,
+        }));
+
+        Ok(val)
+    }
+
+    /// Parse a [`PropertyLookup`] using the member access syntax (`a.some_property`)
+    /// 
+    /// ### Params
+    /// * `operator_token_location`: the location of the [dot][TokenType::OperatorDot] token
+    /// * `val`: the expression to be the left hand side of the property lookup
+    fn parse_property_lookup(&mut self, operator_token_location: ProgramLocation, mut val: Expression) -> Result<Expression, ParseError> {
+        let argument_token = self.try_get_token()?.clone();
+        
+        // Get the property name
+        let Token{token_type:TokenType::Identifier(identifier), location: argument_token_location, ..} = argument_token else {
+            let found = argument_token.token_type.to_str();
+            return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
+        };
+        
+        val = Expression::PropertyLookup(Box::new(PropertyLookup {
+            location: operator_token_location,
+            lhs: val,
+            rhs: Expression::ValueLiteral(Box::new(
+                ASTNodeValueLiteral {
+                    location: argument_token_location,
+                    value: ValueLiteral::String(identifier)
+                }
+            )),
+            optional: false
+        }));
+
+        Ok(val)
+    }
+
+    /// Parse something after the [optional chaining operator][TokenType::OperatorOptionalChaining]. This syntax can have multiple forms, so the function can return a [`FunctionCall`] or a [`PropertyLookup`].
+    /// 
+    /// ### Params
+    /// * `operator_token_location`: the location of the [optional chaining operator][TokenType::OperatorOptionalChaining]
+    /// * `val`: the lhs of the parsed expression
+    fn parse_optional_chaining(&mut self, operator_token_location: ProgramLocation, val: Expression) -> Result<Expression, ParseError> {
+        let argument_token = self.try_get_token()?.clone();
+        let argument_token_location = argument_token.location.clone();
+
+        let rhs = match argument_token.token_type {
+
+            // Optional chained function call 'a?.()'
+            TokenType::OpenParen(_) => {
+                let args = self.parse_function_args()?;
+                let val = Expression::FunctionCall(Box::new(FunctionCall {
+                        location: argument_token_location,
+                        function: val,
+                        args,
+                        call_type: FunctionCallType::OptionalChainedFunctionCall,
+                    }
+                ));
+                return Ok(val);
+            }
+
+            // Property lookup 'a?.b'
+            TokenType::Identifier(id) => Expression::ValueLiteral(Box::new(
+                ASTNodeValueLiteral {
+                    location: argument_token_location,
+                    value: ValueLiteral::String(id)
+                }
+            )),
+
+            // Computed property lookup 'a?.["b"]'
+            TokenType::OpenSquareBracket(i) => {
+                let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
+                
+                // Check that the end square bracket is the right one
+                debug_assert_eq!(i, self.i);
+                self.i += 1;
+                
+                computed_expression
+            }
+
+            // Any other token is an error
+            _ => return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                found: argument_token.token_type.to_str(),
+                expected: Some("identifier, '[', or '('")
+            }))
+        };
+
+        let val = Expression::PropertyLookup(Box::new(PropertyLookup {
+            location: operator_token_location,
+            lhs: val,
+            rhs,
+            optional: true
+        }));
 
         Ok(val)
     }
