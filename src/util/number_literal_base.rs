@@ -10,7 +10,7 @@ pub enum NumberLiteralBase {
 
 impl NumberLiteralBase {
     /// Gets the valid chars for a given base
-    pub fn get_chars(&self) -> &'static str {
+    pub fn get_chars(self) -> &'static str {
         match self {
             NumberLiteralBase::Binary => "01",
             NumberLiteralBase::Octal => "01234567",
@@ -20,7 +20,7 @@ impl NumberLiteralBase {
     }
 
     /// Gets the base as a u32
-    pub fn get_radix(&self) -> u32 {
+    pub fn get_radix(self) -> u32 {
         match self {
             Self::Binary => 2,
             Self::Octal => 8,
@@ -30,7 +30,7 @@ impl NumberLiteralBase {
     }
 
     /// Gets the name of the base
-    pub fn get_name(&self) -> &'static str {
+    pub fn get_name(self) -> &'static str {
         match self {
             Self::Binary => "binary",
             Self::Octal => "octal",
@@ -40,7 +40,7 @@ impl NumberLiteralBase {
     }
 
     /// Gets what a literal must start with to have this base
-    pub fn get_start(&self) -> &'static str {
+    pub fn get_start(self) -> &'static str {
         match self {
             Self::Binary => "0b",
             Self::Octal => "0o",

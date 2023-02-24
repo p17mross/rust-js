@@ -70,7 +70,10 @@ impl Program {
         Ok(())
     }
 
-    /// Create a [Program] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
+    /// Create a [`Program`] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
+    /// 
+    /// ### Errors
+    /// * Returns a [`SyntaxError`] if the given string is not valid javascript code
     pub fn from_console(s: &str) -> Result<Gc<Self>, SyntaxError> {
         let program = Gc::new(Self {
             source: ProgramSource::Console,
@@ -81,6 +84,11 @@ impl Program {
         Ok(program)
     }
 
+    /// Load a [`Program`] from a file
+    /// 
+    /// ### Errors
+    /// * Returns an [io error][std::io::Error] if there is an error reading from the file
+    /// * Returns a [`SyntaxError`] if the given file does not contain valid javascript code
     pub fn from_file(p: PathBuf) -> Result<Gc<Self>, ProgramFromFileError> {
         let program = fs::read_to_string(p.clone())?;
         let program = Gc::new(Self {

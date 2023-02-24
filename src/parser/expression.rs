@@ -297,24 +297,22 @@ impl Parser {
             })))
         }
 
-        match op {
-            // If a unary operator was parsed
-            Some(operator_type) => {
-                let expression = self.parse_expression(precedences::UNARY_OPERATOR)?;
-                Ok(Expression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
-                    location,
-                    operator_type,
-                    expression
-                })))
-            },
-            // Otherwise, parse expression with lower precedence
-            None => {
-                // Token was not a unary/prefix operator, so don't consume it
-                self.i -= 1;
-                // Parse with one higher precedence
-                self.parse_expression(precedences::UNARY_OPERATOR + 1)
-            }
+        if let Some(operator_type) = op {
+            let expression = self.parse_expression(precedences::UNARY_OPERATOR)?;
+            let e = Expression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
+                location,
+                operator_type,
+                expression
+            }));
+
+            Ok(e)
+        } else {
+            // Token was not a unary/prefix operator, so don't consume it
+            self.i -= 1;
+            // Parse with one higher precedence
+            self.parse_expression(precedences::UNARY_OPERATOR + 1)
         }
+
     }
 
     /// Parses a series of binary operators with a given precedence
@@ -350,7 +348,7 @@ impl Parser {
 
                 // Comma operator is its own token, so check for it separately
                 Ok(Token {token_type: TokenType::Comma, location, ..}) if precedence == precedences::COMMA => {
-                    operators.push((BinaryOperator::Comma, location.clone()))
+                    operators.push((BinaryOperator::Comma, location.clone()));
                 }
                 // Anything else means the end of this run of operators, so break the loop
                 Ok(_) => {
@@ -380,7 +378,7 @@ impl Parser {
                         operator_type,
                         lhs,
                         rhs
-                    }))
+                    }));
                 }
                 Ok(lhs)
             },
@@ -396,14 +394,13 @@ impl Parser {
                         operator_type,
                         lhs,
                         rhs
-                    }))
+                    }));
                 }
                 Ok(rhs)
             },
         }
     }
 
-    #[inline(always)]
     /// Recursively parses an expression with the given precedence.\
     /// This function does not parse anything, but just calls the relevant function for the given precedence.
     pub(super) fn parse_expression(&mut self, precedence: usize) -> Result<Expression, ParseError> {
@@ -422,13 +419,11 @@ impl Parser {
             14 => self.parse_unary_operator(),
 
             // Precedences 13 down to 3 have only binary operators
-            3 ..= 13 => self.parse_binary_operator(precedence),
+            // Precedence 1 is the comma operator, which is a binary operator
+            3 ..= 13 | 1 => self.parse_binary_operator(precedence),
 
             // Assignment operators
             2 => self.parse_assignment(),
-
-            // Precedence 1 is the comma operator, which is a binary operator
-            1 => self.parse_binary_operator(precedence),
 
             precedences::ANY_EXPRESSION => self.parse_expression(1),
 
