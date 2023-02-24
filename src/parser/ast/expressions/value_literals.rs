@@ -1,4 +1,4 @@
-use crate::{engine::program::ProgramLocation, lexer::token::ValueLiteral};
+use crate::{engine::program::ProgramLocation, lexer::token::ValueLiteral, parser::ast::ToTree};
 
 #[derive(Debug)]
 pub struct ASTNodeValueLiteral {
@@ -7,8 +7,8 @@ pub struct ASTNodeValueLiteral {
     pub value: ValueLiteral,
 }
 
-impl ASTNodeValueLiteral {
-    pub fn to_tree(&self) -> String {
+impl ToTree for ASTNodeValueLiteral{
+   fn to_tree(&self) -> String {
         let v = match &self.value {
             ValueLiteral::BigInt(b) => format!("BigInt literal {b}"),
             ValueLiteral::Number(n) => format!("Number literal {n}"),

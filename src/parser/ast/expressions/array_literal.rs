@@ -26,9 +26,8 @@ impl ArrayItem {
     }
 }
 
-impl ArrayItem {
-    #[must_use]
-    pub fn to_tree(&self) -> String {
+impl ToTree for ArrayItem{
+   fn to_tree(&self) -> String {
         match self {
             Self::Item(e) => e.to_tree(),
             Self::Spread(e) => format!("Spread from {}", e.to_tree()),
@@ -37,9 +36,8 @@ impl ArrayItem {
     }
 }
 
-impl ArrayLiteral {
-    #[must_use]
-    pub fn to_tree(&self) -> String {
+impl ToTree for ArrayLiteral{
+   fn to_tree(&self) -> String {
         let mut s = format!("Array Literal at {}:{}", self.location.line, self.location.column);
 
         for (i, expression) in self.items.iter().enumerate() {

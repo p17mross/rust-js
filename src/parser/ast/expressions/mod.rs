@@ -81,14 +81,14 @@ impl Expression {
     }
 }
 
-impl Variable {
-    pub fn to_tree(&self) -> String {
+impl ToTree for Variable{
+   fn to_tree(&self) -> String {
         format!("Variable at {}:{}: \"{}\"", self.location.line, self.location.column, self.identifier)
     }
 }
 
-impl Expression {
-    pub fn to_tree(&self) -> String {
+impl ToTree for Expression{
+   fn to_tree(&self) -> String {
         match self {
             Self::ArrayLiteral(a) => a.to_tree(),
             Self::Assignment(a) => a.to_tree(),

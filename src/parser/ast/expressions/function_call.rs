@@ -43,8 +43,8 @@ impl Display for FunctionCallType {
     }
 }
 
-impl FunctionCall {
-    pub fn to_tree(&self) -> String {
+impl ToTree for FunctionCall{
+   fn to_tree(&self) -> String {
         let mut s = format!("{} at {}:{}\n", self.call_type, self.location.line, self.location.column);
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
 
@@ -68,8 +68,8 @@ impl FunctionCall {
     }
 }
 
-impl FunctionCallArgument {
-    pub fn to_tree(&self) -> String {
+impl ToTree for FunctionCallArgument{
+   fn to_tree(&self) -> String {
         if self.spread {
             format!("Spread at {}:{} from {}", self.location.line, self.location.column, self.expression.to_tree())
         } else {

@@ -6,7 +6,7 @@
 
 use std::{env, path::PathBuf};
 
-use js::engine::Program;
+use js::{engine::Program, parser::ast::ToTree};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();

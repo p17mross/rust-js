@@ -61,8 +61,13 @@ impl StringExtTreeIndent for String {
     }
 }
 
-impl ASTNodeProgram {
-    pub fn to_tree(&self) -> String {
+pub trait ToTree {
+    #[must_use]
+    fn to_tree(&self) -> String;
+}
+
+impl ToTree for ASTNodeProgram {
+    fn to_tree(&self) -> String {
         let mut s = format!("Program from {}\n", self.program.borrow().source);
         s += &self.block.to_tree();
         s

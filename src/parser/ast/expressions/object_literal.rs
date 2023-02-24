@@ -11,8 +11,8 @@ pub struct ObjectLiteral {
     pub properties: HashMap<String, Expression>
 }
 
-impl ObjectLiteral {
-    pub fn to_tree(&self) -> String {
+impl ToTree for ObjectLiteral{
+   fn to_tree(&self) -> String {
         let mut s = format!("Object Literal at {}:{}", self.location.line, self.location.column);
 
         for (key, expression) in &self.properties {

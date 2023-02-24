@@ -33,8 +33,8 @@ pub struct ASTNodeUnaryOperator {
 }
 
 
-impl ASTNodeUnaryOperator {
-    pub fn to_tree(&self) -> String {
+impl ToTree for ASTNodeUnaryOperator{
+   fn to_tree(&self) -> String {
         format!("Unary operator ({:?}) at {}:{}: {}", self.operator_type, self.location.line, self.location.column, self.expression.to_tree())
     }
 }

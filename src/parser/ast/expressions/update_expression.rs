@@ -1,4 +1,4 @@
-use crate::{engine::program::ProgramLocation, parser::{ast::StringExtTreeIndent}};
+use crate::{engine::program::ProgramLocation, parser::{ast::{StringExtTreeIndent, ToTree}}};
 
 use super::{PropertyLookup, Variable, Expression};
 
@@ -51,14 +51,14 @@ impl std::fmt::Display for UpdateExpressionSide {
     }
 }
 
-impl UpdateExpression {
-    pub fn to_tree(&self) -> String {
+impl ToTree for UpdateExpression{
+   fn to_tree(&self) -> String {
         format!("{:?} {:?} at {}:{}\n|-property: {}", self.side, self.operator_type, self.location.line, self.location.column, self.target.to_tree().indent_tree())
     }
 }
 
-impl UpdateExpressionTarget {
-    pub fn to_tree(&self) -> String {
+impl ToTree for UpdateExpressionTarget{
+   fn to_tree(&self) -> String {
         match self {
             Self::Property(p) => p.to_tree(),
             Self::Variable(v) => v.to_tree(),

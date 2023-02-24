@@ -1,4 +1,4 @@
-use crate::{engine::program::ProgramLocation, parser::ast::{DestructuringAssignmentTarget, AssignmentTarget, StringExtTreeIndent}, lexer::token::UpdateAssignmentOperator};
+use crate::{engine::program::ProgramLocation, parser::ast::{DestructuringAssignmentTarget, AssignmentTarget, StringExtTreeIndent, ToTree}, lexer::token::UpdateAssignmentOperator};
 
 use super::Expression;
 
@@ -19,9 +19,8 @@ pub struct UpdateAssignment {
     pub rhs: Expression,
 }
 
-impl Assignment {
-    #[must_use]
-    pub fn to_tree(&self) -> String {
+impl ToTree for Assignment {
+    fn to_tree(&self) -> String {
         let mut s = format!("Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
@@ -29,9 +28,8 @@ impl Assignment {
     }
 }
 
-impl UpdateAssignment {
-    #[must_use]
-    pub fn to_tree(&self) -> String {
+impl ToTree for UpdateAssignment {
+    fn to_tree(&self) -> String {
         let mut s = format!("Update Assignment at {}:{}\n", self.location.line, self.location.column);
         s += &format!("|-operator type: {:?}\n", self.operator_type);
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
