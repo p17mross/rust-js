@@ -2,7 +2,7 @@ use super::*;
 
 impl Parser {
     pub(super) fn parse_destructuring_assignment_target(&mut self) -> Result<DestructuringAssignmentTarget, ParseError> {
-        todo!("Destructuring assignment");
+        Err(self.get_error(ParseErrorType::SyntaxError))
     }
 
     pub(super) fn parse_function_args(&mut self) -> Result<Vec<FunctionCallArgument>, ParseError> {

@@ -41,7 +41,7 @@ impl ToTree for ArrayLiteral{
         let mut s = format!("Array Literal at {}:{}", self.location.line, self.location.column);
 
         for (i, expression) in self.items.iter().enumerate() {
-            s += &format!("|-{i}: {}", expression.to_tree().indent_tree());
+            s += &format!("\n|-{i}: {}", expression.to_tree().indent_tree());
         }
 
         s
