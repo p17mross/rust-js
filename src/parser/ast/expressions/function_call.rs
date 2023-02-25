@@ -6,14 +6,14 @@ use super::*;
 
 /// The type of a function call
 #[derive(Debug, PartialEq, Eq)]
-pub enum FunctionCallType {
+pub(crate) enum FunctionCallType {
     FunctionCall,
     OptionalChainedFunctionCall,
     New,
 }
 
 #[derive(Debug)]
-pub struct FunctionCall {
+pub(crate) struct FunctionCall {
     pub location: ProgramLocation,
 
     pub function: Expression,
@@ -24,7 +24,7 @@ pub struct FunctionCall {
 }
 
 #[derive(Debug)]
-pub struct FunctionCallArgument {
+pub(crate) struct FunctionCallArgument {
     pub location: ProgramLocation,
 
     pub expression: Expression,

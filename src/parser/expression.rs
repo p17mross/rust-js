@@ -1,5 +1,11 @@
 use super::*;
 
+use super::ast::expressions::{
+    ASTNodeBinaryOperator, ASTNodeUnaryOperator, ASTNodeValueLiteral, Expression, FunctionCall,
+    FunctionCallType, PropertyLookup, UnaryOperator, UpdateExpression,
+    UpdateExpressionOperatorType, UpdateExpressionSide, UpdateExpressionTarget,
+};
+
 impl Parser {
     /// Parses an expression with precedence 16 or 17.\
     /// Any operator with a lower precedence will be ignored for the caller to parse.

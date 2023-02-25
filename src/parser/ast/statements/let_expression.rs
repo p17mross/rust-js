@@ -3,7 +3,7 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct LetExpression {
+pub(crate) struct LetExpression {
     pub location: ProgramLocation,
 
     pub lhs: DestructuringAssignmentTarget,

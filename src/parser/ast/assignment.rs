@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::{Expression, StringExtTreeIndent, ToTree};
 
 #[derive(Debug)]
-pub enum AssignmentTarget {
+pub(crate) enum AssignmentTarget {
     Variable(String),
     PropertyLookup {
         expression: Expression,
@@ -12,13 +12,13 @@ pub enum AssignmentTarget {
 }
 
 #[derive(Debug)]
-pub struct DestructureBinding {
+pub(crate) struct DestructureBinding {
     destructure: DestructuringAssignmentTarget,
     default_value: Option<Expression>,
 }
 
 #[derive(Debug)]
-pub enum DestructuringAssignmentTarget {
+pub(crate) enum DestructuringAssignmentTarget {
     Variable(String),
     PropertyLookup {
         expression: Expression,

@@ -1,15 +1,15 @@
 mod block;
 mod let_expression;
 
-pub use block::*;
-pub use let_expression::*;
+pub(crate) use block::*;
+pub(crate) use let_expression::*;
 
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
 #[derive(Debug)]
-pub enum Statement {
+pub(crate) enum Statement {
     Expression(Expression),
     Block(Box<Block>),
     LetExpression(Box<LetExpression>),

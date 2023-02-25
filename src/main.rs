@@ -6,7 +6,7 @@
 
 use std::{env, path::PathBuf};
 
-use js::{engine::Program, parser::ast::ToTree};
+use js::Program;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
@@ -45,9 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let program_ref = program.borrow();
 
-    let ast = program_ref.ast.as_ref().unwrap();
-
-    println!("{}", ast.to_tree());
+    program_ref.debug_ast();
 
     // TODO: run the code
 

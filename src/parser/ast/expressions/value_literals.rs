@@ -1,7 +1,7 @@
 use crate::{engine::program::ProgramLocation, lexer::token::ValueLiteral, parser::ast::ToTree};
 
 #[derive(Debug)]
-pub struct ASTNodeValueLiteral {
+pub(crate) struct ASTNodeValueLiteral {
     pub location: ProgramLocation,
 
     pub value: ValueLiteral,

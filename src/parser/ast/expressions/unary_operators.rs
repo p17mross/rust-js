@@ -5,7 +5,7 @@ use std::fmt::Debug;
 use super::*;
 
 #[derive(Debug)]
-pub enum UnaryOperator {
+pub(crate) enum UnaryOperator {
     /// A '+'
     Plus,
     /// A '-'
@@ -25,7 +25,7 @@ pub enum UnaryOperator {
 }
 
 #[derive(Debug)]
-pub struct ASTNodeUnaryOperator {
+pub(crate) struct ASTNodeUnaryOperator {
     pub location: ProgramLocation,
 
     pub operator_type: UnaryOperator,

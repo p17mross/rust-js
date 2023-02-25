@@ -5,7 +5,7 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct Block {
+pub(crate) struct Block {
     pub location: ProgramLocation,
 
     pub statements: Vec<Statement>,

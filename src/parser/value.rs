@@ -1,5 +1,9 @@
 use super::*;
 
+use super::ast::expressions::{
+    ASTNodeValueLiteral, ArrayItem, ArrayLiteral, Expression, ObjectLiteral, Variable,
+};
+
 impl Parser {
     /// Parses an array literal
     fn parse_array_literal(

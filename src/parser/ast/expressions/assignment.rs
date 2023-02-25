@@ -7,7 +7,7 @@ use crate::{
 use super::Expression;
 
 #[derive(Debug)]
-pub struct Assignment {
+pub(crate) struct Assignment {
     pub location: ProgramLocation,
 
     pub lhs: DestructuringAssignmentTarget,
@@ -15,10 +15,10 @@ pub struct Assignment {
 }
 
 #[derive(Debug)]
-pub struct UpdateAssignment {
+pub(crate) struct UpdateAssignment {
     pub location: ProgramLocation,
 
-    pub(crate) operator_type: UpdateAssignmentOperator,
+    pub operator_type: UpdateAssignmentOperator,
     pub lhs: AssignmentTarget,
     pub rhs: Expression,
 }

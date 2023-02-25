@@ -1,5 +1,8 @@
 use super::*;
 
+use super::ast::expressions::{Expression, Assignment, UpdateAssignment};
+use super::ast::assignment::{DestructuringAssignmentTarget, AssignmentTarget};
+
 impl Parser {
     /// Parses an expression with precedence 2.\
     /// Any operator with a lower precedence will be ignored for the caller to parse.

@@ -5,7 +5,7 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub struct ObjectLiteral {
+pub(crate) struct ObjectLiteral {
     pub location: ProgramLocation,
 
     pub properties: HashMap<String, Expression>,

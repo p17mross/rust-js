@@ -1,29 +1,30 @@
-mod array_literal;
-mod assignment;
-mod binary_operators;
-mod function_call;
-mod object_literal;
-mod property_lookup;
-mod unary_operators;
-mod update_expression;
-mod value_literals;
+pub(crate) mod array_literal;
+pub(crate) mod assignment;
+pub(crate) mod binary_operators;
+pub(crate) mod function_call;
+pub(crate) mod object_literal;
+pub(crate) mod property_lookup;
+pub(crate) mod unary_operators;
+pub(crate) mod update_expression;
+pub(crate) mod value_literals;
 
-pub use array_literal::*;
-pub use assignment::*;
-pub use binary_operators::*;
-pub use function_call::*;
-pub use object_literal::*;
-pub use property_lookup::*;
-pub use unary_operators::*;
-pub use update_expression::*;
-pub use value_literals::*;
+
+pub(crate) use array_literal::*;
+pub(crate) use assignment::*;
+pub(crate) use binary_operators::*;
+pub(crate) use function_call::*;
+pub(crate) use object_literal::*;
+pub(crate) use property_lookup::*;
+pub(crate) use unary_operators::*;
+pub(crate) use update_expression::*;
+pub(crate) use value_literals::*;
 
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
 #[derive(Debug)]
-pub enum Expression {
+pub(crate) enum Expression {
     ArrayLiteral(Box<ArrayLiteral>),
     Assignment(Box<Assignment>),
     BinaryOperator(Box<ASTNodeBinaryOperator>),
@@ -38,7 +39,7 @@ pub enum Expression {
 }
 
 #[derive(Debug)]
-pub struct Variable {
+pub(crate) struct Variable {
     pub location: ProgramLocation,
 
     pub identifier: String,

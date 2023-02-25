@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{parser::ast::ASTNodeProgram, Lexer, Parser};
+use crate::{parser::ast::{ASTNodeProgram, ToTree}, lexer::Lexer, parser::Parser};
 
 use super::{
     error::{ProgramFromFileError, SyntaxError},
@@ -12,10 +12,10 @@ use super::{
     Gc,
 };
 
-#[derive(Debug, Clone)]
 /// An enum for the source of a [Program].
 /// Holds the type and location, so that the source of error messages can be printed.
-pub enum ProgramSource {
+#[derive(Debug, Clone)]
+pub(crate) enum ProgramSource {
     /// The program was typed in a console
     Console,
     /// The program was passed to eval()
@@ -37,11 +37,11 @@ impl Display for ProgramSource {
 /// A struct representing a javascript program
 pub struct Program {
     /// The program source
-    pub source: ProgramSource,
+    pub(crate) source: ProgramSource,
     /// The text of the program.
     /// Stored as a [Vec<char>] rather than [String] for easier indexing.
-    pub program: Vec<char>,
-    pub ast: Option<ASTNodeProgram>,
+    pub(crate) program: Vec<char>,
+    pub(crate) ast: Option<ASTNodeProgram>,
 }
 
 impl Debug for Program {
@@ -65,7 +65,7 @@ impl GarbageCollectable for Program {
 }
 
 impl Program {
-    /// Parses the ast and sets self.ast to Some(AstNode)
+    /// Parses the AST and sets `self.ast` to `Some(AstNode)`
     fn load_ast(s: &Gc<Self>) -> Result<(), SyntaxError> {
         // Lex
         let lexer = Lexer::new();
@@ -107,6 +107,15 @@ impl Program {
         });
         Self::load_ast(&program)?;
         Ok(program)
+    }
+
+    /// Prints the program's AST as a tree structure. This is meant for debugging purposes only and should not be user-facing.
+    /// 
+    /// ### Panics
+    /// * If an AST has not been generated. 
+    ///     This should never occur if the provided [`from_file`][Program::from_file] or [`from_console`][Program::from_console] functions are used.
+    pub fn debug_ast(&self) {
+        println!("{}", self.ast.as_ref().unwrap().to_tree());
     }
 }
 

@@ -6,10 +6,8 @@ pub(crate) use token::{Token, TokenType};
 
 use num::{BigInt, Num, ToPrimitive};
 
-use crate::engine::program::ProgramLocation;
-use crate::engine::{Gc, Program};
-use crate::util::is_identifier_continue;
-use crate::util::{is_identifier_start, NumberLiteralBase};
+use crate::engine::{program::ProgramLocation, Gc, Program};
+use crate::util::{is_identifier_continue, is_identifier_start, NumberLiteralBase};
 
 use self::token::{ValueLiteral, OPERATORS};
 
@@ -25,7 +23,7 @@ pub enum LexErrorType {
     /// When an identifier starts immediately after a numeric literal
     IdentifierAfterNumber,
     /// When the start of a numeric literal occurs with no digits following
-    MissingDigits(NumberLiteralBase),
+    MissingDigits { base: NumberLiteralBase },
     /// When an invalid unicode occurs outside of a string
     InvalidChar(char),
     /// When brackets are incorrectly matched
@@ -46,7 +44,7 @@ impl Display for LexErrorType {
             Self::IdentifierAfterNumber => {
                 f.write_str("Identifier starts immediately after numeric literal")
             }
-            Self::MissingDigits(n) => {
+            Self::MissingDigits { base: n } => {
                 write!(
                     f,
                     "Missing {} digits after '{}'",
@@ -113,7 +111,7 @@ enum Bracket {
 
 #[derive(Debug)]
 /// Struct responsible for lexical analysis.
-pub struct Lexer {
+pub(super) struct Lexer {
     /// The current index into `program.program`
     i: usize,
     /// The current line number
@@ -128,7 +126,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub const fn new() -> Self {
+    pub(super) const fn new() -> Self {
         Self {
             i: 0,
             line: 1,
@@ -546,7 +544,7 @@ impl Lexer {
                             self.line,
                             self.line_index,
                             self.i,
-                            LexErrorType::MissingDigits(base),
+                            LexErrorType::MissingDigits { base },
                         ));
                     }
                     break 'digits;

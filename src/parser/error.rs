@@ -2,6 +2,8 @@ use std::fmt::Display;
 
 use super::*;
 
+use super::ast::expressions::UpdateExpressionSide;
+
 #[derive(Debug, Clone)]
 /// A type of error that can occur during parsing
 pub enum ParseErrorType {

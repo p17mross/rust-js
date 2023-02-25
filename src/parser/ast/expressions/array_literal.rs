@@ -3,14 +3,14 @@ use crate::engine::program::ProgramLocation;
 use super::*;
 
 #[derive(Debug)]
-pub enum ArrayItem {
+pub(crate) enum ArrayItem {
     Item(Expression),
     Spread(Expression),
     Empty(ProgramLocation),
 }
 
 #[derive(Debug)]
-pub struct ArrayLiteral {
+pub(crate) struct ArrayLiteral {
     pub location: ProgramLocation,
 
     pub items: Vec<ArrayItem>,
@@ -18,7 +18,7 @@ pub struct ArrayLiteral {
 
 impl ArrayItem {
     #[must_use]
-    pub fn get_location(&self) -> ProgramLocation {
+    pub(crate) fn get_location(&self) -> ProgramLocation {
         match self {
             Self::Item(e) | Self::Spread(e) => e.get_location(),
             Self::Empty(l) => l.clone(),

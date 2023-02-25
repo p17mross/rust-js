@@ -1,5 +1,5 @@
 pub mod number_literal_base;
-pub use number_literal_base::NumberLiteralBase;
+pub(crate) use number_literal_base::NumberLiteralBase;
 
 use unicode_id_start::{is_id_continue, is_id_start};
 

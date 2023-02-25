@@ -2,6 +2,8 @@ use crate::lexer::{Token, TokenType};
 
 use super::*;
 
+use super::ast::statements::{LetExpression, Statement, Block};
+
 impl Parser {
     /// Consumes any [semicolon](TokenType::Semicolon) tokens\
     /// Returns true if the end of the file or a [closing brace](TokenType::CloseBrace) token was reached.

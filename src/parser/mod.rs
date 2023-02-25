@@ -1,28 +1,25 @@
-pub mod ast;
-
-mod assignment;
-mod error;
-mod expression;
-mod operator_precedence;
-mod statement;
-mod syntax;
-mod value;
+pub(crate) mod ast;
+pub(crate) mod assignment;
+pub(crate) mod error;
+pub(crate) mod expression;
+pub(crate) mod operator_precedence;
+pub(crate) mod statement;
+pub(crate) mod syntax;
+pub(crate) mod value;
 
 pub use error::ParseError;
 
 use self::{ast::*, error::ParseErrorType};
-use crate::{
-    engine::{program::ProgramLocation, Gc, Program},
-    lexer::{
-        token::{BinaryOperator, ValueLiteral},
-        Token, TokenType,
-    },
+use crate::engine::{program::ProgramLocation, Gc, Program};
+use crate::lexer::{
+    token::{BinaryOperator, ValueLiteral},
+    Token, TokenType,
 };
 use operator_precedence::{precedences, Associativity, BinaryPrecedence, BINARY_PRECEDENCES};
 
 #[derive(Debug, Default)]
 /// Struct responsible for parsing an AST from a token stream
-pub struct Parser {
+pub(super) struct Parser {
     tokens: Vec<Token>,
     i: usize,
 }

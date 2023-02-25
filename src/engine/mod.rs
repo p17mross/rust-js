@@ -1,9 +1,9 @@
 pub(crate) mod garbage_collection;
-pub(crate) use garbage_collection::Gc;
+pub(crate) mod program;
+pub(crate) mod error;
 
-pub mod program;
+pub use garbage_collection::Gc;
 pub use program::Program;
-pub mod error;
 
 #[derive(Debug)]
 #[allow(dead_code)]

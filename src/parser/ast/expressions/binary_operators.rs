@@ -5,7 +5,7 @@ use crate::lexer::token::BinaryOperator;
 use super::*;
 
 #[derive(Debug)]
-pub struct ASTNodeBinaryOperator {
+pub(crate) struct ASTNodeBinaryOperator {
     pub location: ProgramLocation,
 
     pub operator_type: BinaryOperator,

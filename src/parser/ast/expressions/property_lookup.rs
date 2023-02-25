@@ -2,7 +2,7 @@ use super::*;
 use crate::engine::program::ProgramLocation;
 
 #[derive(Debug)]
-pub struct PropertyLookup {
+pub(crate) struct PropertyLookup {
     pub location: ProgramLocation,
 
     pub lhs: Expression,

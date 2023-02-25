@@ -6,7 +6,7 @@ use crate::{
 use super::{Expression, PropertyLookup, Variable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum UpdateExpressionOperatorType {
+pub(crate) enum UpdateExpressionOperatorType {
     Increment,
     Decrement,
 }
@@ -18,13 +18,13 @@ pub enum UpdateExpressionSide {
 }
 
 #[derive(Debug)]
-pub enum UpdateExpressionTarget {
+pub(crate) enum UpdateExpressionTarget {
     Variable(Box<Variable>),
     Property(Box<PropertyLookup>),
 }
 
 #[derive(Debug)]
-pub struct UpdateExpression {
+pub(crate) struct UpdateExpression {
     pub location: ProgramLocation,
 
     pub target: UpdateExpressionTarget,

@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ValueLiteral {
+pub(crate) enum ValueLiteral {
     String(String),
     Number(f64),
     BigInt(BigInt),
@@ -49,7 +49,7 @@ pub(crate) enum UpdateAssignmentOperator {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// An enum for all operators which take two arguments by value
-pub enum BinaryOperator {
+pub(crate) enum BinaryOperator {
     // Arithmetic operators
     /// '+'. This is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
     Addition,
@@ -186,7 +186,7 @@ pub(crate) enum TokenType {
 
 impl TokenType {
     /// Converts the token type to a `&'static str`
-    pub const fn to_str(&self) -> &'static str {
+    pub(crate) const fn to_str(&self) -> &'static str {
         match self {
             Self::Identifier(_) => "identifier",
             Self::ValueLiteral(_) => "value literal",
@@ -271,7 +271,7 @@ pub(crate) struct Token {
 
 impl Token {
     #[inline]
-    pub const fn new(
+    pub(super) const fn new(
         program: Gc<Program>,
         line: usize,
         line_index: usize,

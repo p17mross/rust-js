@@ -1,10 +1,10 @@
-mod assignment;
-mod expressions;
-mod statements;
+pub(crate) mod assignment;
+pub(crate) mod expressions;
+pub(crate) mod statements;
 
-pub use assignment::*;
-pub use expressions::*;
-pub use statements::*;
+use assignment::*;
+use expressions::*;
+use statements::*;
 
 use crate::engine::{
     garbage_collection::GarbageCollectable, program::ProgramLocation, Gc, Program,
@@ -17,7 +17,7 @@ use std::fmt::Debug;
 // 3) Trait impls on these types (e.g. Debug, From)
 // 4) to_tree() impls
 
-pub struct ASTNodeProgram {
+pub(crate) struct ASTNodeProgram {
     pub program: Gc<Program>,
     pub block: Block,
 }
@@ -30,7 +30,7 @@ impl GarbageCollectable for ASTNodeProgram {
 
 impl ASTNodeProgram {
     #[must_use]
-    pub fn new(program: Gc<Program>) -> Self {
+    pub(crate) fn new(program: Gc<Program>) -> Self {
         Self {
             program: program.clone(),
             block: Block {

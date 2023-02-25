@@ -2,7 +2,7 @@ use crate::lexer::token::BinaryOperator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A binary operator's associativity.\
-pub enum Associativity {
+pub(super) enum Associativity {
     /// Operators are grouped left to right, e.g. `a + b + c` is equivalent to `(a + b) + c`
     LeftToRight,
     /// Operators are grouped right to left, e.g. `a ** b ** c` is equivalent to `a ** (b ** c)`
@@ -12,7 +12,7 @@ pub enum Associativity {
 #[derive(Debug, Clone, Copy)]
 /// A certain precedence of binary operator.\
 /// Stores which operators are in this precedence level and which associativity they are
-pub struct BinaryPrecedence {
+pub(super) struct BinaryPrecedence {
     /// Whether the operators in this precedence are left or right associative
     pub associativity: Associativity,
     /// Which operators are included in the precedence
@@ -23,7 +23,7 @@ use Associativity::*;
 use BinaryOperator::*;
 
 #[rustfmt::skip]
-pub const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
+pub(super) const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
     /* Precedence 0 - Not a real precedence, but having it here makes offsets nicer */ None,
     /* Precedence 1  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Comma] }),
     /* Precedence 2  */ None,
