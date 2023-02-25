@@ -78,8 +78,8 @@ impl LexError {
         line_index: usize,
         token_start: usize,
         e: LexErrorType,
-    ) -> LexError {
-        LexError {
+    ) -> Self {
+        Self {
             location: ProgramLocation {
                 program,
                 line,
@@ -128,7 +128,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             i: 0,
             line: 1,
@@ -357,7 +357,6 @@ impl Lexer {
     fn lex_identifier(&mut self, program_text: &[char], token_start: usize, program: &Gc<Program>) {
         'chars_in_identifier: loop {
             match program_text.get(self.i) {
-                None => break 'chars_in_identifier,
                 Some(&c) if is_identifier_continue(c) => self.i += 1,
                 _ => break 'chars_in_identifier,
             }
@@ -578,7 +577,7 @@ impl Lexer {
                 }
                 // A digit
                 Some(digit) if base.get_chars().contains(&digit.to_string()) => {
-                    number += &digit.to_string()
+                    number += &digit.to_string();
                 }
                 // Underscores are ignored in numeric literals
                 Some('_') => (),

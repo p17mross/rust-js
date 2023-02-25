@@ -19,9 +19,9 @@ impl Statement {
     #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         match self {
-            Statement::Expression(e) => e.get_location(),
-            Statement::Block(b) => b.location.clone(),
-            Statement::LetExpression(l) => l.location.clone(),
+            Self::Expression(e) => e.get_location(),
+            Self::Block(b) => b.location.clone(),
+            Self::LetExpression(l) => l.location.clone(),
         }
     }
 }

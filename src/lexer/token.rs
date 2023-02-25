@@ -277,8 +277,8 @@ impl Token {
         line_index: usize,
         token_start: usize,
         t: TokenType,
-    ) -> Token {
-        Token {
+    ) -> Self {
+        Self {
             location: ProgramLocation {
                 program,
                 line,
