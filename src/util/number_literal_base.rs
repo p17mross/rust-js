@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// A type representing a base for a numerical literal. 
+/// A type representing a base for a numerical literal.
 /// Includes binary, octal, decimal, and hexadecimal.
 pub enum NumberLiteralBase {
     Binary,
@@ -35,7 +35,7 @@ impl NumberLiteralBase {
             Self::Binary => "binary",
             Self::Octal => "octal",
             Self::Decimal => "decimal",
-            Self::Hex => "hexadecimal"
+            Self::Hex => "hexadecimal",
         }
     }
 
@@ -45,8 +45,7 @@ impl NumberLiteralBase {
             Self::Binary => "0b",
             Self::Octal => "0o",
             Self::Decimal => "",
-            Self::Hex => "0x"
+            Self::Hex => "0x",
         }
     }
-
 }

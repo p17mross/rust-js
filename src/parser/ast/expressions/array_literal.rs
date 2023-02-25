@@ -13,7 +13,7 @@ pub enum ArrayItem {
 pub struct ArrayLiteral {
     pub location: ProgramLocation,
 
-    pub items: Vec<ArrayItem>
+    pub items: Vec<ArrayItem>,
 }
 
 impl ArrayItem {
@@ -26,19 +26,22 @@ impl ArrayItem {
     }
 }
 
-impl ToTree for ArrayItem{
-   fn to_tree(&self) -> String {
+impl ToTree for ArrayItem {
+    fn to_tree(&self) -> String {
         match self {
             Self::Item(e) => e.to_tree(),
             Self::Spread(e) => format!("Spread from {}", e.to_tree()),
-            Self::Empty(_) => "Empty Slot".to_string()
+            Self::Empty(_) => "Empty Slot".to_string(),
         }
     }
 }
 
-impl ToTree for ArrayLiteral{
-   fn to_tree(&self) -> String {
-        let mut s = format!("Array Literal at {}:{}", self.location.line, self.location.column);
+impl ToTree for ArrayLiteral {
+    fn to_tree(&self) -> String {
+        let mut s = format!(
+            "Array Literal at {}:{}",
+            self.location.line, self.location.column
+        );
 
         for (i, expression) in self.items.iter().enumerate() {
             s += &format!("\n|-{i}: {}", expression.to_tree().indent_tree());

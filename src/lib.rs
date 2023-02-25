@@ -7,10 +7,10 @@
 #![allow(clippy::enum_glob_use)]
 #![allow(clippy::wildcard_imports)]
 
+pub mod engine;
 pub(crate) mod lexer;
 pub mod parser;
 pub(crate) mod util;
-pub mod engine;
 
 pub(crate) use lexer::Lexer;
 pub(crate) use parser::Parser;

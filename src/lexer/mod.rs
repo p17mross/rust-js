@@ -182,12 +182,17 @@ impl Lexer {
     }
 
     /// Lexes one token (in this context, a newline counts as a token)
-    /// 
+    ///
     /// ### Params
     /// * `token_start_char`: the character which the token starts with
     /// * `program`: the program which the tokens are being lexed from
     /// * `program_text`: the source to parse a token from
-    fn lex_token(&mut self, token_start_char: char, program: &Gc<Program>, program_text: &[char]) -> Result<(), LexError> {
+    fn lex_token(
+        &mut self,
+        token_start_char: char,
+        program: &Gc<Program>,
+        program_text: &[char],
+    ) -> Result<(), LexError> {
         let token_start = self.i;
 
         match token_start_char {
@@ -233,7 +238,11 @@ impl Lexer {
                 self.produce_bracket(program, token_start, Bracket::Brace(self.tokens.len()));
             }
             '[' => {
-                self.produce_bracket(program, token_start, Bracket::SquareBracket(self.tokens.len()));
+                self.produce_bracket(
+                    program,
+                    token_start,
+                    Bracket::SquareBracket(self.tokens.len()),
+                );
             }
 
             // Close brackets

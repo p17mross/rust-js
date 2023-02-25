@@ -1,20 +1,21 @@
+mod assignment;
 mod expressions;
 mod statements;
-mod assignment;
 
+pub use assignment::*;
 pub use expressions::*;
 pub use statements::*;
-pub use assignment::*;
 
+use crate::engine::{
+    garbage_collection::GarbageCollectable, program::ProgramLocation, Gc, Program,
+};
 use std::fmt::Debug;
-use crate::engine::{Gc, Program, garbage_collection::GarbageCollectable, program::ProgramLocation};
 
-// Format for ASTNode files: 
+// Format for ASTNode files:
 // 1) Struct/enum definitions
 // 2) Method impls on types
 // 3) Trait impls on these types (e.g. Debug, From)
 // 4) to_tree() impls
-
 
 pub struct ASTNodeProgram {
     pub program: Gc<Program>,
@@ -33,22 +34,26 @@ impl ASTNodeProgram {
         Self {
             program: program.clone(),
             block: Block {
-                location: ProgramLocation { 
+                location: ProgramLocation {
                     program,
-                    line: 0, 
-                    column: 0, 
-                    index: 0 
-                }, 
+                    line: 0,
+                    column: 0,
+                    index: 0,
+                },
                 statements: vec![],
             },
         }
     }
 }
 
-
 impl Debug for ASTNodeProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ASTNodeProgram from {:?} {{{:?}}}", self.program.borrow().source, self.block)
+        write!(
+            f,
+            "ASTNodeProgram from {:?} {{{:?}}}",
+            self.program.borrow().source,
+            self.block
+        )
     }
 }
 

@@ -1,4 +1,8 @@
-use std::{rc::Rc, cell::{RefCell, Ref, RefMut, BorrowError, BorrowMutError}, fmt::{Debug, Display}};
+use std::{
+    cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut},
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 use uid::IdU64;
 
@@ -53,7 +57,6 @@ impl From<BorrowError> for GarbageCollectionBorrowError {
     }
 }
 
-
 #[derive(Debug)]
 /// An error type to combine [`CollectedError`] and [`BorrowMutError`]
 pub enum GarbageCollectionBorrowMutError {
@@ -75,7 +78,7 @@ impl From<BorrowMutError> for GarbageCollectionBorrowMutError {
 
 impl<T: GarbageCollectable> Gc<T> {
     /// Creates a new Gc<T>, from the provided T   
-    pub fn new(t: T) -> Self{
+    pub fn new(t: T) -> Self {
         Self {
             data: Some(Rc::new(RefCell::new(t))),
             id: GarbageCollectionId(IdU64::new()),
@@ -87,7 +90,7 @@ impl<T: GarbageCollectable + ?Sized> Clone for Gc<T> {
     fn clone(&self) -> Self {
         Self {
             data: self.data.clone(),
-            id: self.id
+            id: self.id,
         }
     }
 }
@@ -120,18 +123,24 @@ impl<T: GarbageCollectable + ?Sized> Gc<T> {
 
     /// Borrows the data. Panics if the data is mutable borrowed.
     pub fn borrow_if_exists(&self) -> Result<Ref<'_, T>, CollectedError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow().unwrap())
+        Ok((*self.data.as_ref().ok_or(CollectedError)?)
+            .try_borrow()
+            .unwrap())
     }
     /// Borrows the data mutably. Panics if the data is borrowed.
     pub fn borrow_mut_if_exists(&self) -> Result<RefMut<'_, T>, CollectedError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow_mut().unwrap())
+        Ok((*self.data.as_ref().ok_or(CollectedError)?)
+            .try_borrow_mut()
+            .unwrap())
     }
     /// Borrows the data.
     pub fn try_borrow_if_exists(&self) -> Result<Ref<'_, T>, GarbageCollectionBorrowError> {
         Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow()?)
     }
     /// Borrows the data mutably.
-    pub fn try_borrow_mut_if_exists(&self) -> Result<RefMut<'_, T>, GarbageCollectionBorrowMutError> {
+    pub fn try_borrow_mut_if_exists(
+        &self,
+    ) -> Result<RefMut<'_, T>, GarbageCollectionBorrowMutError> {
         Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow_mut()?)
     }
 

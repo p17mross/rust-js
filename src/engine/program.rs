@@ -1,8 +1,16 @@
-use std::{path::PathBuf, fs, fmt::{Display, Debug}};
+use std::{
+    fmt::{Debug, Display},
+    fs,
+    path::PathBuf,
+};
 
-use crate::{Lexer, Parser, parser::ast::ASTNodeProgram};
+use crate::{parser::ast::ASTNodeProgram, Lexer, Parser};
 
-use super::{error::{SyntaxError, ProgramFromFileError}, Gc, garbage_collection::{GarbageCollectable, GarbageCollectionId}};
+use super::{
+    error::{ProgramFromFileError, SyntaxError},
+    garbage_collection::{GarbageCollectable, GarbageCollectionId},
+    Gc,
+};
 
 #[derive(Debug, Clone)]
 /// An enum for the source of a [Program].
@@ -38,10 +46,11 @@ pub struct Program {
 
 impl Debug for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "Program {{source: {}, ast: {}}}", 
-            self.source, 
-            if self.ast.is_some() {"Some"} else {"None"}
+        write!(
+            f,
+            "Program {{source: {}, ast: {}}}",
+            self.source,
+            if self.ast.is_some() { "Some" } else { "None" }
         )
     }
 }
@@ -50,7 +59,7 @@ impl GarbageCollectable for Program {
     fn get_children(&self) -> Vec<GarbageCollectionId> {
         match &self.ast {
             None => vec![],
-            Some(a) => a.get_children()
+            Some(a) => a.get_children(),
         }
     }
 }
@@ -71,21 +80,21 @@ impl Program {
     }
 
     /// Create a [`Program`] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
-    /// 
+    ///
     /// ### Errors
     /// * Returns a [`SyntaxError`] if the given string is not valid javascript code
     pub fn from_console(s: &str) -> Result<Gc<Self>, SyntaxError> {
         let program = Gc::new(Self {
             source: ProgramSource::Console,
             program: s.chars().collect(),
-            ast: None
+            ast: None,
         });
         Self::load_ast(&program)?;
         Ok(program)
     }
 
     /// Load a [`Program`] from a file
-    /// 
+    ///
     /// ### Errors
     /// * Returns an [io error][std::io::Error] if there is an error reading from the file
     /// * Returns a [`SyntaxError`] if the given file does not contain valid javascript code
@@ -94,7 +103,7 @@ impl Program {
         let program = Gc::new(Self {
             source: ProgramSource::File(p),
             program: program.chars().collect(),
-            ast: None
+            ast: None,
         });
         Self::load_ast(&program)?;
         Ok(program)
@@ -116,6 +125,12 @@ pub struct ProgramLocation {
 
 impl Debug for ProgramLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{} in {}", self.line, self.column, self.program.borrow().source)
+        write!(
+            f,
+            "{}:{} in {}",
+            self.line,
+            self.column,
+            self.program.borrow().source
+        )
     }
 }

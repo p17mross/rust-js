@@ -6,7 +6,7 @@ pub enum Associativity {
     /// Operators are grouped left to right, e.g. `a + b + c` is equivalent to `(a + b) + c`
     LeftToRight,
     /// Operators are grouped right to left, e.g. `a ** b ** c` is equivalent to `a ** (b ** c)`
-    RightToLeft
+    RightToLeft,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -19,9 +19,10 @@ pub struct BinaryPrecedence {
     pub operators: &'static [BinaryOperator],
 }
 
-use BinaryOperator::*;
 use Associativity::*;
+use BinaryOperator::*;
 
+#[rustfmt::skip]
 pub const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
     /* Precedence 0 - Not a real precedence, but having it here makes offsets nicer */ None,
     /* Precedence 1  */ Some(BinaryPrecedence{ associativity: LeftToRight, operators: &[Comma] }),
@@ -104,6 +105,4 @@ pub(crate) mod precedences {
     pub const COMMA: usize = 1;
 
     pub const ANY_EXPRESSION: usize = 0;
-
-
 }

@@ -1,18 +1,24 @@
 pub mod ast;
 
+mod assignment;
 mod error;
+mod expression;
 mod operator_precedence;
 mod statement;
-mod value;
-mod expression;
 mod syntax;
-mod assignment;
+mod value;
 
 pub use error::ParseError;
 
-use crate::{lexer::{Token, TokenType, token::{ValueLiteral, BinaryOperator}}, engine::{Gc, program::ProgramLocation, Program}};
-use operator_precedence::{precedences, BINARY_PRECEDENCES, BinaryPrecedence, Associativity};
 use self::{ast::*, error::ParseErrorType};
+use crate::{
+    engine::{program::ProgramLocation, Gc, Program},
+    lexer::{
+        token::{BinaryOperator, ValueLiteral},
+        Token, TokenType,
+    },
+};
+use operator_precedence::{precedences, Associativity, BinaryPrecedence, BINARY_PRECEDENCES};
 
 #[derive(Debug, Default)]
 /// Struct responsible for parsing an AST from a token stream
@@ -38,30 +44,28 @@ impl Parser {
             Some(t) => {
                 self.i += 1;
                 Ok(t)
-            },
-            None => Err(self.get_error(ParseErrorType::UnexpectedEOF))
+            }
+            None => Err(self.get_error(ParseErrorType::UnexpectedEOF)),
         }
     }
 
     /// Gets a token from `self.tokens` and increments `self.i`, and returns a reference to the token.\
     /// Panics if `self.i` points past the end of `self.tokens` - for non-panicking situations use `self.try_get_token` instead.
     fn get_token(&mut self) -> &Token {
-        self.try_get_token().expect("self.i should have pointed inside self.tokens")
+        self.try_get_token()
+            .expect("self.i should have pointed inside self.tokens")
     }
 
     /// Parses an AST from a given [Program]
-    pub(crate) fn parse(program: Gc<Program>, tokens: Vec<Token>) -> Result<ASTNodeProgram, ParseError> {
-        let mut s = Self {
-            tokens,
-            i: 0,
-        };
+    pub(crate) fn parse(
+        program: Gc<Program>,
+        tokens: Vec<Token>,
+    ) -> Result<ASTNodeProgram, ParseError> {
+        let mut s = Self { tokens, i: 0 };
 
         let block = s.parse_statements()?;
 
-        let parsed_program = ASTNodeProgram {
-            program,
-            block,
-        };
+        let parsed_program = ASTNodeProgram { program, block };
 
         Ok(parsed_program)
     }

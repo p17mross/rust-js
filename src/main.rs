@@ -30,12 +30,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-        
+
         if filepath.is_some() {
             return Err("Found multiple file names".to_string().into());
         }
         filepath = Some(arg.clone());
-        
     }
 
     let Some(filepath) = filepath else {

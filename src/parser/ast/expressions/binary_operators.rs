@@ -13,9 +13,12 @@ pub struct ASTNodeBinaryOperator {
     pub rhs: Expression,
 }
 
-impl ToTree for ASTNodeBinaryOperator{
-   fn to_tree(&self) -> String {
-        let mut s = format!("Binary operator {:?} at {}:{}\n", self.operator_type, self.location.line, self.location.column);
+impl ToTree for ASTNodeBinaryOperator {
+    fn to_tree(&self) -> String {
+        let mut s = format!(
+            "Binary operator {:?} at {}:{}\n",
+            self.operator_type, self.location.line, self.location.column
+        );
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
         s

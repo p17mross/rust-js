@@ -17,8 +17,6 @@ pub struct Engine {
 impl Engine {
     #[must_use]
     pub fn new(program: Program) -> Self {
-        Engine {
-            program,
-        }
+        Engine { program }
     }
 }

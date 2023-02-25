@@ -35,7 +35,7 @@ impl Parser {
                 TokenType::OperatorDot => {
                     let operator_token_location = operator_token.location.clone();
                     val = self.parse_property_lookup(operator_token_location, val)?;
-                },
+                }
                 // Optional chaining
                 TokenType::OperatorOptionalChaining => {
                     let operator_token_location = operator_token.location.clone();
@@ -50,17 +50,20 @@ impl Parser {
                 // Function call or arguments to 'new'
                 TokenType::OpenParen(close_paren_index) => {
                     let operator_token_location = operator_token.location.clone();
-                    val = self.parse_function_call_or_new(operator_token_location, &mut new_stack, val)?;
+                    val = self.parse_function_call_or_new(
+                        operator_token_location,
+                        &mut new_stack,
+                        val,
+                    )?;
                     debug_assert_eq!(close_paren_index, self.i - 1);
-                },
-            
+                }
+
                 // Anything else gets passed back up
                 _ => {
                     self.i -= 1;
                     break 'parse_tokens;
                 }
             }
-            
         }
 
         for location in new_stack.into_iter().rev() {
@@ -76,42 +79,50 @@ impl Parser {
     }
 
     /// Parse a [`FunctionCall`]
-    /// 
+    ///
     /// ### Params
     /// * `operator_token_location`: the location of the [open paren][TokenType::OpenParen] token
     /// * `new_stack`: the stack of locations of `new` tokens. The top value of the stack will be popped and a [new][FunctionCallType::New] will be called.
     ///     If the stack is empty, a [function call][FunctionCallType::FunctionCall] will be returned.
     /// * `val`: the expression to be the left hand side of the call expression
-    fn parse_function_call_or_new(&mut self, operator_token_location: ProgramLocation, new_stack: &mut Vec<ProgramLocation>, val: Expression) -> Result<Expression, ParseError> {
+    fn parse_function_call_or_new(
+        &mut self,
+        operator_token_location: ProgramLocation,
+        new_stack: &mut Vec<ProgramLocation>,
+        val: Expression,
+    ) -> Result<Expression, ParseError> {
         let args = self.parse_function_args()?;
 
         // Get the location and call type based on whether there is something on the call stack
         let (location, call_type) = match new_stack.pop() {
             Some(location) => (location, FunctionCallType::New),
-            None => (operator_token_location, FunctionCallType::FunctionCall)
+            None => (operator_token_location, FunctionCallType::FunctionCall),
         };
 
-        let val = Expression::FunctionCall(Box::new(FunctionCall { 
+        let val = Expression::FunctionCall(Box::new(FunctionCall {
             location,
             function: val,
             args,
             call_type,
         }));
-        
 
         Ok(val)
     }
 
     /// Parse a [`PropertyLookup`] using the computed member access syntax (`a["some property"]`)
-    /// 
+    ///
     /// ### Params
     /// * `operator_token_location`: the location of the [open square bracket][TokenType::OpenSquareBracket] token
     /// * `val`: the expression to be the left hand side of the property lookup
-    fn parse_computed_member_access(&mut self, operator_token_location: ProgramLocation, val: Expression) -> Result<Expression, ParseError> {
+    fn parse_computed_member_access(
+        &mut self,
+        operator_token_location: ProgramLocation,
+        val: Expression,
+    ) -> Result<Expression, ParseError> {
         let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
-        
+
         self.i += 1;
-        
+
         let val = Expression::PropertyLookup(Box::new(PropertyLookup {
             location: operator_token_location,
 
@@ -124,89 +135,93 @@ impl Parser {
     }
 
     /// Parse a [`PropertyLookup`] using the member access syntax (`a.some_property`)
-    /// 
+    ///
     /// ### Params
     /// * `operator_token_location`: the location of the [dot][TokenType::OperatorDot] token
     /// * `val`: the expression to be the left hand side of the property lookup
-    fn parse_property_lookup(&mut self, operator_token_location: ProgramLocation, mut val: Expression) -> Result<Expression, ParseError> {
+    fn parse_property_lookup(
+        &mut self,
+        operator_token_location: ProgramLocation,
+        mut val: Expression,
+    ) -> Result<Expression, ParseError> {
         let argument_token = self.try_get_token()?.clone();
-        
+
         // Get the property name
         let Token{token_type:TokenType::Identifier(identifier), location: argument_token_location, ..} = argument_token else {
             let found = argument_token.token_type.to_str();
             return Err(self.get_error(ParseErrorType::UnexpectedToken { found, expected: Some("identifier") }))
         };
-        
+
         val = Expression::PropertyLookup(Box::new(PropertyLookup {
             location: operator_token_location,
             lhs: val,
-            rhs: Expression::ValueLiteral(Box::new(
-                ASTNodeValueLiteral {
-                    location: argument_token_location,
-                    value: ValueLiteral::String(identifier)
-                }
-            )),
-            optional: false
+            rhs: Expression::ValueLiteral(Box::new(ASTNodeValueLiteral {
+                location: argument_token_location,
+                value: ValueLiteral::String(identifier),
+            })),
+            optional: false,
         }));
 
         Ok(val)
     }
 
     /// Parse something after the [optional chaining operator][TokenType::OperatorOptionalChaining]. This syntax can have multiple forms, so the function can return a [`FunctionCall`] or a [`PropertyLookup`].
-    /// 
+    ///
     /// ### Params
     /// * `operator_token_location`: the location of the [optional chaining operator][TokenType::OperatorOptionalChaining]
     /// * `val`: the lhs of the parsed expression
-    fn parse_optional_chaining(&mut self, operator_token_location: ProgramLocation, val: Expression) -> Result<Expression, ParseError> {
+    fn parse_optional_chaining(
+        &mut self,
+        operator_token_location: ProgramLocation,
+        val: Expression,
+    ) -> Result<Expression, ParseError> {
         let argument_token = self.try_get_token()?.clone();
         let argument_token_location = argument_token.location.clone();
 
         let rhs = match argument_token.token_type {
-
             // Optional chained function call 'a?.()'
             TokenType::OpenParen(_) => {
                 let args = self.parse_function_args()?;
                 let val = Expression::FunctionCall(Box::new(FunctionCall {
-                        location: argument_token_location,
-                        function: val,
-                        args,
-                        call_type: FunctionCallType::OptionalChainedFunctionCall,
-                    }
-                ));
+                    location: argument_token_location,
+                    function: val,
+                    args,
+                    call_type: FunctionCallType::OptionalChainedFunctionCall,
+                }));
                 return Ok(val);
             }
 
             // Property lookup 'a?.b'
-            TokenType::Identifier(id) => Expression::ValueLiteral(Box::new(
-                ASTNodeValueLiteral {
-                    location: argument_token_location,
-                    value: ValueLiteral::String(id)
-                }
-            )),
+            TokenType::Identifier(id) => Expression::ValueLiteral(Box::new(ASTNodeValueLiteral {
+                location: argument_token_location,
+                value: ValueLiteral::String(id),
+            })),
 
             // Computed property lookup 'a?.["b"]'
             TokenType::OpenSquareBracket(i) => {
                 let computed_expression = self.parse_expression(precedences::ANY_EXPRESSION)?;
-                
+
                 // Check that the end square bracket is the right one
                 debug_assert_eq!(i, self.i);
                 self.i += 1;
-                
+
                 computed_expression
             }
 
             // Any other token is an error
-            _ => return Err(self.get_error(ParseErrorType::UnexpectedToken {
-                found: argument_token.token_type.to_str(),
-                expected: Some("identifier, '[', or '('")
-            }))
+            _ => {
+                return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                    found: argument_token.token_type.to_str(),
+                    expected: Some("identifier, '[', or '('"),
+                }))
+            }
         };
 
         let val = Expression::PropertyLookup(Box::new(PropertyLookup {
             location: operator_token_location,
             lhs: val,
             rhs,
-            optional: true
+            optional: true,
         }));
 
         Ok(val)
@@ -220,12 +235,22 @@ impl Parser {
 
         match self.try_get_token() {
             // An increment or decrement token
-            Ok(Token {token_type, location, ..})
-            if token_type == &TokenType::OperatorIncrement || token_type == &TokenType::OperatorDecrement => {
+            Ok(Token {
+                token_type:
+                    token_type @ (TokenType::OperatorIncrement | TokenType::OperatorDecrement),
+                location,
+                ..
+            }) => {
                 let target = match target {
                     Expression::PropertyLookup(p) => UpdateExpressionTarget::Property(p),
                     Expression::Variable(v) => UpdateExpressionTarget::Variable(v),
-                    _ => return Err(self.get_error(ParseErrorType::InvalidUpdateExpressionOperand(UpdateExpressionSide::Postfix)))
+                    _ => {
+                        return Err(
+                            self.get_error(ParseErrorType::InvalidUpdateExpressionOperand(
+                                UpdateExpressionSide::Postfix,
+                            )),
+                        )
+                    }
                 };
 
                 let operator_type = match token_type {
@@ -240,7 +265,7 @@ impl Parser {
                     operator_type,
                     side: UpdateExpressionSide::Postfix,
                 })))
-            },
+            }
             Ok(_) => {
                 // Don't consume the token if it's not an increment or decrement
                 self.i -= 1;
@@ -249,8 +274,7 @@ impl Parser {
             Err(_) => {
                 // Don't decrement self.i as try_get_token won't hae incremented it
                 Ok(target)
-            },
-
+            }
         }
     }
 
@@ -276,12 +300,14 @@ impl Parser {
         };
 
         // If the token is a prefix increment / decrement
-        if let TokenType::OperatorIncrement | TokenType::OperatorDecrement = maybe_unary_operator_token.token_type {
+        if let TokenType::OperatorIncrement | TokenType::OperatorDecrement =
+            maybe_unary_operator_token.token_type
+        {
             // Map the token type to an UpdateExpressionOperatorType
             let operator_type = match &maybe_unary_operator_token.token_type {
                 TokenType::OperatorIncrement => UpdateExpressionOperatorType::Increment,
                 TokenType::OperatorDecrement => UpdateExpressionOperatorType::Decrement,
-                _ => panic!()
+                _ => panic!(),
             };
 
             let target = self.parse_expression(precedences::UNARY_OPERATOR)?;
@@ -294,7 +320,7 @@ impl Parser {
                 target,
                 operator_type,
                 side: UpdateExpressionSide::Prefix,
-            })))
+            })));
         }
 
         if let Some(operator_type) = op {
@@ -302,7 +328,7 @@ impl Parser {
             let e = Expression::UnaryOperator(Box::new(ASTNodeUnaryOperator {
                 location,
                 operator_type,
-                expression
+                expression,
             }));
 
             Ok(e)
@@ -312,13 +338,15 @@ impl Parser {
             // Parse with one higher precedence
             self.parse_expression(precedences::UNARY_OPERATOR + 1)
         }
-
     }
 
     /// Parses a series of binary operators with a given precedence
-    fn parse_binary_operator(&mut self, precedence: usize) -> Result<Expression, ParseError>{
+    fn parse_binary_operator(&mut self, precedence: usize) -> Result<Expression, ParseError> {
         // This unwrap should never fail as this function should only ever get called with precedences which have binary operators
-        let BinaryPrecedence {associativity, operators: operators_in_precedence} = BINARY_PRECEDENCES[precedence].unwrap();
+        let BinaryPrecedence {
+            associativity,
+            operators: operators_in_precedence,
+        } = BINARY_PRECEDENCES[precedence].unwrap();
 
         // At each precedence, a sequence of binary operators always goes <value> (<operator> <value>) (<operator> <value>) etc
         // Stores the values
@@ -334,20 +362,36 @@ impl Parser {
                 Err(_) => break,
 
                 // A binary operator in this precedence
-                Ok(Token {token_type: TokenType::BinaryOperator(b), location, ..}) if operators_in_precedence.contains(b) => {
+                Ok(Token {
+                    token_type: TokenType::BinaryOperator(b),
+                    location,
+                    ..
+                }) if operators_in_precedence.contains(b) => {
                     operators.push((*b, location.clone()));
-                },
+                }
 
                 // Addition and subtraction are their own tokens, so check for them separately
-                Ok(Token {token_type: TokenType::OperatorAddition, location, ..}) if precedence == precedences::ADDITION => {
+                Ok(Token {
+                    token_type: TokenType::OperatorAddition,
+                    location,
+                    ..
+                }) if precedence == precedences::ADDITION => {
                     operators.push((BinaryOperator::Addition, location.clone()));
-                },
-                Ok(Token {token_type: TokenType::OperatorSubtraction, location, ..}) if precedence == precedences::SUBTRACTION => {
+                }
+                Ok(Token {
+                    token_type: TokenType::OperatorSubtraction,
+                    location,
+                    ..
+                }) if precedence == precedences::SUBTRACTION => {
                     operators.push((BinaryOperator::Subtraction, location.clone()));
-                },
+                }
 
                 // Comma operator is its own token, so check for it separately
-                Ok(Token {token_type: TokenType::Comma, location, ..}) if precedence == precedences::COMMA => {
+                Ok(Token {
+                    token_type: TokenType::Comma,
+                    location,
+                    ..
+                }) if precedence == precedences::COMMA => {
                     operators.push((BinaryOperator::Comma, location.clone()));
                 }
                 // Anything else means the end of this run of operators, so break the loop
@@ -357,31 +401,30 @@ impl Parser {
                     break;
                 }
             }
-        };
+        }
 
         // If there are no operators, just return the value
         if operators.is_empty() {
-            return Ok(values.remove(0))
+            return Ok(values.remove(0));
         }
 
         // Collapse the values into one using the correct associativity
         match associativity {
             Associativity::LeftToRight => {
-
                 let mut values = values.into_iter();
                 let mut lhs = values.next().unwrap();
 
                 // Iterate over value-operator pairs
                 for (rhs, (operator_type, location)) in values.zip(operators) {
-                    lhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                    lhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator {
                         location,
                         operator_type,
                         lhs,
-                        rhs
+                        rhs,
                     }));
                 }
                 Ok(lhs)
-            },
+            }
             Associativity::RightToLeft => {
                 // Reverse the iterator to iterate from right to left
                 let mut values = values.into_iter().rev();
@@ -389,15 +432,15 @@ impl Parser {
 
                 // Iterate over value-operator pairs
                 for (lhs, (operator_type, location)) in values.zip(operators) {
-                    rhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator{
+                    rhs = Expression::BinaryOperator(Box::new(ASTNodeBinaryOperator {
                         location,
                         operator_type,
                         lhs,
-                        rhs
+                        rhs,
                     }));
                 }
                 Ok(rhs)
-            },
+            }
         }
     }
 
@@ -406,9 +449,7 @@ impl Parser {
     pub(super) fn parse_expression(&mut self, precedence: usize) -> Result<Expression, ParseError> {
         match precedence {
             // Base case - parse a value
-            18 =>  {
-                self.parse_value()
-            }
+            18 => self.parse_value(),
             // '.', '?.', '[...]', new with argument list, function call
             17 | 16 => self.parse_assignment_target_or_new(),
 
@@ -420,16 +461,14 @@ impl Parser {
 
             // Precedences 13 down to 3 have only binary operators
             // Precedence 1 is the comma operator, which is a binary operator
-            3 ..= 13 | 1 => self.parse_binary_operator(precedence),
+            3..=13 | 1 => self.parse_binary_operator(precedence),
 
             // Assignment operators
             2 => self.parse_assignment(),
 
             precedences::ANY_EXPRESSION => self.parse_expression(1),
 
-            _ => panic!("Precedence too high")
-
+            _ => panic!("Precedence too high"),
         }
-
     }
 }

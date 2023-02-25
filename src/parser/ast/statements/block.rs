@@ -11,8 +11,8 @@ pub struct Block {
     pub statements: Vec<Statement>,
 }
 
-impl ToTree for Block{
-   fn to_tree(&self) -> String {
+impl ToTree for Block {
+    fn to_tree(&self) -> String {
         let mut s = format!("Block at {}:{}", self.location.line, self.location.column);
         for statement in &self.statements {
             s += "\n|-";

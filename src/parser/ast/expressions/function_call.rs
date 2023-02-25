@@ -12,8 +12,6 @@ pub enum FunctionCallType {
     New,
 }
 
-
-
 #[derive(Debug)]
 pub struct FunctionCall {
     pub location: ProgramLocation,
@@ -43,9 +41,12 @@ impl Display for FunctionCallType {
     }
 }
 
-impl ToTree for FunctionCall{
-   fn to_tree(&self) -> String {
-        let mut s = format!("{} at {}:{}\n", self.call_type, self.location.line, self.location.column);
+impl ToTree for FunctionCall {
+    fn to_tree(&self) -> String {
+        let mut s = format!(
+            "{} at {}:{}\n",
+            self.call_type, self.location.line, self.location.column
+        );
         s += &format!("|-function: {}\n", self.function.to_tree().indent_tree());
 
         s += &if self.args.is_empty() {
@@ -54,24 +55,26 @@ impl ToTree for FunctionCall{
             let args = self
                 .args
                 .iter()
-                .map(|arg| 
-                    format!("\n|-{}", arg
-                        .to_tree()
-                        .indent_tree()
-                    )
-                ).collect::<String>();
-            
+                .map(|arg| format!("\n|-{}", arg.to_tree().indent_tree()))
+                .collect::<String>();
+
             "|-args:".to_string() + &args
-        }.indent_tree();
+        }
+        .indent_tree();
 
         s
     }
 }
 
-impl ToTree for FunctionCallArgument{
-   fn to_tree(&self) -> String {
+impl ToTree for FunctionCallArgument {
+    fn to_tree(&self) -> String {
         if self.spread {
-            format!("Spread at {}:{} from {}", self.location.line, self.location.column, self.expression.to_tree())
+            format!(
+                "Spread at {}:{} from {}",
+                self.location.line,
+                self.location.column,
+                self.expression.to_tree()
+            )
         } else {
             self.expression.to_tree()
         }

@@ -1,14 +1,18 @@
 use super::*;
 
-
 impl Parser {
-
     /// Parses an array literal
-    fn parse_array_literal(&mut self, open_square_bracket_location: ProgramLocation) -> Result<ArrayLiteral, ParseError> {
+    fn parse_array_literal(
+        &mut self,
+        open_square_bracket_location: ProgramLocation,
+    ) -> Result<ArrayLiteral, ParseError> {
         let mut items = vec![];
 
         'array_items: loop {
-            let t = self.tokens.get(self.i).expect("Mismatched brackets should have been caught by the lexer");
+            let t = self
+                .tokens
+                .get(self.i)
+                .expect("Mismatched brackets should have been caught by the lexer");
             match t.token_type {
                 // The end of the array
                 TokenType::CloseSquareBracket(_) => {
@@ -24,34 +28,44 @@ impl Parser {
                 TokenType::OperatorSpread => {
                     self.i += 1;
                     let e = self.parse_expression(precedences::COMMA + 1)?;
-                    let comma = self.try_get_token().expect("Mismatched brackets should have been caught by the lexer");
+                    let comma = self
+                        .try_get_token()
+                        .expect("Mismatched brackets should have been caught by the lexer");
 
                     match comma.token_type {
                         TokenType::Comma => items.push(ArrayItem::Spread(e)),
                         TokenType::CloseSquareBracket(_) => {
                             items.push(ArrayItem::Spread(e));
-                            break 'array_items
-                        },
+                            break 'array_items;
+                        }
                         _ => {
                             let token_str = comma.token_type.to_str();
-                            return Err(self.get_error(ParseErrorType::UnexpectedToken { found: token_str, expected: Some("comma") }))
+                            return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                                found: token_str,
+                                expected: Some("comma"),
+                            }));
                         }
                     };
                 }
                 // An array item
                 _ => {
                     let e = self.parse_expression(precedences::COMMA + 1)?;
-                    let comma = self.try_get_token().expect("Mismatched brackets should have been caught by the lexer");
+                    let comma = self
+                        .try_get_token()
+                        .expect("Mismatched brackets should have been caught by the lexer");
 
                     match comma.token_type {
                         TokenType::Comma => items.push(ArrayItem::Item(e)),
                         TokenType::CloseSquareBracket(_) => {
                             items.push(ArrayItem::Item(e));
-                            break 'array_items
-                        },
+                            break 'array_items;
+                        }
                         _ => {
                             let token_str = comma.token_type.to_str();
-                            return Err(self.get_error(ParseErrorType::UnexpectedToken { found: token_str, expected: Some("comma") }))
+                            return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                                found: token_str,
+                                expected: Some("comma"),
+                            }));
                         }
                     };
                 }
@@ -83,17 +97,19 @@ impl Parser {
                 self.i += 1;
 
                 Ok(e)
-            },
+            }
 
             // Close paren
             // This is always a syntax error as if this will only occur with an empty set of parens
             TokenType::CloseParen(_) => {
                 Err(self.get_error(ParseErrorType::ExpectedExpression { found: Some(")") }))
-            },
+            }
 
             // Object literal
             // This cannot be a block as they are not allowed inside expressions
-            TokenType::OpenBrace(_) => Ok(Expression::ObjectLiteral(Box::new(self.parse_object_literal()?))),
+            TokenType::OpenBrace(_) => Ok(Expression::ObjectLiteral(Box::new(
+                self.parse_object_literal()?,
+            ))),
 
             // Array literal
             TokenType::OpenSquareBracket(close_square_bracket_index) => {
@@ -104,27 +120,30 @@ impl Parser {
 
                 debug_assert_eq!(close_square_bracket_index, self.i - 1);
                 Ok(Expression::ArrayLiteral(Box::new(e)))
-            },
+            }
 
             // Variable
             // TODO: error on reserved words
             // TODO: this could be a function expression
-            TokenType::Identifier(i) => Ok(Expression::Variable(Box::new(Variable{
+            TokenType::Identifier(i) => Ok(Expression::Variable(Box::new(Variable {
                 location: t.location.clone(),
-                identifier: i.clone()
+                identifier: i.clone(),
             }))),
 
             // Value literal
-            TokenType::ValueLiteral(v) => Ok(Expression::ValueLiteral(Box::new(ASTNodeValueLiteral {
-                location: t.location.clone(),
-                value: v.clone()
-            }))),
-            
+            TokenType::ValueLiteral(v) => {
+                Ok(Expression::ValueLiteral(Box::new(ASTNodeValueLiteral {
+                    location: t.location.clone(),
+                    value: v.clone(),
+                })))
+            }
+
             _ => {
-                let e = ParseErrorType::ExpectedExpression { found: Some(t.token_type.to_str()) };
+                let e = ParseErrorType::ExpectedExpression {
+                    found: Some(t.token_type.to_str()),
+                };
                 Err(self.get_error(e))
             }
         }
-        
     }
 }

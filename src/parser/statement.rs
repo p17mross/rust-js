@@ -10,13 +10,20 @@ impl Parser {
         loop {
             match self.tokens.get(self.i) {
                 // EOF or close brace means the end of the block has been reached, so return true
-                None | Some(Token {token_type: TokenType::CloseBrace(_), ..}) => {
+                None
+                | Some(Token {
+                    token_type: TokenType::CloseBrace(_),
+                    ..
+                }) => {
                     return true;
-                },
+                }
                 // Semicolon - keep looping
-                Some(Token {token_type: TokenType::Semicolon, ..}) => {
+                Some(Token {
+                    token_type: TokenType::Semicolon,
+                    ..
+                }) => {
                     self.i += 1;
-                },
+                }
                 // Any other token means next statement has been reached so return false
                 Some(_) => {
                     return false;
@@ -27,7 +34,6 @@ impl Parser {
 
     /// Parses a `let a = b` binding
     fn parse_let_expression(&mut self) -> Result<LetExpression, ParseError> {
-
         // Save location for later
         let location = self.get_location();
 
@@ -39,10 +45,13 @@ impl Parser {
         let t = self.try_get_token().cloned()?;
 
         if t.token_type != TokenType::OperatorAssignment {
-            return Err(self.get_error(ParseErrorType::UnexpectedToken {found: t.token_type.to_str(), expected: Some("=")}))
+            return Err(self.get_error(ParseErrorType::UnexpectedToken {
+                found: t.token_type.to_str(),
+                expected: Some("="),
+            }));
         };
 
-        let value = self.parse_expression(precedences::COMMA + 1 )?;
+        let value = self.parse_expression(precedences::COMMA + 1)?;
 
         let l = LetExpression {
             location,
@@ -66,13 +75,13 @@ impl Parser {
         let statement = match t.token_type {
             TokenType::OpenBrace(close_index) => {
                 let b = self.parse_statements()?;
-    
+
                 // Make sure the end of the block was reached
                 debug_assert_eq!(close_index, self.i);
                 self.i += 1;
-    
+
                 Some(Statement::Block(Box::new(b)))
-            },
+            }
             TokenType::Identifier(i) => {
                 match i.as_str() {
                     // This could be a let declaration, but it can also be an expression starting with the identifier 'let'
@@ -89,20 +98,20 @@ impl Parser {
                             // Anything else is just an expression
                             _ => None,
                         }
-                    },
+                    }
                     "var" => todo!(),
                     "if" => todo!(),
                     "while" => todo!(),
                     "for" => todo!(),
                     "function" => todo!(),
                     "do" => todo!(),
-    
-                    _ => None
+
+                    _ => None,
                 }
-            },
+            }
 
             // No statement - parse as expression
-            _ => None
+            _ => None,
         };
 
         self.i -= 1;
@@ -114,7 +123,10 @@ impl Parser {
         };
 
         // Get last token of this statement and one after to parse semicolon insertion
-        let this_t = self.tokens.get(self.i - 1).expect("Should have been Some as this token was just parsed");
+        let this_t = self
+            .tokens
+            .get(self.i - 1)
+            .expect("Should have been Some as this token was just parsed");
         let next_t = self.tokens.get(self.i);
 
         // For this to be a valid statement, either the next token has to be a semicolon or this token has to have a newline after it
@@ -123,8 +135,11 @@ impl Parser {
             Some(next_t) => match next_t.token_type {
                 TokenType::Semicolon => Ok(statement),
                 _ if this_t.newline_after => Ok(statement),
-                _ => Err(self.get_error(ParseErrorType::UnexpectedToken { found: next_t.token_type.to_str(), expected: Some(";") }))
-            }
+                _ => Err(self.get_error(ParseErrorType::UnexpectedToken {
+                    found: next_t.token_type.to_str(),
+                    expected: Some(";"),
+                })),
+            },
         }
     }
 
@@ -133,14 +148,14 @@ impl Parser {
     pub(super) fn parse_statements(&mut self) -> Result<Block, ParseError> {
         let mut block = Block {
             location: self.get_location(),
-            statements: vec![]
+            statements: vec![],
         };
 
         'statements: loop {
             // Break on close brace or EOF
             let should_break = self.next_statement();
             if should_break {
-                break 'statements
+                break 'statements;
             }
 
             // Parse a statement

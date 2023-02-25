@@ -9,7 +9,7 @@ pub enum SyntaxError {
     /// A [`LexError`]
     LexError(LexError),
     /// A [`ParseError`]
-    ParseError(ParseError)
+    ParseError(ParseError),
 }
 
 impl From<LexError> for SyntaxError {
@@ -41,7 +41,7 @@ impl std::error::Error for SyntaxError {}
 /// Combines [`std::io::Error`] and [`SyntaxError`] for easier error handling.
 pub enum ProgramFromFileError {
     IoError(std::io::Error),
-    SyntaxError(SyntaxError)
+    SyntaxError(SyntaxError),
 }
 
 impl From<std::io::Error> for ProgramFromFileError {

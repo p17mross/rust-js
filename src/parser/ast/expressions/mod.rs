@@ -1,22 +1,22 @@
 mod array_literal;
+mod assignment;
 mod binary_operators;
 mod function_call;
 mod object_literal;
 mod property_lookup;
 mod unary_operators;
-mod value_literals;
 mod update_expression;
-mod assignment;
+mod value_literals;
 
 pub use array_literal::*;
+pub use assignment::*;
 pub use binary_operators::*;
 pub use function_call::*;
 pub use object_literal::*;
 pub use property_lookup::*;
 pub use unary_operators::*;
-pub use value_literals::*;
 pub use update_expression::*;
-pub use assignment::*;
+pub use value_literals::*;
 
 use crate::engine::program::ProgramLocation;
 
@@ -43,7 +43,6 @@ pub struct Variable {
 
     pub identifier: String,
 }
-
 
 impl Expression {
     #[must_use]
@@ -74,23 +73,24 @@ impl Expression {
             Self::PropertyLookup(_) => "Property lookup".to_string(),
             Self::UnaryOperator(u) => format!("Unary operator {:?}", u.operator_type),
             Self::UpdateAssignment(u) => format!("Update Assignment {:?}", u.operator_type),
-            Self::UpdateExpression(u) => {
-                format!("{:?} {:?}", u.side, u.operator_type)
-            },
+            Self::UpdateExpression(u) => format!("{:?} {:?}", u.side, u.operator_type),
             Self::ValueLiteral(_) => "Value literal".to_string(),
             Self::Variable(_) => "Variable".to_string(),
         }
     }
 }
 
-impl ToTree for Variable{
-   fn to_tree(&self) -> String {
-        format!("Variable at {}:{}: \"{}\"", self.location.line, self.location.column, self.identifier)
+impl ToTree for Variable {
+    fn to_tree(&self) -> String {
+        format!(
+            "Variable at {}:{}: \"{}\"",
+            self.location.line, self.location.column, self.identifier
+        )
     }
 }
 
-impl ToTree for Expression{
-   fn to_tree(&self) -> String {
+impl ToTree for Expression {
+    fn to_tree(&self) -> String {
         match self {
             Self::ArrayLiteral(a) => a.to_tree(),
             Self::Assignment(a) => a.to_tree(),

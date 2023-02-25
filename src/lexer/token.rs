@@ -1,6 +1,9 @@
 use num::BigInt;
 
-use crate::{engine::{program::ProgramLocation, Gc, Program}, util::PrettyPrint};
+use crate::{
+    engine::{program::ProgramLocation, Gc, Program},
+    util::PrettyPrint,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ValueLiteral {
@@ -47,9 +50,7 @@ pub(crate) enum UpdateAssignmentOperator {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// An enum for all operators which take two arguments by value
 pub enum BinaryOperator {
-
     // Arithmetic operators
-
     /// '+'. This is not emitted by the tokeniser, in favour of [TokenType::OperatorAddition], but it will be used by the parser
     Addition,
     /// '-'. This is not emitted by the tokeniser, in favour of [TokenType::OperatorSubtraction], but it will be used by the parser
@@ -65,7 +66,6 @@ pub enum BinaryOperator {
     Exponentiation,
 
     // Comparison operators
-
     /// `==`
     Equality,
     /// `===`
@@ -84,7 +84,6 @@ pub enum BinaryOperator {
     LessThanOrEqual,
 
     // Bitwise operators
-
     /// `|`
     BitwiseOr,
     /// `&`
@@ -99,7 +98,6 @@ pub enum BinaryOperator {
     UnsignedShiftRight,
 
     // Boolean operators
-
     /// `||`
     LogicalOr,
     /// `&&`
@@ -121,7 +119,6 @@ pub enum BinaryOperator {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TokenType {
     //Special tokens
-    
     /// Any variable or property name
     Identifier(String),
     /// `;`
@@ -142,7 +139,6 @@ pub(crate) enum TokenType {
     OperatorFatArrow,
 
     // Brackets and braces
-
     /// `(`. usize is matching [CloseParen](TokenType::CloseParen)
     OpenParen(usize),
     /// `)`. usize is matching [OpenParen](TokenType::OpenParen)
@@ -163,7 +159,6 @@ pub(crate) enum TokenType {
     // Arithmetic operators
     // '+' and '-' are not in BinaryOperator as they can be used as unary operators
     // e.g. '-10' is lexed as [OperatorSubtraction, NumberLiteral(10)]
-
     /// `+`
     OperatorAddition,
     /// `-`
@@ -172,7 +167,7 @@ pub(crate) enum TokenType {
     OperatorIncrement,
     /// `--`
     OperatorDecrement,
-    
+
     /// `!`
     OperatorLogicalNot,
     /// `~`
@@ -185,7 +180,6 @@ pub(crate) enum TokenType {
     BinaryOperator(BinaryOperator),
 
     // Value literals
-
     /// A value literal
     ValueLiteral(ValueLiteral),
 }
@@ -235,21 +229,21 @@ impl TokenType {
             Self::OperatorLogicalNot => "!",
 
             Self::OperatorAssignment => "=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Addition) => "+=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Subtraction) => "-=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Multiplication) => "*=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Division) => "/=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Remainder) => "%=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::Exponentiation) => "**=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::ShiftLeft) => "<<=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::ShiftRight) => ">>=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::UnsignedShiftRight) => ">>>=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseOr) => "|=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseAnd) => "&=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::BitwiseXor) => "^=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::LogicalOr) => "||=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::LogicalAnd) => "&&=",
-            Self::UpdateAssignment(UpdateAssignmentOperator::NullishCoalescing) => "?=",
+            Self::UpdateAssignment(Addition) => "+=",
+            Self::UpdateAssignment(Subtraction) => "-=",
+            Self::UpdateAssignment(Multiplication) => "*=",
+            Self::UpdateAssignment(Division) => "/=",
+            Self::UpdateAssignment(Remainder) => "%=",
+            Self::UpdateAssignment(Exponentiation) => "**=",
+            Self::UpdateAssignment(ShiftLeft) => "<<=",
+            Self::UpdateAssignment(ShiftRight) => ">>=",
+            Self::UpdateAssignment(UnsignedShiftRight) => ">>>=",
+            Self::UpdateAssignment(BitwiseOr) => "|=",
+            Self::UpdateAssignment(BitwiseAnd) => "&=",
+            Self::UpdateAssignment(BitwiseXor) => "^=",
+            Self::UpdateAssignment(LogicalOr) => "||=",
+            Self::UpdateAssignment(LogicalAnd) => "&&=",
+            Self::UpdateAssignment(NullishCoalescing) => "?=",
 
             Self::BinaryOperator(BinaryOperator::Equality) => "==",
             Self::BinaryOperator(BinaryOperator::StrictEquality) => "===",
@@ -277,84 +271,109 @@ pub(crate) struct Token {
 
 impl Token {
     #[inline]
-    pub const fn new(program: Gc<Program>, line: usize, line_index: usize, token_start: usize, t: TokenType) -> Token {
-        Token { location: ProgramLocation {program, line, column: token_start - line_index + 1, index: token_start}, token_type: t, newline_after: false}
+    pub const fn new(
+        program: Gc<Program>,
+        line: usize,
+        line_index: usize,
+        token_start: usize,
+        t: TokenType,
+    ) -> Token {
+        Token {
+            location: ProgramLocation {
+                program,
+                line,
+                column: token_start - line_index + 1,
+                index: token_start,
+            },
+            token_type: t,
+            newline_after: false,
+        }
     }
 }
 
+use TokenType::*;
+use UpdateAssignmentOperator::*;
+
 /// A map of strings to operators
+#[rustfmt::skip]
 pub(crate) const OPERATORS: [(&str, TokenType); 50] = [
-
-("...",  TokenType::OperatorSpread),
-
-    (",",    TokenType::Comma),
-    ("?.",   TokenType::OperatorOptionalChaining),
-    (".",    TokenType::OperatorDot),
-    (";",    TokenType::Semicolon),
-    ("=>",   TokenType::OperatorFatArrow),
-
-    ("!==",  TokenType::BinaryOperator(BinaryOperator::StrictInequality)),
-    ("!=",   TokenType::BinaryOperator(BinaryOperator::Inequality)),
-    ("===",  TokenType::BinaryOperator(BinaryOperator::StrictEquality)),
-    ("==",   TokenType::BinaryOperator(BinaryOperator::Equality)),
     
-    ("=",    TokenType::OperatorAssignment),
-    ("-=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Subtraction)),
-    ("*=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Multiplication)),
-    ("**=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::Exponentiation)),
-    ("+=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Addition)),
-    ("/=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Division)),
-    ("%=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::Remainder)),
+    ("...",  OperatorSpread),
 
-    ("||=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::LogicalOr)),
-    ("&&=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::LogicalAnd)),
-    ("|=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseOr)),
-    ("&=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseAnd)),
-    ("^=",   TokenType::UpdateAssignment(UpdateAssignmentOperator::BitwiseXor)),
-    ("??=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::NullishCoalescing)),
+    (",",    Comma),
+    ("?.",   OperatorOptionalChaining),
+    (".",    OperatorDot),
+    (";",    Semicolon),
+    ("=>",   OperatorFatArrow),
 
-    ("<<=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::ShiftLeft)),
-    (">>=",  TokenType::UpdateAssignment(UpdateAssignmentOperator::ShiftRight)),
-    (">>>=", TokenType::UpdateAssignment(UpdateAssignmentOperator::UnsignedShiftRight)),
+    ("!==",  BinaryOperator(BinaryOperator::StrictInequality)),
+    ("!=",   BinaryOperator(BinaryOperator::Inequality)),
+    ("===",  BinaryOperator(BinaryOperator::StrictEquality)),
+    ("==",   BinaryOperator(BinaryOperator::Equality)),
+    
+    ("=",    OperatorAssignment),
+    ("-=",   UpdateAssignment(Subtraction)),
+    ("*=",   UpdateAssignment(Multiplication)),
+    ("**=",  UpdateAssignment(Exponentiation)),
+    ("+=",   UpdateAssignment(Addition)),
+    ("/=",   UpdateAssignment(Division)),
+    ("%=",   UpdateAssignment(Remainder)),
 
-    ("++",   TokenType::OperatorIncrement),
-    ("--",   TokenType::OperatorDecrement),
-    ("**",   TokenType::BinaryOperator(BinaryOperator::Exponentiation)),
+    ("||=",  UpdateAssignment(LogicalOr)),
+    ("&&=",  UpdateAssignment(LogicalAnd)),
+    ("|=",   UpdateAssignment(BitwiseOr)),
+    ("&=",   UpdateAssignment(BitwiseAnd)),
+    ("^=",   UpdateAssignment(BitwiseXor)),
+    ("??=",  UpdateAssignment(NullishCoalescing)),
 
-    ("+",    TokenType::OperatorAddition),
-    ("-",    TokenType::OperatorSubtraction),
-    ("*",    TokenType::BinaryOperator(BinaryOperator::Multiplication)),
-    ("/",    TokenType::BinaryOperator(BinaryOperator::Division)),
-    ("%",    TokenType::BinaryOperator(BinaryOperator::Remainder)),
+    ("<<=",  UpdateAssignment(ShiftLeft)),
+    (">>=",  UpdateAssignment(ShiftRight)),
+    (">>>=", UpdateAssignment(UnsignedShiftRight)),
 
-    ("||",   TokenType::BinaryOperator(BinaryOperator::LogicalOr)),
-    ("&&",   TokenType::BinaryOperator(BinaryOperator::LogicalAnd)),
-    ("!",    TokenType::OperatorLogicalNot),
-    ("|",    TokenType::BinaryOperator(BinaryOperator::BitwiseOr)),
-    ("&",    TokenType::BinaryOperator(BinaryOperator::BitwiseAnd)),
-    ("^",    TokenType::BinaryOperator(BinaryOperator::BitwiseXor)),
-    ("~",    TokenType::OperatorBitwiseNot),
+    ("++",   OperatorIncrement),
+    ("--",   OperatorDecrement),
+    ("**",   BinaryOperator(BinaryOperator::Exponentiation)),
 
-    ("<<",   TokenType::BinaryOperator(BinaryOperator::ShiftLeft)),
-    (">>>",  TokenType::BinaryOperator(BinaryOperator::UnsignedShiftRight)),
-    (">>",   TokenType::BinaryOperator(BinaryOperator::ShiftRight)),
+    ("+",    OperatorAddition),
+    ("-",    OperatorSubtraction),
+    ("*",    BinaryOperator(BinaryOperator::Multiplication)),
+    ("/",    BinaryOperator(BinaryOperator::Division)),
+    ("%",    BinaryOperator(BinaryOperator::Remainder)),
 
-    ("<=",   TokenType::BinaryOperator(BinaryOperator::LessThanOrEqual)),
-    (">=",   TokenType::BinaryOperator(BinaryOperator::GreaterThanOrEqual)),
-    ("<",    TokenType::BinaryOperator(BinaryOperator::LessThan)),
-    (">",    TokenType::BinaryOperator(BinaryOperator::GreaterThan)),
+    ("||",   BinaryOperator(BinaryOperator::LogicalOr)),
+    ("&&",   BinaryOperator(BinaryOperator::LogicalAnd)),
+    ("!",    OperatorLogicalNot),
+    ("|",    BinaryOperator(BinaryOperator::BitwiseOr)),
+    ("&",    BinaryOperator(BinaryOperator::BitwiseAnd)),
+    ("^",    BinaryOperator(BinaryOperator::BitwiseXor)),
+    ("~",    OperatorBitwiseNot),
 
-    ("?",    TokenType::OperatorQuestionMark),
-    (":",    TokenType::OperatorColon),
+    ("<<",   BinaryOperator(BinaryOperator::ShiftLeft)),
+    (">>>",  BinaryOperator(BinaryOperator::UnsignedShiftRight)),
+    (">>",   BinaryOperator(BinaryOperator::ShiftRight)),
+
+    ("<=",   BinaryOperator(BinaryOperator::LessThanOrEqual)),
+    (">=",   BinaryOperator(BinaryOperator::GreaterThanOrEqual)),
+    ("<",    BinaryOperator(BinaryOperator::LessThan)),
+    (">",    BinaryOperator(BinaryOperator::GreaterThan)),
+
+    ("?",    OperatorQuestionMark),
+    (":",    OperatorColon),
 ];
 
 impl PrettyPrint for Vec<Token> {
     fn pretty_print(&self) {
-        println!("Tokens parsed from {:?}", self[0].location.program.borrow().source);
+        println!(
+            "Tokens parsed from {:?}",
+            self[0].location.program.borrow().source
+        );
         for token in self {
-            println!("{:?} at {}:{}", token.token_type, token.location.line, token.location.column);
+            println!(
+                "{:?} at {}:{}",
+                token.token_type, token.location.line, token.location.column
+            );
         }
-    }   
+    }
 }
 
 #[test]
@@ -362,7 +381,12 @@ impl PrettyPrint for Vec<Token> {
 fn test_operator_ordering() {
     for (i, first) in OPERATORS.iter().enumerate() {
         for (j, second) in OPERATORS[i + 1..].iter().enumerate() {
-            assert!(!second.0.starts_with(first.0), "Item '{}' at index {j} starts with item '{}' at index {i}", second.0, first.0);
+            assert!(
+                !second.0.starts_with(first.0),
+                "Item '{}' at index {j} starts with item '{}' at index {i}",
+                second.0,
+                first.0
+            );
         }
     }
 }

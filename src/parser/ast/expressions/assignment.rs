@@ -1,4 +1,8 @@
-use crate::{engine::program::ProgramLocation, parser::ast::{DestructuringAssignmentTarget, AssignmentTarget, StringExtTreeIndent, ToTree}, lexer::token::UpdateAssignmentOperator};
+use crate::{
+    engine::program::ProgramLocation,
+    lexer::token::UpdateAssignmentOperator,
+    parser::ast::{AssignmentTarget, DestructuringAssignmentTarget, StringExtTreeIndent, ToTree},
+};
 
 use super::Expression;
 
@@ -21,7 +25,10 @@ pub struct UpdateAssignment {
 
 impl ToTree for Assignment {
     fn to_tree(&self) -> String {
-        let mut s = format!("Assignment at {}:{}\n", self.location.line, self.location.column);
+        let mut s = format!(
+            "Assignment at {}:{}\n",
+            self.location.line, self.location.column
+        );
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
         s
@@ -30,7 +37,10 @@ impl ToTree for Assignment {
 
 impl ToTree for UpdateAssignment {
     fn to_tree(&self) -> String {
-        let mut s = format!("Update Assignment at {}:{}\n", self.location.line, self.location.column);
+        let mut s = format!(
+            "Update Assignment at {}:{}\n",
+            self.location.line, self.location.column
+        );
         s += &format!("|-operator type: {:?}\n", self.operator_type);
         s += &format!("|-lhs: {}\n", self.lhs.to_tree().indent_tree());
         s += &format!("|-rhs: {}", self.rhs.to_tree().indent_tree());
