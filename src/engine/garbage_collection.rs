@@ -77,7 +77,7 @@ impl From<BorrowMutError> for GarbageCollectionBorrowMutError {
 }
 
 impl<T: GarbageCollectable> Gc<T> {
-    /// Creates a new Gc<T>, from the provided T   
+    /// Creates a new `Gc<T>`, from the provided T   
     pub fn new(t: T) -> Self {
         Self {
             data: Some(Rc::new(RefCell::new(t))),

@@ -12,10 +12,10 @@ use super::{
     Gc,
 };
 
-/// An enum for the source of a [Program].
 /// Holds the type and location, so that the source of error messages can be printed.
 #[derive(Debug, Clone)]
-pub(crate) enum ProgramSource {
+#[non_exhaustive]
+pub enum ProgramSource {
     /// The program was typed in a console
     Console,
     /// The program was passed to eval()
@@ -39,7 +39,7 @@ pub struct Program {
     /// The program source
     pub(crate) source: ProgramSource,
     /// The text of the program.
-    /// Stored as a [Vec<char>] rather than [String] for easier indexing.
+    /// Stored as a [`Vec<char>`] rather than [`String`] for easier indexing.
     pub(crate) program: Vec<char>,
     pub(crate) ast: Option<ASTNodeProgram>,
 }
@@ -79,7 +79,7 @@ impl Program {
         Ok(())
     }
 
-    /// Create a [`Program`] from a string with a [`ProgramSource`] of [`ProgramSource::Console`]
+    /// Create a [`Program`] from a string
     ///
     /// ### Errors
     /// * Returns a [`SyntaxError`] if the given string is not valid javascript code
@@ -117,19 +117,51 @@ impl Program {
     pub fn debug_ast(&self) {
         println!("{}", self.ast.as_ref().unwrap().to_tree());
     }
+
+    /// Gets the [`Program`]'s [`ProgramSource`]
+    #[must_use]
+    pub fn get_source(&self) -> ProgramSource {
+        self.source.clone()
+    }
 }
 
 #[derive(Clone)]
 /// Represents a line:column position in a program
 pub struct ProgramLocation {
     /// The source of the program
-    pub program: Gc<Program>,
+    pub(crate) program: Gc<Program>,
     /// The line number
-    pub line: usize,
+    pub(crate) line: usize,
     /// The column number
-    pub column: usize,
-    /// The index into [Program]::program
-    pub index: usize,
+    pub(crate) column: usize,
+    /// The character index into [`Program::program`]
+    pub(crate) index: usize,
+}
+
+impl ProgramLocation {
+    /// Gets the [`Program`] this [`ProgramLocation`] is a location in
+    #[must_use]
+    pub fn get_program(&self) -> Gc<Program> {
+        self.program.clone()
+    }
+
+    /// Gets the 1-based line number of this [`ProgramLocation`]
+    #[must_use]
+    pub fn get_line(&self) -> usize {
+        self.line
+    }
+
+    /// Gets the 1-based column number of this [`ProgramLocation`], measured in code points from the start of the line
+    #[must_use]
+    pub fn get_column(&self) -> usize {
+        self.column
+    }
+
+    /// Gets the 0-based offset of this [`ProgramLocation`] from the beginning of the code. Measured in code points.
+    #[must_use]
+    pub fn get_index(&self) -> usize {
+        self.index
+    }
 }
 
 impl Debug for ProgramLocation {

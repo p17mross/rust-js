@@ -3,11 +3,12 @@ pub(crate) mod program;
 pub(crate) mod error;
 
 pub use garbage_collection::Gc;
-pub use program::Program;
+pub use program::{Program, ProgramLocation, ProgramSource};
+pub use error::{SyntaxError, ProgramFromFileError};
 
 #[derive(Debug)]
 #[allow(dead_code)]
-/// A class for executing parsed [Program]s.
+/// A class for executing parsed [`Program`]s.
 /// Currently has no functionality.
 pub struct Engine {
     program: Program,
