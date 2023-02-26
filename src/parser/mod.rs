@@ -60,7 +60,13 @@ impl Parser {
     ) -> Result<ASTNodeProgram, ParseError> {
         let mut s = Self { tokens, i: 0 };
 
-        let block = s.parse_statements()?;
+        let location = ProgramLocation {
+            program: program.clone(),
+            line: 1,
+            column: 1,
+            index: 0,
+        };
+        let block = s.parse_statements(Some(location))?;
 
         let parsed_program = ASTNodeProgram { program, block };
 

@@ -76,7 +76,7 @@ impl Parser {
         // None = try to parse expression
         let statement = match t.token_type {
             TokenType::OpenBrace(close_index) => {
-                let b = self.parse_statements()?;
+                let b = self.parse_statements(None)?;
 
                 // Make sure the end of the block was reached
                 debug_assert_eq!(close_index, self.i);
@@ -147,9 +147,10 @@ impl Parser {
 
     /// Parses a sequence of statements.\
     /// Ends on EOF or on a [closing brace](TokenType::CloseBrace), which is not consumed.
-    pub(super) fn parse_statements(&mut self) -> Result<Block, ParseError> {
+    /// The given location will be used if it is `Some`, or the location of the current token if it is `None`.
+    pub(super) fn parse_statements(&mut self, location: Option<ProgramLocation>) -> Result<Block, ParseError> {
         let mut block = Block {
-            location: self.get_location(),
+            location: location.unwrap_or_else(||self.get_location()),
             statements: vec![],
         };
 
