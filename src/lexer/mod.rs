@@ -1,106 +1,15 @@
 pub(crate) mod token;
-
-use std::fmt::Display;
+pub(crate) mod error;
+mod literals;
 
 pub(crate) use token::{Token, TokenType};
 
-use num::{BigInt, Num, ToPrimitive};
+pub use error::{LexError, LexErrorType};
 
-use crate::engine::{program::ProgramLocation, Gc, Program};
-use crate::util::{is_identifier_continue, is_identifier_start, NumberLiteralBase};
+use crate::engine::{Gc, Program};
+use crate::util::{is_identifier_continue, is_identifier_start};
 
-use self::token::{ValueLiteral, OPERATORS};
-
-#[derive(Debug, Clone, Copy)]
-/// All the types of errors that can occur during lexing
-pub enum LexErrorType {
-    /// When an EOF occurs during a string literal.
-    /// char is the type of quote used in the string
-    UnclosedString(char),
-    /// When a newline occurs during a string literal.
-    /// char is the type of quote used in the string
-    NewlineInString(char),
-    /// When an identifier starts immediately after a numeric literal
-    IdentifierAfterNumber,
-    /// When the start of a numeric literal occurs with no digits following
-    MissingDigits { base: NumberLiteralBase },
-    /// When an invalid unicode occurs outside of a string
-    InvalidChar(char),
-    /// When brackets are incorrectly matched
-    MismatchedBracket,
-    /// Unclosed Bracket
-    UnclosedBracket,
-}
-
-impl Display for LexErrorType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::UnclosedString(c) => {
-                write!(f, "{c}{c} literal not terminated before end of script")
-            }
-            Self::NewlineInString(c) => {
-                write!(f, "{c}{c} literal contains an unescaped line break")
-            }
-            Self::IdentifierAfterNumber => {
-                f.write_str("Identifier starts immediately after numeric literal")
-            }
-            Self::MissingDigits { base: n } => {
-                write!(
-                    f,
-                    "Missing {} digits after '{}'",
-                    n.get_name(),
-                    n.get_start()
-                )
-            }
-            Self::InvalidChar(c) => {
-                write!(f, "Illegal character U+{:x}", *c as u32)
-            }
-            Self::MismatchedBracket => f.write_str("Mismatched bracket"),
-            Self::UnclosedBracket => f.write_str("Unclosed bracket"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-/// An error that occurs during lexing.
-pub struct LexError {
-    pub location: ProgramLocation,
-    pub error_type: LexErrorType,
-}
-
-impl LexError {
-    #[inline]
-    const fn new(
-        program: Gc<Program>,
-        line: usize,
-        line_index: usize,
-        token_start: usize,
-        e: LexErrorType,
-    ) -> Self {
-        Self {
-            location: ProgramLocation {
-                program,
-                line,
-                column: token_start - line_index + 1,
-                index: token_start,
-            },
-            error_type: e,
-        }
-    }
-}
-
-impl Display for LexError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}:{}:{}\nSyntax Error: {}",
-            self.location.program.borrow().source,
-            self.location.line,
-            self.location.column,
-            self.error_type
-        )
-    }
-}
+use self::token::OPERATORS;
 
 #[derive(Debug, Clone, Copy)]
 enum Bracket {
@@ -126,6 +35,7 @@ pub(super) struct Lexer {
 }
 
 impl Lexer {
+    /// Creates a new [`Lexer`] with default values
     pub(super) const fn new() -> Self {
         Self {
             i: 0,
@@ -137,7 +47,7 @@ impl Lexer {
         }
     }
 
-    /// Constructs a list of self.tokens from a string.
+    /// Constructs a list of tokens from a string.
     pub(crate) fn lex(mut self, program: &Gc<Program>) -> Result<Vec<Token>, LexError> {
         // The value of `self.i` from the start of the previous loop
         // Used to detect if `self.i` has not changed since the last loop, to detect infinite loops
@@ -266,6 +176,7 @@ impl Lexer {
         Ok(())
     }
 
+    /// Pushes the given bracket type to the [bracket stack][Lexer::brackets] and produces a token of the corresponding open bracket type
     fn produce_bracket(
         &mut self,
         program: &Gc<Program>,
@@ -290,6 +201,8 @@ impl Lexer {
         self.i += 1;
     }
 
+    /// Lex a line comment by consuming characters until a newline. 
+    /// The newline character will not be consumed, which allows line numbers to be properly tracked and semicolon insertion to function correctly
     fn lex_single_line_comment(&mut self, program_text: &[char]) {
         self.i += 2;
         while let Some(c) = program_text.get(self.i) {
@@ -300,6 +213,8 @@ impl Lexer {
         }
     }
 
+    /// Lex a multi-line comment by consuming characters until a '*/' is encountered, which will be consumed.
+    /// Line and column numbers will be tracked inside the comment.
     fn lex_multi_line_comment(&mut self, program_text: &[char]) {
         self.i += 2;
         loop {
@@ -320,6 +235,7 @@ impl Lexer {
         }
     }
 
+    /// Lexes an operator based on the string to operator mapping in [`OPERATORS`].
     fn lex_operator(
         &mut self,
         program_text: &[char],
@@ -327,9 +243,12 @@ impl Lexer {
         token_start: usize,
         c: char,
     ) -> Result<(), LexError> {
+        // Loop over all possible operators
         'test_operators: for (operator, operator_token) in OPERATORS {
+            // Get a [char] slice of the same length as the operator
             let Some(slice) = program_text.get(self.i..self.i+operator.len()) else {continue 'test_operators};
-            // Get operators
+            
+            // If the operator matches the current text, produce that operator
             if slice.iter().map(char::to_owned).eq(operator.chars()) {
                 self.i += operator.len();
                 self.tokens.push(Token::new(
@@ -343,6 +262,7 @@ impl Lexer {
             }
         }
 
+        // If no operators were found, return an error
         Err(LexError::new(
             program.clone(),
             self.line,
@@ -352,6 +272,7 @@ impl Lexer {
         ))
     }
 
+    /// Lexes an identifier by consuming characters until a character which is not [an identifier][is_identifier_continue] is encountered
     fn lex_identifier(&mut self, program_text: &[char], token_start: usize, program: &Gc<Program>) {
         'chars_in_identifier: loop {
             match program_text.get(self.i) {
@@ -417,306 +338,5 @@ impl Lexer {
         self.i += 1;
 
         Ok(())
-    }
-
-    fn lex_string_literal(
-        &mut self,
-        program: &Gc<Program>,
-        program_text: &[char],
-        quote: char,
-        token_start: usize,
-    ) -> Result<(), LexError> {
-        let mut s = String::new();
-        'string: loop {
-            self.i += 1;
-            match program_text.get(self.i) {
-                // Error on EOF
-                None => {
-                    return Err(LexError::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        self.i,
-                        LexErrorType::UnclosedString(quote),
-                    ))
-                }
-                // Error on newlines in the string
-                // Does not error for backtick enclosed strings
-                Some('\n') if quote != '`' => {
-                    return Err(LexError::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        self.i,
-                        LexErrorType::NewlineInString(quote),
-                    ))
-                }
-                // If in a backtick string, update self.line on newline
-                Some('\n') => {
-                    self.line += 1;
-                    self.line_index = self.i;
-                }
-                // Detect the end of the string
-                Some(&c) if c == quote => break 'string,
-                // Parse escape sequences
-                Some('\\') => {
-                    self.i += 1;
-                    // Add character to string
-                    s += &match program_text.get(self.i) {
-                        None => {
-                            return Err(LexError::new(
-                                program.clone(),
-                                self.line,
-                                self.line_index,
-                                self.i,
-                                LexErrorType::UnclosedString(quote),
-                            ))
-                        }
-                        // self.line continuation
-                        Some('\n') => String::new(),
-                        // Newline
-                        Some('n') => "\n".to_string(),
-                        // Carriage return
-                        Some('r') => "\r".to_string(),
-                        // Tab
-                        Some('t') => "\t".to_string(),
-                        // Backspace
-                        Some('b') => "\u{0008}".to_string(),
-                        // Form feed
-                        Some('f' | 'v') => "\u{000C}".to_string(),
-                        // TODO: unicode strings
-                        Some('u' | 'x') => todo!(),
-                        // Any other character
-                        Some(c) => c.to_string(),
-                    };
-                }
-                // If any other char, add it to the string
-                Some(c) => {
-                    s += &c.to_string();
-                }
-            }
-        }
-        self.tokens.push(Token::new(
-            program.clone(),
-            self.line,
-            self.line_index,
-            token_start,
-            TokenType::ValueLiteral(ValueLiteral::String(s)),
-        ));
-        self.i += 1;
-
-        Ok(())
-    }
-
-    fn lex_numeric_literal(
-        &mut self,
-        program: &Gc<Program>,
-        program_text: &[char],
-        token_start: usize,
-    ) -> Result<(), LexError> {
-        let digit = program_text[self.i];
-
-        // Parse the number's prefix, for instance '0x'
-        let base = if digit == '0' {
-            self.i += 1;
-            match self.parse_number_prefix(program_text, program, token_start)? {
-                Some(base) => base,
-                None => return Ok(()),
-            }
-        } else {
-            NumberLiteralBase::Decimal
-        };
-
-        // Start of the digits
-        let digits_start = self.i;
-        // Whether there has been a decimal point yet
-        let mut had_decimal = false;
-        // The number for the string
-        let mut number = String::new();
-
-        'digits: loop {
-            match program_text.get(self.i) {
-                // Error on EOF
-                None => {
-                    if digits_start == self.i {
-                        return Err(LexError::new(
-                            program.clone(),
-                            self.line,
-                            self.line_index,
-                            self.i,
-                            LexErrorType::MissingDigits { base },
-                        ));
-                    }
-                    break 'digits;
-                }
-                // Indicates a BigInt literal instead of a number
-                Some('n') => {
-                    if had_decimal {
-                        return Err(LexError::new(
-                            program.clone(),
-                            self.line,
-                            self.line_index,
-                            self.i,
-                            LexErrorType::IdentifierAfterNumber,
-                        ));
-                    }
-                    self.tokens.push(Token::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        token_start,
-                        TokenType::ValueLiteral(ValueLiteral::BigInt(
-                            BigInt::from_str_radix(&number, base.get_radix())
-                                .expect("Should have been a valid bigint"),
-                        )),
-                    ));
-                    self.i += 1;
-                    return Ok(());
-                }
-                // A digit
-                Some(digit) if base.get_chars().contains(&digit.to_string()) => {
-                    number += &digit.to_string();
-                }
-                // Underscores are ignored in numeric literals
-                Some('_') => (),
-                Some('.') if base == NumberLiteralBase::Decimal => {
-                    had_decimal = true;
-                }
-                // Error if an identifier is found
-                Some(&id) if is_identifier_start(id) => {
-                    return Err(LexError::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        self.i,
-                        LexErrorType::IdentifierAfterNumber,
-                    ))
-                }
-                // Any other character means the end of the number
-                _ => {
-                    self.i -= 1;
-                    break 'digits;
-                }
-            }
-            self.i += 1;
-        }
-
-        self.i += 1;
-
-        if base == NumberLiteralBase::Decimal {
-            let n = number
-                .parse::<f64>()
-                .expect("Should have been a valid float");
-            self.tokens.push(Token::new(
-                program.clone(),
-                self.line,
-                self.line_index,
-                token_start,
-                TokenType::ValueLiteral(ValueLiteral::Number(n)),
-            ));
-        } else {
-            // Parse string to number
-            let n = num::BigInt::from_str_radix(&number, base.get_radix())
-                .expect("Should have been a valid bigint");
-            let n = n.to_f64().unwrap_or(f64::INFINITY);
-
-            self.tokens.push(Token::new(
-                program.clone(),
-                self.line,
-                self.line_index,
-                token_start,
-                TokenType::ValueLiteral(ValueLiteral::Number(n)),
-            ));
-        }
-
-        Ok(())
-    }
-
-    fn parse_number_prefix(
-        &mut self,
-        program_text: &[char],
-        program: &Gc<Program>,
-        token_start: usize,
-    ) -> Result<Option<NumberLiteralBase>, LexError> {
-        let base = match program_text.get(self.i) {
-            // If EOF here, generate `NumberLiteral(0)`
-            None => {
-                self.tokens.push(Token::new(
-                    program.clone(),
-                    self.line,
-                    self.line_index,
-                    token_start,
-                    TokenType::ValueLiteral(ValueLiteral::Number(0.0)),
-                ));
-                return Ok(None);
-            }
-            Some(&c) => match c {
-                // Hex literal
-                'x' | 'X' => {
-                    self.i += 1;
-                    NumberLiteralBase::Hex
-                }
-                // Octal literal
-                'o' | 'O' | '0' => {
-                    self.i += 1;
-                    NumberLiteralBase::Octal
-                }
-                // Binary literal
-                'b' | 'B' => {
-                    self.i += 1;
-                    NumberLiteralBase::Binary
-                }
-                // Bigint '0n' literal
-                'n' => {
-                    // Error if the next char is an identifier
-                    if let Some(&c) = program_text.get(self.i + 1) {
-                        if is_identifier_start(c) {
-                            return Err(LexError::new(
-                                program.clone(),
-                                self.line,
-                                self.line_index,
-                                self.i,
-                                LexErrorType::IdentifierAfterNumber,
-                            ));
-                        }
-                    }
-                    // Generate `BigIntLiteral(0)` token
-                    self.tokens.push(Token::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        token_start,
-                        TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from(0))),
-                    ));
-                    self.i += 2;
-                    return Ok(None);
-                }
-                // TODO: error here in strict mode
-                // Octal literal with no '0o' or '0O'
-                c if ('1'..='9').contains(&c) => NumberLiteralBase::Octal,
-                // Error if identifier encountered
-                c if is_identifier_start(c) => {
-                    return Err(LexError::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        self.i,
-                        LexErrorType::IdentifierAfterNumber,
-                    ))
-                }
-                _ => {
-                    self.tokens.push(Token::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        token_start,
-                        TokenType::ValueLiteral(ValueLiteral::Number(0.0)),
-                    ));
-                    return Ok(None);
-                }
-            },
-        };
-
-        Ok(Some(base))
     }
 }

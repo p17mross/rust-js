@@ -294,9 +294,11 @@ impl Token {
 use TokenType::*;
 use UpdateAssignmentOperator::*;
 
-/// A map of strings to operators
+/// A map of strings to operators. 
+/// Because of the way [`lex_operator`][super::Lexer::lex_operator] is implemented, any operator which starts with another operator should come before the operator that it starts with. 
+/// For instance, `===` should come before `==` in this array.
 #[rustfmt::skip]
-pub(crate) const OPERATORS: [(&str, TokenType); 50] = [
+pub(super) const OPERATORS: [(&str, TokenType); 50] = [
     
     ("...",  OperatorSpread),
 
@@ -377,7 +379,7 @@ impl PrettyPrint for Vec<Token> {
 }
 
 #[test]
-/// Tests that no item in OPERATORS starts with an item before it in the array
+/// Tests that no item in [`OPERATORS`] starts with an item before it in the array
 fn test_operator_ordering() {
     for (i, first) in OPERATORS.iter().enumerate() {
         for (j, second) in OPERATORS[i + 1..].iter().enumerate() {
