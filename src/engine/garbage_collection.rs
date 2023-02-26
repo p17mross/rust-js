@@ -104,56 +104,110 @@ impl<T: GarbageCollectable + ?Sized> Gc<T> {
         }
     }
 
-    /// Borrows the data. Panics if the data has been collected or if the data is mutable borrowed.
+    /// Borrows the data.
+    ///
+    /// ### Panics
+    /// * If the data has been collected
+    /// * If the data is mutably borrowed.
+    #[must_use]
     pub fn borrow(&self) -> Ref<'_, T> {
-        (*self.data.as_ref().unwrap()).try_borrow().unwrap()
+        let data = self.data.as_ref().unwrap();
+        data.try_borrow().unwrap()
     }
-    /// Borrows the data mutably. Panics if the data has been collected or if the data is borrowed.
+
+    /// Borrows the data mutably.
+    ///
+    /// ### Panics
+    /// * If the data has been collected
+    /// * If the data is borrowed.
+    #[must_use]
     pub fn borrow_mut(&self) -> RefMut<'_, T> {
-        (*self.data.as_ref().unwrap()).try_borrow_mut().unwrap()
+        let data = self.data.as_ref().unwrap();
+        data.try_borrow_mut().unwrap()
     }
-    /// Borrows the data. Panics if the data has been collected.
+
+    /// Borrows the data.
+    ///
+    /// ### Panics
+    /// * If the data has been collected.
+    ///
+    /// ### Errors
+    /// * If the data is mutably borrowed
     pub fn try_borrow(&self) -> Result<Ref<'_, T>, BorrowError> {
-        (*self.data.as_ref().unwrap()).try_borrow()
+        let data = self.data.as_ref().unwrap();
+        data.try_borrow()
     }
-    /// Borrows the data mutably. Panics if the data has been collected.
+
+    /// Borrows the data mutably.
+    ///
+    /// ### Panics
+    /// * If the data has been collected.
+    ///
+    /// ### Errors
+    /// * If the data is borrowed
     pub fn try_borrow_mut(&self) -> Result<RefMut<'_, T>, BorrowMutError> {
         (*self.data.as_ref().unwrap()).try_borrow_mut()
     }
 
-    /// Borrows the data. Panics if the data is mutable borrowed.
-    pub fn borrow_if_exists(&self) -> Result<Ref<'_, T>, CollectedError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?)
-            .try_borrow()
-            .unwrap())
-    }
-    /// Borrows the data mutably. Panics if the data is borrowed.
-    pub fn borrow_mut_if_exists(&self) -> Result<RefMut<'_, T>, CollectedError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?)
-            .try_borrow_mut()
-            .unwrap())
-    }
     /// Borrows the data.
-    pub fn try_borrow_if_exists(&self) -> Result<Ref<'_, T>, GarbageCollectionBorrowError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow()?)
+    ///
+    /// ### Panics
+    /// * If the data is mutably borrowed.
+    ///
+    /// ### Errors
+    /// * If the data has been collected
+    pub fn borrow_if_exists(&self) -> Result<Ref<'_, T>, CollectedError> {
+        let data = self.data.as_ref().ok_or(CollectedError)?;
+        Ok(data.try_borrow().unwrap())
     }
+
     /// Borrows the data mutably.
+    ///
+    /// ### Panics
+    /// * If the data is borrowed.
+    ///
+    /// ### Errors
+    /// * If the data has been collected
+    pub fn borrow_mut_if_exists(&self) -> Result<RefMut<'_, T>, CollectedError> {
+        let data = self.data.as_ref().ok_or(CollectedError)?;
+        Ok(data.try_borrow_mut().unwrap())
+    }
+
+    /// Borrows the data.
+    ///
+    /// ### Errors
+    /// * If the data is mutably borrowed
+    /// * If the data has been collected
+    pub fn try_borrow_if_exists(&self) -> Result<Ref<'_, T>, GarbageCollectionBorrowError> {
+        let data = self.data.as_ref().ok_or(CollectedError)?;
+        Ok(data.try_borrow()?)
+    }
+
+    /// Borrows the data mutably.
+    ///
+    /// ### Errors
+    /// * If the data is borrowed
+    /// * If the data has been collected
     pub fn try_borrow_mut_if_exists(
         &self,
     ) -> Result<RefMut<'_, T>, GarbageCollectionBorrowMutError> {
-        Ok((*self.data.as_ref().ok_or(CollectedError)?).try_borrow_mut()?)
+        let data = self.data.as_ref().ok_or(CollectedError)?;
+        Ok(data.try_borrow_mut()?)
     }
 
     /// Returns whether the object has been collected.
+    #[must_use]
     pub fn is_collected(&self) -> bool {
         self.data.is_none()
     }
     /// Returns whether the object still exists (whether it has *not* been garbage collected)
+    #[must_use]
     pub fn exists(&self) -> bool {
         self.data.is_some()
     }
 
-    /// Gets the uniqiue id of this object
+    /// Gets the unique id of this object
+    #[must_use]
     pub fn get_id(&self) -> GarbageCollectionId {
         self.id
     }
