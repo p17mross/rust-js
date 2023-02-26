@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::{engine::{ProgramLocation, Gc}, Program, util::NumberLiteralBase};
 
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 /// All the types of errors that can occur during lexing
 pub enum LexErrorType {
     /// When an EOF occurs during a string literal.
@@ -22,7 +23,9 @@ pub enum LexErrorType {
     /// Unclosed Bracket
     UnclosedBracket,
     /// An invalid BigInt literal, such as `012n`
-    InvalidBigInt
+    InvalidBigInt,
+    /// A comment wasn't closed
+    UnclosedComment,
 }
 
 impl Display for LexErrorType {
@@ -51,6 +54,7 @@ impl Display for LexErrorType {
             Self::MismatchedBracket => f.write_str("Mismatched bracket"),
             Self::UnclosedBracket => f.write_str("Unclosed bracket"),
             Self::InvalidBigInt => f.write_str("Invalid BigInt literal"),
+            Self::UnclosedComment => f.write_str("Unclosed comment"),
         }
     }
 }

@@ -134,7 +134,7 @@ impl Lexer {
 
             // Multi-line comments
             '/' if program_text.get(self.i + 1) == Some(&'*') => {
-                self.lex_multi_line_comment(program_text);
+                self.lex_multi_line_comment(program, program_text, token_start)?;
             }
 
             // Open brackets
@@ -215,11 +215,11 @@ impl Lexer {
 
     /// Lex a multi-line comment by consuming characters until a '*/' is encountered, which will be consumed.
     /// Line and column numbers will be tracked inside the comment.
-    fn lex_multi_line_comment(&mut self, program_text: &[char]) {
+    fn lex_multi_line_comment(&mut self, program: &Gc<Program>, program_text: &[char], token_start: usize) -> Result<(), LexError> {
         self.i += 2;
         loop {
             match program_text.get(self.i) {
-                None => return,
+                None => return Err(LexError::new(program.clone(), self.line, self.line_index, token_start, LexErrorType::UnclosedComment)),
                 // Still track line / columns in a comment
                 Some('\n') => {
                     self.i += 1;
@@ -228,7 +228,7 @@ impl Lexer {
                 }
                 Some('*') if program_text.get(self.i + 1) == Some(&'/') => {
                     self.i += 2;
-                    return;
+                    return Ok(());
                 }
                 _ => self.i += 1,
             }
