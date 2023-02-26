@@ -21,6 +21,8 @@ pub enum LexErrorType {
     MismatchedBracket,
     /// Unclosed Bracket
     UnclosedBracket,
+    /// An invalid BigInt literal, such as `012n`
+    InvalidBigInt
 }
 
 impl Display for LexErrorType {
@@ -48,6 +50,7 @@ impl Display for LexErrorType {
             }
             Self::MismatchedBracket => f.write_str("Mismatched bracket"),
             Self::UnclosedBracket => f.write_str("Unclosed bracket"),
+            Self::InvalidBigInt => f.write_str("Invalid BigInt literal"),
         }
     }
 }

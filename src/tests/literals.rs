@@ -16,7 +16,9 @@ fn test_number_literals() {
     assert_parses!(0o0123n);
 
     assert_not_parses_str!("20.0n"); // BigInt literal with decimal point
-    assert_not_parses_str!("012n"); // Implicit octal bigint literal
+    assert_not_parses_str!("10h"); // Number literal with an identifier after
+    assert_not_parses_str!("012n"); // Implicit octal BigInt literal
+    assert_not_parses_str!("10na"); // BigInt literal with a character after
     assert_not_parses_str!("0xGH"); // Hex literal with wrong characters
     assert_not_parses_str!("0b0123"); // Binary literal with wrong characters
     assert_not_parses_str!("0o123456789"); // Octal literal with wrong characters

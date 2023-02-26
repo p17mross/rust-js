@@ -2,7 +2,7 @@ use num::{BigInt, Num, ToPrimitive};
 
 use crate::util::NumberLiteralBase;
 
-use super::{*, token::ValueLiteral};
+use super::{token::ValueLiteral, *};
 
 impl Lexer {
     pub(super) fn lex_string_literal(
@@ -136,29 +136,14 @@ impl Lexer {
                     break 'digits;
                 }
                 // Indicates a BigInt literal instead of a number
-                Some('n') => {
-                    if had_decimal {
-                        return Err(LexError::new(
-                            program.clone(),
-                            self.line,
-                            self.line_index,
-                            self.i,
-                            LexErrorType::IdentifierAfterNumber,
-                        ));
-                    }
-                    self.tokens.push(Token::new(
-                        program.clone(),
-                        self.line,
-                        self.line_index,
-                        token_start,
-                        TokenType::ValueLiteral(ValueLiteral::BigInt(
-                            BigInt::from_str_radix(&number, base.get_radix())
-                                .expect("Should have been a valid bigint"),
-                        )),
-                    ));
-                    self.i += 1;
-                    return Ok(());
-                }
+                Some('n') => return self.check_bigint(
+                    had_decimal,
+                    program,
+                    base,
+                    program_text,
+                    token_start,
+                    &number,
+                ),
                 // A digit
                 Some(digit) if base.get_chars().contains(&digit.to_string()) => {
                     number += &digit.to_string();
@@ -189,35 +174,87 @@ impl Lexer {
 
         self.i += 1;
 
-        if base == NumberLiteralBase::Decimal {
-            let n = number
-                .parse::<f64>()
-                .expect("Should have been a valid float");
-            self.tokens.push(Token::new(
-                program.clone(),
-                self.line,
-                self.line_index,
-                token_start,
-                TokenType::ValueLiteral(ValueLiteral::Number(n)),
-            ));
-        } else {
-            // Parse string to number
-            let n = num::BigInt::from_str_radix(&number, base.get_radix())
-                .expect("Should have been a valid bigint");
-            let n = n.to_f64().unwrap_or(f64::INFINITY);
+        // Parse string to number
+        let n = num::BigInt::from_str_radix(&number, base.get_radix())
+            .expect("Should have been a valid bigint");
+        let n = n.to_f64().unwrap_or(f64::INFINITY);
 
-            self.tokens.push(Token::new(
-                program.clone(),
-                self.line,
-                self.line_index,
-                token_start,
-                TokenType::ValueLiteral(ValueLiteral::Number(n)),
-            ));
-        }
+        self.tokens.push(Token::new(
+            program.clone(),
+            self.line,
+            self.line_index,
+            token_start,
+            TokenType::ValueLiteral(ValueLiteral::Number(n)),
+        ));
 
         Ok(())
     }
 
+    /// Checks whether a `BigInt` literal is valid and produces it if it is
+    fn check_bigint(
+        &mut self,
+        had_decimal: bool,
+        program: &Gc<Program>,
+        base: NumberLiteralBase,
+        program_text: &[char],
+        token_start: usize,
+        number: &str,
+    ) -> Result<(), LexError> {
+        // BigInt literals can't have decimal points
+        if had_decimal {
+            return Err(LexError::new(
+                program.clone(),
+                self.line,
+                self.line_index,
+                self.i,
+                LexErrorType::IdentifierAfterNumber,
+            ));
+        }
+
+        // BigInt literals can't be implicitly octal e.g. '012n' is not allowed
+        if base == NumberLiteralBase::OctalImplicit {
+            return Err(LexError::new(
+                program.clone(),
+                self.line,
+                self.line_index,
+                self.i,
+                LexErrorType::InvalidBigInt,
+            ));
+        }
+
+        // Identifiers can't come straight after a bigint literal e.g. '10na' is not allowed
+        if let Some(c) = program_text.get(self.i + 1) {
+            if is_identifier_start(*c) {
+                return Err(LexError::new(
+                    program.clone(),
+                    self.line,
+                    self.line_index,
+                    self.i,
+                    LexErrorType::IdentifierAfterNumber,
+                ));
+            }
+        }
+
+        self.tokens.push(Token::new(
+            program.clone(),
+            self.line,
+            self.line_index,
+            token_start,
+            TokenType::ValueLiteral(ValueLiteral::BigInt(
+                BigInt::from_str_radix(number, base.get_radix())
+                    .expect("Should have been a valid bigint"),
+            )),
+        ));
+        self.i += 1;
+
+        Ok(())
+    }
+
+    /// Parses the letter which comes after the first `0` in a number literal which specifies the base, e.g. the `x` in `0x10`.
+    ///
+    /// ### Returns
+    /// The base if one was found, or `Ok(None)` if no base was found and the number literal is already parsed by this function.
+    /// E.g. in the case of ` 0 `, this function will produce a [number literal][TokenType::ValueLiteral] token and return `Ok(None)`
     fn parse_number_prefix(
         &mut self,
         program_text: &[char],
@@ -279,7 +316,7 @@ impl Lexer {
                 }
                 // TODO: error here in strict mode
                 // Octal literal with no '0o' or '0O'
-                c if ('1'..='9').contains(&c) => NumberLiteralBase::Octal,
+                c if ('1'..='9').contains(&c) => NumberLiteralBase::OctalImplicit,
                 // Error if identifier encountered
                 c if is_identifier_start(c) => {
                     return Err(LexError::new(
