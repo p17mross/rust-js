@@ -16,3 +16,6 @@ pub use engine::Engine;
 pub use engine::Program;
 pub use lexer::LexError;
 pub use parser::ParseError;
+
+
+mod tests;

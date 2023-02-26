@@ -70,6 +70,7 @@ impl Program {
         // Lex
         let lexer = Lexer::new();
         let tokens = lexer.lex(s)?;
+        
         // Parse
         let ast = Parser::parse(s.clone(), tokens)?;
 
