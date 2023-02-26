@@ -28,24 +28,6 @@ impl GarbageCollectable for ASTNodeProgram {
     }
 }
 
-impl ASTNodeProgram {
-    #[must_use]
-    pub(crate) fn new(program: Gc<Program>) -> Self {
-        Self {
-            program: program.clone(),
-            block: Block {
-                location: ProgramLocation {
-                    program,
-                    line: 0,
-                    column: 0,
-                    index: 0,
-                },
-                statements: vec![],
-            },
-        }
-    }
-}
-
 impl Debug for ASTNodeProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
