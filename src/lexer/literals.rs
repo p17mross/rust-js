@@ -12,6 +12,10 @@ impl Lexer {
         quote: char,
         token_start: usize,
     ) -> Result<(), LexError> {
+        // Save the line and line_index as they might change while parsing the string
+        let start_line = self.line;
+        let start_line_index = self.line_index;
+
         let mut s = String::new();
         'string: loop {
             self.i += 1;
@@ -84,8 +88,8 @@ impl Lexer {
         }
         self.tokens.push(Token::new(
             program.clone(),
-            self.line,
-            self.line_index,
+            start_line,
+            start_line_index,
             token_start,
             TokenType::ValueLiteral(ValueLiteral::String(s)),
         ));
