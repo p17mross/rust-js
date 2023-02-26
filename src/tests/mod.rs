@@ -33,3 +33,9 @@ macro_rules! assert_not_parses_str {
 
 // Mods need to be after macro definitions or the modules will not compile
 mod literals;
+
+/// Asserts that an empty program parses
+#[test]
+fn test_empty_program() {
+    assert_parses!();
+}
