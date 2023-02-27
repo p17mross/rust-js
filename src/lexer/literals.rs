@@ -17,9 +17,9 @@ impl Lexer {
         let start_line_index = self.line_index;
 
         let mut s = String::new();
+
         'string: loop {
-            self.i += 1;
-            match program_text.get(self.i) {
+            match self.get_char(program_text) {
                 // Error on EOF
                 None => {
                     return Err(LexError::new(
@@ -47,12 +47,11 @@ impl Lexer {
                     self.line_index = self.i;
                 }
                 // Detect the end of the string
-                Some(&c) if c == quote => break 'string,
+                Some(c) if c == quote => break 'string,
                 // Parse escape sequences
                 Some('\\') => {
-                    self.i += 1;
                     // Add character to string
-                    s += &match program_text.get(self.i) {
+                    s += &match self.get_char(program_text) {
                         None => {
                             return Err(LexError::new(
                                 program.clone(),
@@ -98,6 +97,7 @@ impl Lexer {
         Ok(())
     }
 
+    #[allow(clippy::too_many_lines)]
     pub(super) fn lex_numeric_literal(
         &mut self,
         program: &Gc<Program>,
@@ -124,64 +124,141 @@ impl Lexer {
         // The number for the string
         let mut number = String::new();
 
+        // The previous character. Used to check whether underscores and decimal points are valid in certain situations
+        let mut last_char = None;
+
         'digits: loop {
-            match program_text.get(self.i) {
-                // Error on EOF
-                None => {
-                    if digits_start == self.i {
-                        return Err(LexError::new(
-                            program.clone(),
-                            self.line,
-                            self.line_index,
-                            self.i,
-                            LexErrorType::MissingDigits { base },
-                        ));
-                    }
-                    break 'digits;
-                }
-                // Indicates a BigInt literal instead of a number
-                Some('n') => return self.check_bigint(
-                    had_decimal,
-                    program,
-                    base,
-                    program_text,
-                    token_start,
-                    &number,
-                ),
-                // A digit
-                Some(digit) if base.get_chars().contains(&digit.to_string()) => {
-                    number += &digit.to_string();
-                }
-                // Underscores are ignored in numeric literals
-                Some('_') => (),
-                Some('.') if base == NumberLiteralBase::Decimal => {
-                    had_decimal = true;
-                }
-                // Error if an identifier is found
-                Some(&id) if is_identifier_start(id) => {
+            let Some(c) = self.get_char(program_text) else {
+                // If EOF before any digits, error
+                if digits_start == self.i {
                     return Err(LexError::new(
                         program.clone(),
                         self.line,
                         self.line_index,
-                        self.i,
+                        self.i - 1,
+                        LexErrorType::MissingDigits { base },
+                    ));
+                }
+                break 'digits;
+            };
+            match c {
+                // Indicates a BigInt literal instead of a number
+                'n' => {
+                    if matches!(last_char, None | Some('_')) {
+                        return Err(LexError::new(
+                            program.clone(),
+                            self.line,
+                            self.line_index,
+                            token_start,
+                            LexErrorType::InvalidUnderscore,
+                        ));
+                    }
+
+                    return self.check_bigint(
+                        had_decimal,
+                        program,
+                        base,
+                        program_text,
+                        token_start,
+                        &number,
+                    );
+                }
+                // A digit
+                digit if base.get_chars().contains(&digit.to_string()) => {
+                    number += &digit.to_string();
+                }
+                // Underscores are ignored in numeric literals
+                '_' => {
+                    if matches!(last_char, None | Some('.')) {
+                        return Err(LexError::new(
+                            program.clone(),
+                            self.line,
+                            self.line_index,
+                            token_start,
+                            LexErrorType::InvalidUnderscore,
+                        ));
+                    }
+                }
+                '.' => {
+                    // If this is the second decimal point, it is lexed as the start of the next token
+                    if had_decimal {
+                        self.i -= 1;
+                        break 'digits;
+                    }
+
+                    // Underscores aren't allowed before the decimal point
+                    if last_char == Some('_') {
+                        return Err(LexError::new(
+                            program.clone(),
+                            self.line,
+                            self.line_index,
+                            token_start,
+                            LexErrorType::InvalidUnderscore,
+                        ));
+                    }
+
+                    if base == NumberLiteralBase::Decimal {
+                        number += ".";
+                        had_decimal = true;
+                    } else {
+                        // Check for situations e.g. '0x.'
+                        if last_char.is_none() {
+                            return Err(LexError::new(
+                                program.clone(),
+                                self.line,
+                                self.line_index,
+                                token_start,
+                                LexErrorType::MissingDigits { base },
+                            ));
+                        }
+
+                        // A dot after a literal which is not decimal should be parsed as a property lookup
+                        break 'digits;
+                    }
+                }
+                // Error if an identifier is found
+                id if is_identifier_start(id) => {
+                    return Err(LexError::new(
+                        program.clone(),
+                        self.line,
+                        self.line_index,
+                        self.i - 1,
                         LexErrorType::IdentifierAfterNumber,
                     ))
                 }
                 // Any other character means the end of the number
-                _ => {
-                    self.i -= 1;
-                    break 'digits;
-                }
+                _ => break 'digits,
             }
-            self.i += 1;
+
+            last_char = Some(c);
         }
 
-        self.i += 1;
+        if last_char.is_none() {
+            return Err(LexError::new(
+                program.clone(),
+                self.line,
+                self.line_index,
+                token_start,
+                LexErrorType::MissingDigits { base },
+            ));
+        } else if last_char == Some('_') {
+            return Err(LexError::new(
+                program.clone(),
+                self.line,
+                self.line_index,
+                token_start,
+                LexErrorType::InvalidUnderscore,
+            ));
+        }
 
         // Parse string to number
-        let n = num::BigInt::from_str_radix(&number, base.get_radix())
-            .expect("Should have been a valid bigint");
-        let n = n.to_f64().unwrap_or(f64::INFINITY);
+        let n = if had_decimal {
+            number.parse().expect("Should have been a valid float")
+        } else {
+            let n = num::BigInt::from_str_radix(&number, base.get_radix())
+                .expect("Should have been a valid bigint");
+            n.to_f64().unwrap_or(f64::INFINITY)
+        };
 
         self.tokens.push(Token::new(
             program.clone(),
@@ -227,7 +304,7 @@ impl Lexer {
         }
 
         // Identifiers can't come straight after a bigint literal e.g. '10na' is not allowed
-        if let Some(c) = program_text.get(self.i + 1) {
+        if let Some(c) = program_text.get(self.i) {
             if is_identifier_start(*c) {
                 return Err(LexError::new(
                     program.clone(),
@@ -265,7 +342,7 @@ impl Lexer {
         program: &Gc<Program>,
         token_start: usize,
     ) -> Result<Option<NumberLiteralBase>, LexError> {
-        let base = match program_text.get(self.i) {
+        let base = match self.get_char(program_text) {
             // If EOF here, generate `NumberLiteral(0)`
             None => {
                 self.tokens.push(Token::new(
@@ -277,22 +354,13 @@ impl Lexer {
                 ));
                 return Ok(None);
             }
-            Some(&c) => match c {
+            Some(c) => match c {
                 // Hex literal
-                'x' | 'X' => {
-                    self.i += 1;
-                    NumberLiteralBase::Hex
-                }
+                'x' | 'X' => NumberLiteralBase::Hex,
                 // Octal literal
-                'o' | 'O' | '0' => {
-                    self.i += 1;
-                    NumberLiteralBase::Octal
-                }
+                'o' | 'O' | '0' => NumberLiteralBase::Octal,
                 // Binary literal
-                'b' | 'B' => {
-                    self.i += 1;
-                    NumberLiteralBase::Binary
-                }
+                'b' | 'B' => NumberLiteralBase::Binary,
                 // Bigint '0n' literal
                 'n' => {
                     // Error if the next char is an identifier
@@ -315,7 +383,6 @@ impl Lexer {
                         token_start,
                         TokenType::ValueLiteral(ValueLiteral::BigInt(BigInt::from(0))),
                     ));
-                    self.i += 2;
                     return Ok(None);
                 }
                 // TODO: error here in strict mode

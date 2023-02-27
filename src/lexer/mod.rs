@@ -47,6 +47,16 @@ impl Lexer {
         }
     }
 
+    fn get_char(&mut self, program_text: &[char]) -> Option<char> {
+        match program_text.get(self.i) {
+            Some(c) => {
+                self.i += 1;
+                Some(*c)
+            }
+            None => None
+        }
+    }
+
     /// Constructs a list of tokens from a string.
     pub(crate) fn lex(mut self, program: &Gc<Program>) -> Result<Vec<Token>, LexError> {
         // The value of `self.i` from the start of the previous loop
@@ -64,12 +74,12 @@ impl Lexer {
             }
             is_first_loop = false;
 
-            // Get char or break on EOF
-            let Some(&c) = program_text.get(self.i) else {
+            // Break on EOF
+            if program_text.get(self.i).is_none() {
                 break 'tokens;
             };
 
-            self.lex_token(c, program, program_text)?;
+            self.lex_token(program, program_text)?;
         }
 
         // After this loop, there should be no more items on the bracket stack
@@ -97,11 +107,12 @@ impl Lexer {
     /// * `program_text`: the source to parse a token from
     fn lex_token(
         &mut self,
-        token_start_char: char,
         program: &Gc<Program>,
         program_text: &[char],
     ) -> Result<(), LexError> {
         let token_start = self.i;
+        // This should never fail as it will be checked before the function is called
+        let token_start_char = self.get_char(program_text).unwrap();
 
         match token_start_char {
             // String literal
@@ -111,6 +122,12 @@ impl Lexer {
 
             // Number or BigInt literal
             digit if ('0'..='9').contains(&digit) => {
+                self.i -= 1;
+                self.lex_numeric_literal(program, program_text, token_start)?;
+            }
+            // Number with leading decimal point e.g. '.25'
+            '.' if program_text.get(self.i).map(char::is_ascii_digit) == Some(true) => {
+                self.i -= 1;
                 self.lex_numeric_literal(program, program_text, token_start)?;
             }
 
@@ -119,21 +136,20 @@ impl Lexer {
                 if let Some(t) = self.tokens.last_mut() {
                     t.newline_after = true;
                 }
-                self.i += 1;
                 self.line += 1;
                 self.line_index = self.i;
             }
 
             // Ignore whitespace
-            w if w.is_whitespace() => self.i += 1,
+            w if w.is_whitespace() => (),
 
             // Single line comments
-            '/' if program_text.get(self.i + 1) == Some(&'/') => {
+            '/' if program_text.get(self.i) == Some(&'/') => {
                 self.lex_single_line_comment(program_text);
             }
 
             // Multi-line comments
-            '/' if program_text.get(self.i + 1) == Some(&'*') => {
+            '/' if program_text.get(self.i) == Some(&'*') => {
                 self.lex_multi_line_comment(program, program_text, token_start)?;
             }
 
@@ -166,11 +182,15 @@ impl Lexer {
 
             // An identifier
             c if is_identifier_start(c) => {
+                self.i -= 1;
                 self.lex_identifier(program_text, token_start, program);
             }
 
             // Any other character: should be an operator
-            c => self.lex_operator(program_text, program, token_start, c)?,
+            c => {
+                self.i -= 1;
+                self.lex_operator(program_text, program, token_start, c)?;
+            }
         }
 
         Ok(())
@@ -198,13 +218,11 @@ impl Lexer {
             token_start,
             token_type,
         ));
-        self.i += 1;
     }
 
     /// Lex a line comment by consuming characters until a newline. 
     /// The newline character will not be consumed, which allows line numbers to be properly tracked and semicolon insertion to function correctly
     fn lex_single_line_comment(&mut self, program_text: &[char]) {
-        self.i += 2;
         while let Some(c) = program_text.get(self.i) {
             if *c == '\n' {
                 return;
@@ -216,21 +234,17 @@ impl Lexer {
     /// Lex a multi-line comment by consuming characters until a '*/' is encountered, which will be consumed.
     /// Line and column numbers will be tracked inside the comment.
     fn lex_multi_line_comment(&mut self, program: &Gc<Program>, program_text: &[char], token_start: usize) -> Result<(), LexError> {
-        self.i += 2;
         loop {
-            match program_text.get(self.i) {
+            match self.get_char(program_text) {
                 None => return Err(LexError::new(program.clone(), self.line, self.line_index, token_start, LexErrorType::UnclosedComment)),
                 // Still track line / columns in a comment
                 Some('\n') => {
-                    self.i += 1;
-                    self.line += 1;
                     self.line_index = self.i;
                 }
-                Some('*') if program_text.get(self.i + 1) == Some(&'/') => {
-                    self.i += 2;
+                Some('*') if self.get_char(program_text) == Some('/') => {
                     return Ok(());
                 }
-                _ => self.i += 1,
+                _ => (),
             }
         }
     }
@@ -275,9 +289,12 @@ impl Lexer {
     /// Lexes an identifier by consuming characters until a character which is not [an identifier][is_identifier_continue] is encountered
     fn lex_identifier(&mut self, program_text: &[char], token_start: usize, program: &Gc<Program>) {
         'chars_in_identifier: loop {
-            match program_text.get(self.i) {
-                Some(&c) if is_identifier_continue(c) => self.i += 1,
-                _ => break 'chars_in_identifier,
+            match self.get_char(program_text) {
+                Some(c) if is_identifier_continue(c) => (),
+                _ => {
+                    self.i -= 1;
+                    break 'chars_in_identifier
+                },
             }
         }
         let ident: String = program_text[token_start..self.i].iter().collect();
@@ -335,7 +352,6 @@ impl Lexer {
             token_start,
             token_type,
         ));
-        self.i += 1;
 
         Ok(())
     }

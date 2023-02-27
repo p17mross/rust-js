@@ -26,6 +26,8 @@ pub enum LexErrorType {
     InvalidBigInt,
     /// A comment wasn't closed
     UnclosedComment,
+    /// An underscore was in an invalid place in a numeric literal
+    InvalidUnderscore,
 }
 
 impl Display for LexErrorType {
@@ -55,6 +57,7 @@ impl Display for LexErrorType {
             Self::UnclosedBracket => f.write_str("Unclosed bracket"),
             Self::InvalidBigInt => f.write_str("Invalid BigInt literal"),
             Self::UnclosedComment => f.write_str("Unclosed comment"),
+            Self::InvalidUnderscore => f.write_str("Underscore in invalid position in literal"),
         }
     }
 }
