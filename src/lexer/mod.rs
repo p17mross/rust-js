@@ -223,11 +223,12 @@ impl Lexer {
     /// Lex a line comment by consuming characters until a newline. 
     /// The newline character will not be consumed, which allows line numbers to be properly tracked and semicolon insertion to function correctly
     fn lex_single_line_comment(&mut self, program_text: &[char]) {
-        while let Some(c) = program_text.get(self.i) {
-            if *c == '\n' {
+        while let Some(c) = self.get_char(program_text) {
+            if c == '\n' {
+                // Make sure the newline is lexed
+                self.i -= 1;
                 return;
             }
-            self.i += 1;
         }
     }
 

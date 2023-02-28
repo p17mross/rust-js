@@ -226,7 +226,10 @@ impl Lexer {
                     ))
                 }
                 // Any other character means the end of the number
-                _ => break 'digits,
+                _ => {
+                    self.i -= 1;
+                    break 'digits
+                }
             }
 
             last_char = Some(c);
@@ -325,7 +328,6 @@ impl Lexer {
                     .expect("Should have been a valid bigint"),
             )),
         ));
-        self.i += 1;
 
         Ok(())
     }
