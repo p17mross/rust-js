@@ -1,7 +1,7 @@
 use super::*;
 
-use super::ast::expressions::{Expression, Assignment, UpdateAssignment};
-use super::ast::assignment::{DestructuringAssignmentTarget, AssignmentTarget};
+use super::ast::assignment::{AssignmentTarget, DestructuringAssignmentTarget};
+use super::ast::expressions::{Assignment, Expression, UpdateAssignment};
 
 impl Parser {
     /// Parses an expression with precedence 2.\
@@ -49,51 +49,48 @@ impl Parser {
             }
         };
 
-        let assignment_expression = match self.tokens.get(self.i) {
-            None => unreachable!(),
-            Some(t) => match t.token_type {
-                TokenType::OperatorAssignment => {
-                    let location = t.location.clone();
-                    self.i += 1;
+        let t = self.try_get_token().unwrap();
+        let assignment_expression = match t.token_type {
+            TokenType::OperatorAssignment => {
+                let location = t.location.clone();
 
-                    let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
+                let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
 
-                    Expression::Assignment(Box::new(Assignment {
-                        location,
-                        lhs: target,
-                        rhs,
-                    }))
-                }
-                TokenType::UpdateAssignment(operator_type) => {
-                    let location = t.location.clone();
-                    self.i += 1;
+                Expression::Assignment(Box::new(Assignment {
+                    location,
+                    lhs: target,
+                    rhs,
+                }))
+            }
+            TokenType::UpdateAssignment(operator_type) => {
+                let location = t.location.clone();
 
-                    let lhs = match target {
-                        DestructuringAssignmentTarget::Variable(v) => AssignmentTarget::Variable(v),
-                        DestructuringAssignmentTarget::PropertyLookup {
-                            expression,
-                            property,
-                        } => AssignmentTarget::PropertyLookup {
-                            expression,
-                            property,
-                        },
-                        _ => {
-                            return Err(self
-                                .get_error(ParseErrorType::InvalidDestructuringAssignmentOperator))
-                        }
-                    };
+                let lhs = match target {
+                    DestructuringAssignmentTarget::Variable(v) => AssignmentTarget::Variable(v),
+                    DestructuringAssignmentTarget::PropertyLookup {
+                        expression,
+                        property,
+                    } => AssignmentTarget::PropertyLookup {
+                        expression,
+                        property,
+                    },
+                    _ => {
+                        return Err(
+                            self.get_error(ParseErrorType::InvalidDestructuringAssignmentOperator)
+                        )
+                    }
+                };
 
-                    let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
+                let rhs = self.parse_expression(precedences::ASSIGNMENT)?;
 
-                    Expression::UpdateAssignment(Box::new(UpdateAssignment {
-                        location,
-                        operator_type,
-                        lhs,
-                        rhs,
-                    }))
-                }
-                _ => unreachable!(),
-            },
+                Expression::UpdateAssignment(Box::new(UpdateAssignment {
+                    location,
+                    operator_type,
+                    lhs,
+                    rhs,
+                }))
+            }
+            _ => unreachable!(),
         };
 
         Ok(assignment_expression)
