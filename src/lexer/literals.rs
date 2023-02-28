@@ -399,7 +399,11 @@ impl Lexer {
                         LexErrorType::IdentifierAfterNumber,
                     ))
                 }
+
+                // Any other character means this is just a '0'
                 _ => {
+                    self.i -= 1;
+
                     self.tokens.push(Token::new(
                         program.clone(),
                         self.line,
@@ -407,6 +411,7 @@ impl Lexer {
                         token_start,
                         TokenType::ValueLiteral(ValueLiteral::Number(0.0)),
                     ));
+                    
                     return Ok(None);
                 }
             },
