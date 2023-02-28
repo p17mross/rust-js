@@ -291,8 +291,16 @@ impl Lexer {
     fn lex_identifier(&mut self, program_text: &[char], token_start: usize, program: &Gc<Program>) {
         'chars_in_identifier: loop {
             match self.get_char(program_text) {
+                // Character in identifier, keep looping
                 Some(c) if is_identifier_continue(c) => (),
-                _ => break 'chars_in_identifier,
+                // Non-identifier character
+                Some(_) => {
+                    // Don't consume the character
+                    self.i -= 1;
+                    break 'chars_in_identifier;
+                }
+                // EOF
+                None => break 'chars_in_identifier,
             }
         }
         let ident: String = program_text[token_start..self.i].iter().collect();
