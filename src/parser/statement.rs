@@ -116,12 +116,12 @@ impl Parser {
             _ => None,
         };
 
-        self.i -= 1;
-
         // Get a statement either straight from Some or by parsing an expression if None
-        let statement = match statement {
-            Some(s) => s,
-            None => Statement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?),
+        let statement = if let Some(s) = statement {
+            s
+        } else {
+            self.i -= 1;
+            Statement::Expression(self.parse_expression(precedences::ANY_EXPRESSION)?)
         };
 
         // Get last token of this statement and one after to parse semicolon insertion
