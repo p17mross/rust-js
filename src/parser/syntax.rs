@@ -16,10 +16,7 @@ impl Parser {
         let mut args = vec![];
 
         'parse_args: loop {
-            let t = self
-                .tokens
-                .get(self.i)
-                .expect("Mismatched brackets should have been caught in the lexer");
+            let t = &self.tokens[self.i];
             match t.token_type {
                 TokenType::CloseParen(_) => {
                     debug_assert_eq!(start_bracket_index, self.i);

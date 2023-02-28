@@ -1,11 +1,12 @@
 use super::*;
 
 use super::ast::expressions::{
-    ASTNodeValueLiteral, ArrayItem, ArrayLiteral, Expression, ObjectLiteral, Variable,
+    ASTNodeValueLiteral, ArrayItem, ArrayLiteral, Expression, ObjectLiteral, ObjectLiteralProperty,
+    Variable,
 };
 
 impl Parser {
-    /// Parses an array literal
+    /// Parse an array literal
     fn parse_array_literal(
         &mut self,
         open_square_bracket_location: ProgramLocation,
@@ -13,10 +14,7 @@ impl Parser {
         let mut items = vec![];
 
         'array_items: loop {
-            let t = self
-                .tokens
-                .get(self.i)
-                .expect("Mismatched brackets should have been caught by the lexer");
+            let t = &self.tokens[self.i];
             match t.token_type {
                 // The end of the array
                 TokenType::CloseSquareBracket(_) => {
@@ -32,9 +30,7 @@ impl Parser {
                 TokenType::OperatorSpread => {
                     self.i += 1;
                     let e = self.parse_expression(precedences::COMMA + 1)?;
-                    let comma = self
-                        .try_get_token()
-                        .expect("Mismatched brackets should have been caught by the lexer");
+                    let comma = self.get_token();
 
                     match comma.token_type {
                         TokenType::Comma => items.push(ArrayItem::Spread(e)),
@@ -54,9 +50,7 @@ impl Parser {
                 // An array item
                 _ => {
                     let e = self.parse_expression(precedences::COMMA + 1)?;
-                    let comma = self
-                        .try_get_token()
-                        .expect("Mismatched brackets should have been caught by the lexer");
+                    let comma = self.get_token();
 
                     match comma.token_type {
                         TokenType::Comma => items.push(ArrayItem::Item(e)),
@@ -84,8 +78,118 @@ impl Parser {
         Ok(array)
     }
 
+    /// Checks the token after a property
+    /// If it is a [comma][TokenType::Comma], increment `self.i`
+    /// If it is a [close brace][TokenType::CloseBrace], do nothing
+    /// Anything else, return an ['expected property' error][ParseErrorType::ExpectedProperty]
+    fn check_token_between_properties(&mut self) -> Result<(), ParseError> {
+        match self.tokens[self.i].token_type {
+            // Comma between items
+            TokenType::Comma => {
+                self.i += 1;
+                Ok(())
+            }
+            // Close brace for the end of the object literal
+            TokenType::CloseBrace(_) => Ok(()),
+            // Anything else is an error
+            _ => Err(self.get_error(ParseErrorType::ExpectedProperty))
+        }
+    }
+
+    /// Parse an object literal
     fn parse_object_literal(&mut self) -> Result<ObjectLiteral, ParseError> {
-        todo!("Parsing object literals")
+        let location = self.get_location();
+        let mut properties = Vec::new();
+
+        'properties: loop {
+            let t = self.get_token();
+
+            match t.token_type {
+                // The end of the object literal
+                TokenType::CloseBrace(_) => break 'properties,
+                
+                // A normal 'a: b' item or a shortHand property 'a' or a method  
+                TokenType::Identifier(_) | TokenType::ValueLiteral(_) => {
+                    let k = match &t.token_type {
+                        TokenType::Identifier(k)
+                        | TokenType::ValueLiteral(ValueLiteral::String(k)) => k.clone(),
+                        TokenType::ValueLiteral(ValueLiteral::Number(k)) => k.to_string(),
+                        TokenType::ValueLiteral(ValueLiteral::BigInt(k)) => k.to_string(),
+                        _ => unreachable!(),
+                    };
+
+                    match self.get_token().token_type {
+                        // A property
+                        TokenType::OperatorColon => (),
+                        // A shorthand property
+                        TokenType::Comma => {
+                            properties.push(ObjectLiteralProperty::KeyOnly(k));
+                            continue 'properties;
+                        }
+                        TokenType::CloseBrace(_) => {
+                            properties.push(ObjectLiteralProperty::KeyOnly(k));
+                            break 'properties;
+                        }
+                        // A method
+                        TokenType::OpenParen(_) => {
+                            todo!("Methods in object literals");
+                        }
+                        // A getter or setter
+                        TokenType::Identifier(_) if k == "get" || k == "set" => {
+                            todo!("Getters and setters in object literals");
+                        }
+                        // Anything else is an error
+                        _ => {
+                            return Err(self.get_error(ParseErrorType::ExpectedProperty));
+                        }
+                    }
+
+                    let v = self.parse_expression(precedences::COMMA + 1)?;
+
+                    // Check the next token
+                    self.check_token_between_properties()?;
+
+                    properties.push(ObjectLiteralProperty::KeyValue(k, v));
+                }
+
+                // A computed property
+                TokenType::OpenSquareBracket(close_square_bracket_index) => {
+                    let k = self.parse_expression(precedences::COMMA + 1)?;
+
+                    // Check that the next token is a close square bracket
+                    let TokenType::CloseSquareBracket(_) = self.get_token().token_type else {
+                        return Err(self.get_error(ParseErrorType::ExpectedProperty));
+                    };
+                    debug_assert_eq!(close_square_bracket_index, self.i);
+
+                    // Check that the next token is a colon
+                    if self.get_token().token_type != TokenType::OperatorColon {
+                        return Err(self.get_error(ParseErrorType::ExpectedProperty));
+                    };
+
+                    let v = self.parse_expression(precedences::COMMA + 1)?;
+                    properties.push(ObjectLiteralProperty::Computed(k, v));
+                }
+
+                // A spread
+                TokenType::OperatorSpread => {
+                    let e = self.parse_expression(precedences::COMMA + 1)?;
+
+                    // Check the next token
+                    self.check_token_between_properties()?;
+
+                    properties.push(ObjectLiteralProperty::Spread(e));
+
+                }
+
+                _ => return Err(self.get_error(ParseErrorType::ExpectedProperty)),
+            };
+        }
+
+        Ok(ObjectLiteral {
+            location,
+            properties,
+        })
     }
 
     pub(super) fn parse_value(&mut self) -> Result<Expression, ParseError> {
