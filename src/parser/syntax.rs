@@ -7,7 +7,10 @@ impl Parser {
     pub(super) fn parse_destructuring_assignment_target(
         &mut self,
     ) -> Result<DestructuringAssignmentTarget, ParseError> {
-        Err(self.get_error(ParseErrorType::SyntaxError))
+        match &self.try_get_token()?.token_type {
+            TokenType::Identifier(i) => Ok(DestructuringAssignmentTarget::Variable(i.clone())),
+            _ => Err(self.get_error(ParseErrorType::SyntaxError)),
+        }
     }
 
     pub(super) fn parse_function_args(&mut self) -> Result<Vec<FunctionCallArgument>, ParseError> {
