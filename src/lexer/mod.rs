@@ -292,10 +292,7 @@ impl Lexer {
         'chars_in_identifier: loop {
             match self.get_char(program_text) {
                 Some(c) if is_identifier_continue(c) => (),
-                _ => {
-                    self.i -= 1;
-                    break 'chars_in_identifier
-                },
+                _ => break 'chars_in_identifier,
             }
         }
         let ident: String = program_text[token_start..self.i].iter().collect();
