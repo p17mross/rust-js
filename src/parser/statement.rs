@@ -102,11 +102,35 @@ impl Parser {
                         }
                     }
                     "var" => todo!(),
+                    "const" => todo!(),
+
                     "if" => todo!(),
+                    "else" => todo!(),
+                    
                     "while" => todo!(),
                     "for" => todo!(),
-                    "function" => todo!(),
+                    "in" => todo!(),
                     "do" => todo!(),
+                    "break" => todo!(),
+                    "continue" => todo!(),
+
+                    "switch" => todo!(),
+                    "case" => todo!(),
+                    "default" => todo!(),
+
+                    "try" => todo!(),
+                    "catch" => todo!(),
+                    "finally" => todo!(),
+
+                    "function" => todo!(),
+                    "return" => todo!(),
+                    "class" => todo!(),
+                    "extends" => todo!(),
+
+                    "export" => todo!(),
+                    "import" => todo!(),
+                    
+                    "with" => todo!(),
 
                     _ => None,
                 }
