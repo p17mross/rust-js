@@ -76,6 +76,13 @@ fn test_string_literals() {
     assert_not_lexes(r#" "Unclosed double quote string "#);
     assert_not_lexes(r#" 'Unclosed single quote string "#);
     assert_not_lexes(r#" `Unclosed backtick string "#);
+
+    assert_lexes_only(r#" "string"a "#);
+    assert_lexes_only(r#" 'string'a "#);
+    assert_lexes_only(r#" `string`a "#);
+    assert_lexes_only(r#" "string" a "#);
+    assert_lexes_only(r#" 'string' a "#);
+    assert_lexes_only(r#" `string` a "#);
 }
 
 /// Tests that 

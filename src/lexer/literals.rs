@@ -92,7 +92,6 @@ impl Lexer {
             token_start,
             TokenType::ValueLiteral(ValueLiteral::String(s)),
         ));
-        self.i += 1;
 
         Ok(())
     }
