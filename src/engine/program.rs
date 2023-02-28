@@ -9,7 +9,7 @@ use crate::{parser::ast::{ASTNodeProgram, ToTree}, lexer::Lexer, parser::Parser}
 use super::{
     error::{ProgramFromFileError, SyntaxError},
     garbage_collection::{GarbageCollectable, GarbageCollectionId},
-    Gc,
+    Gc, Config,
 };
 
 /// Holds the type and location, so that the source of error messages can be printed.
@@ -42,6 +42,9 @@ pub struct Program {
     /// Stored as a [`Vec<char>`] rather than [`String`] for easier indexing.
     pub(crate) program: Vec<char>,
     pub(crate) ast: Option<ASTNodeProgram>,
+
+    /// The configuration of the engine
+    pub(crate) config: Config,
 }
 
 impl Debug for Program {
@@ -71,6 +74,10 @@ impl Program {
         let lexer = Lexer::new();
         let tokens = lexer.lex(s)?;
         
+        if s.borrow().config.debug {
+            println!("{tokens:?}");
+        }
+
         // Parse
         let ast = Parser::parse(s.clone(), tokens)?;
 
@@ -84,11 +91,12 @@ impl Program {
     ///
     /// ### Errors
     /// * Returns a [`SyntaxError`] if the given string is not valid javascript code
-    pub fn from_console(s: &str) -> Result<Gc<Self>, SyntaxError> {
+    pub fn from_console(s: &str, config: Config) -> Result<Gc<Self>, SyntaxError> {
         let program = Gc::new(Self {
             source: ProgramSource::Console,
             program: s.chars().collect(),
             ast: None,
+            config
         });
         Self::load_ast(&program)?;
         Ok(program)
@@ -99,12 +107,13 @@ impl Program {
     /// ### Errors
     /// * Returns an [io error][std::io::Error] if there is an error reading from the file
     /// * Returns a [`SyntaxError`] if the given file does not contain valid javascript code
-    pub fn from_file(p: PathBuf) -> Result<Gc<Self>, ProgramFromFileError> {
+    pub fn from_file(p: PathBuf, config: Config) -> Result<Gc<Self>, ProgramFromFileError> {
         let program = fs::read_to_string(p.clone())?;
         let program = Gc::new(Self {
             source: ProgramSource::File(p),
             program: program.chars().collect(),
             ast: None,
+            config
         });
         Self::load_ast(&program)?;
         Ok(program)

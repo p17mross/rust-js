@@ -1,14 +1,14 @@
 #![cfg(test)]
 
-use crate::{Program, parser::Parser};
-use crate::engine::{Gc, ProgramSource};
-use crate::lexer::{Lexer};
+use crate::engine::{Gc, ProgramSource, Config};
+use crate::lexer::Lexer;
+use crate::{parser::Parser, Program};
 
 mod literals;
 
 /// Asserts that a given program lexes and parses
 fn assert_parses(code: &str) {
-    Program::from_console(code).expect("Program should have parsed");
+    Program::from_console(code, Config::default()).expect("Program should have parsed");
 }
 
 /// Asserts that a given program does not lex
@@ -17,9 +17,12 @@ fn assert_not_lexes(code: &str) {
         source: ProgramSource::Console,
         program: code.chars().collect(),
         ast: None,
+        config: Config::default(),
     });
     let lexer = Lexer::new();
-    lexer.lex(&program).expect_err("Program should not have lexed");
+    lexer
+        .lex(&program)
+        .expect_err("Program should not have lexed");
 }
 
 /// Asserts that a given program lexes but does not parse.
@@ -29,6 +32,7 @@ fn assert_lexes_only(code: &str) {
         source: ProgramSource::Console,
         program: code.chars().collect(),
         ast: None,
+        config: Config::default(),
     });
     let lexer = Lexer::new();
     let tokens = lexer.lex(&program).expect("Program should have lexed");

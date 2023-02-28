@@ -21,3 +21,19 @@ impl Engine {
         Self { program }
     }
 }
+
+/// A configuration of the engine
+#[derive(Debug, Clone, Copy)]
+pub struct Config {
+    /// Whether to print debug output during execution
+    pub debug: bool,
+}
+
+#[allow(clippy::derivable_impls)] // More properties may be added which may be incorrect if derived
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            debug: false,
+        }
+    }
+}
