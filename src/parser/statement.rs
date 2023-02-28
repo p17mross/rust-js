@@ -131,12 +131,17 @@ impl Parser {
             .expect("Should have been Some as this token was just parsed");
         let next_t = self.tokens.get(self.i);
 
-        // For this to be a valid statement, either the next token has to be a semicolon or this token has to have a newline after it
+        // For this to be a valid statement, either the next token has to be a semicolon or the end of a block
+        // Or this token has to have a newline after it
         match next_t {
+            // End of the program
             None => Ok(statement),
             Some(next_t) => match next_t.token_type {
-                TokenType::Semicolon => Ok(statement),
+                // Semicolon or end of block
+                TokenType::Semicolon | TokenType::CloseBrace(_) => Ok(statement),
+                // Semicolon insertion
                 _ if this_t.newline_after => Ok(statement),
+                // Otherwise there are two statements on the same line, so error
                 _ => Err(self.get_error(ParseErrorType::UnexpectedToken {
                     found: next_t.token_type.to_str(),
                     expected: Some(";"),
