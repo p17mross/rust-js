@@ -29,7 +29,7 @@ impl ToTree for ObjectLiteralProperty {
                 k.to_tree().indent_tree(),
                 v.to_tree().indent_tree()
             ),
-            Self::Spread(e) => format!("Spread from {}", e.to_tree().indent_tree()),
+            Self::Spread(e) => format!("Spread from {}", e.to_tree()),
         }
     }
 }
