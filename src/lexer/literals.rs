@@ -212,6 +212,7 @@ impl Lexer {
                         }
 
                         // A dot after a literal which is not decimal should be parsed as a property lookup
+                        self.i -= 1;
                         break 'digits;
                     }
                 }
