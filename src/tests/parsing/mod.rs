@@ -1,11 +1,11 @@
 //! Tests which only test for whether or not a certain program parses, not its behaviour
 
-use super::*;
+use crate::{Program, Config, Gc, engine::ProgramSource, lexer::Lexer, parser::Parser};
 
 mod array_literals;
 mod value_literals;
 mod object_literals;
-
+mod expressions;
 
 /// Asserts that a given program lexes and parses
 fn assert_parses(code: &str) {
