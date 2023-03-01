@@ -1,3 +1,5 @@
+//! Functionality related to tokenisation
+
 pub(crate) mod error;
 mod literals;
 pub(crate) mod token;
@@ -11,10 +13,15 @@ use crate::util::{is_identifier_continue, is_identifier_start};
 
 use self::token::OPERATORS;
 
+/// A type of bracket on the bracket stack.
+/// Each variant stores the index of where it occurs in the program text
 #[derive(Debug, Clone, Copy)]
 enum Bracket {
+    /// A parenthesis '()'
     Paren(usize),
+    /// A brace '{}'
     Brace(usize),
+    /// A square bracket '[]'
     SquareBracket(usize),
 }
 
@@ -47,6 +54,8 @@ impl Lexer {
         }
     }
 
+    /// Gets the char from `program_text` at `self.i` and increments `self.i`.
+    /// If `self.i` pointed past the end of `program_text`, it will not be incremented and `None` will be returned.
     fn get_char(&mut self, program_text: &[char]) -> Option<char> {
         match program_text.get(self.i) {
             Some(c) => {

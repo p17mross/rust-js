@@ -1,3 +1,5 @@
+//! Functionality to do with the [`LexError`] type
+
 use std::fmt::Display;
 
 use crate::{
@@ -19,7 +21,10 @@ pub enum LexErrorType {
     /// When an identifier starts immediately after a numeric literal
     IdentifierAfterNumber,
     /// When the start of a numeric literal occurs with no digits following
-    MissingDigits { base: NumberLiteralBase },
+    MissingDigits {
+        /// The base of the invalid literal
+        base: NumberLiteralBase
+    },
     /// When an invalid unicode occurs outside of a string
     InvalidChar(char),
     /// When brackets are incorrectly matched
@@ -69,25 +74,27 @@ impl Display for LexErrorType {
 #[derive(Debug, Clone)]
 /// An error that occurs during lexing.
 pub struct LexError {
+    /// Where the error occured
     pub(super) location: ProgramLocation,
+    /// The type of the error
     pub(super) error_type: LexErrorType,
 }
 
 impl LexError {
-    #[inline]
+    /// Creates a new [`ProgramLocation`] from a given [`Program`] and location information
     pub(super) const fn new(
         program: Gc<Program>,
         line: usize,
         line_index: usize,
-        token_start: usize,
+        index: usize,
         e: LexErrorType,
     ) -> Self {
         Self {
             location: ProgramLocation {
                 program,
                 line,
-                column: token_start - line_index + 1,
-                index: token_start,
+                column: index - line_index + 1,
+                index,
             },
             error_type: e,
         }

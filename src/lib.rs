@@ -6,7 +6,7 @@
     clippy::pedantic,
     //clippy::nursery
     missing_docs,
-    //clippy::missing_docs_in_private_items
+    clippy::missing_docs_in_private_items
 )]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::enum_glob_use)]

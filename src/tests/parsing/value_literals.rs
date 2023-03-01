@@ -89,7 +89,7 @@ fn test_string_literals() {
     assert_lexes_only(r#" `string` a "#);
 }
 
-/// Tests that
+/// Tests that comments parse
 #[test]
 fn test_comments() {
     assert_parses(r#" // A line comment with no newline "#);

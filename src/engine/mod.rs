@@ -17,6 +17,7 @@ pub use program::{Program, ProgramLocation, ProgramSource};
 /// A class for executing parsed [`Program`]s.
 /// Currently has no functionality.
 pub struct Engine {
+    /// The program to run
     program: Program,
     // TODO: runtime state
 }

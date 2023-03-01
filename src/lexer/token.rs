@@ -1,3 +1,5 @@
+//! Structs and enums for tokens
+
 use num::BigInt;
 
 use crate::{
@@ -5,10 +7,14 @@ use crate::{
     util::PrettyPrint,
 };
 
+/// A type of literal value
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ValueLiteral {
+    /// A string literal
     String(String),
+    /// A number literal
     Number(f64),
+    /// A BigInt literal
     BigInt(BigInt),
 }
 
@@ -116,6 +122,7 @@ pub(crate) enum BinaryOperator {
 }
 
 // TODO: maybe box identifier + valueliteral variants to reduce size of enum
+/// A type of token that is parsed by the lexer
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum TokenType {
     //Special tokens
@@ -262,15 +269,20 @@ impl TokenType {
     }
 }
 
+/// A token parsed by the lexer
 #[derive(Debug, Clone)]
 pub(crate) struct Token {
+    /// The token's location
     pub location: ProgramLocation,
+    /// The type of the token
     pub token_type: TokenType,
+    /// Whether there is a newline after the token.
+    /// This is used to implement semicolon insertion.
     pub newline_after: bool,
 }
 
 impl Token {
-    #[inline]
+    /// Create a new [`Token`] from a [`Program`], location info, and a [`TokenType`]
     pub(super) const fn new(
         program: Gc<Program>,
         line: usize,

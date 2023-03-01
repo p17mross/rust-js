@@ -1,3 +1,5 @@
+//! Contains most of the public methods to do with loading programs
+
 use std::{
     fmt::{Debug, Display},
     fs,
@@ -45,6 +47,7 @@ pub struct Program {
     /// The text of the program.
     /// Stored as a [`Vec<char>`] rather than [`String`] for easier indexing.
     pub(crate) program: Vec<char>,
+    /// The AST, if it's been parsed
     pub(crate) ast: Option<ASTNodeProgram>,
 
     /// The configuration of the engine

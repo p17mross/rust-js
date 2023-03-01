@@ -1,3 +1,5 @@
+//! Functions to lex string and numeric literals
+
 use num::{BigInt, Num, ToPrimitive};
 
 use crate::util::NumberLiteralBase;
@@ -5,6 +7,12 @@ use crate::util::NumberLiteralBase;
 use super::{token::ValueLiteral, *};
 
 impl Lexer {
+    /// Lex a string literal
+    /// 
+    /// ### Params
+    /// * `program`, `program_test`: the [`Program`] being lexed and its text
+    /// * `quote`: the string's delimiting character
+    /// * `token_start`: the index of the open quote 
     pub(super) fn lex_string_literal(
         &mut self,
         program: &Gc<Program>,
@@ -96,6 +104,7 @@ impl Lexer {
         Ok(())
     }
 
+    /// Lex a numeric literal
     #[allow(clippy::too_many_lines)]
     pub(super) fn lex_numeric_literal(
         &mut self,

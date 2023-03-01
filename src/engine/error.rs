@@ -1,3 +1,5 @@
+//! Contains error types for loading [`Program`][super::Program]s
+
 use std::fmt::Display;
 
 use crate::{lexer::LexError, parser::ParseError};
@@ -40,7 +42,9 @@ impl std::error::Error for SyntaxError {}
 /// An general type for any error that can occur while reading a program from a file.
 /// Combines [`std::io::Error`] and [`SyntaxError`] for easier error handling.
 pub enum ProgramFromFileError {
+    /// There was an error loading the program from the file
     IoError(std::io::Error),
+    /// The file did not contain valid javascript
     SyntaxError(SyntaxError),
 }
 
