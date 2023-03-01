@@ -110,11 +110,11 @@ impl Parser {
                 
                 // A normal 'a: b' item or a shortHand property 'a' or a method  
                 TokenType::Identifier(_) | TokenType::ValueLiteral(_) => {
-                    let k = match &t.token_type {
-                        TokenType::Identifier(k)
-                        | TokenType::ValueLiteral(ValueLiteral::String(k)) => k.clone(),
-                        TokenType::ValueLiteral(ValueLiteral::Number(k)) => k.to_string(),
-                        TokenType::ValueLiteral(ValueLiteral::BigInt(k)) => k.to_string(),
+                    let (k, can_be_shorthand) = match &t.token_type {
+                        TokenType::Identifier(k) => (k.clone(), true),
+                        TokenType::ValueLiteral(ValueLiteral::String(k)) => (k.clone(), false),
+                        TokenType::ValueLiteral(ValueLiteral::Number(k)) => (k.to_string(), false),
+                        TokenType::ValueLiteral(ValueLiteral::BigInt(k)) => (k.to_string(), false),
                         _ => unreachable!(),
                     };
 
@@ -122,11 +122,11 @@ impl Parser {
                         // A property
                         TokenType::OperatorColon => (),
                         // A shorthand property
-                        TokenType::Comma => {
+                        TokenType::Comma if can_be_shorthand => {
                             properties.push(ObjectLiteralProperty::KeyOnly(k));
                             continue 'properties;
                         }
-                        TokenType::CloseBrace(_) => {
+                        TokenType::CloseBrace(_) if can_be_shorthand => {
                             properties.push(ObjectLiteralProperty::KeyOnly(k));
                             break 'properties;
                         }
@@ -160,7 +160,7 @@ impl Parser {
                     let TokenType::CloseSquareBracket(_) = self.get_token().token_type else {
                         return Err(self.get_error(ParseErrorType::ExpectedProperty));
                     };
-                    debug_assert_eq!(close_square_bracket_index, self.i);
+                    debug_assert_eq!(close_square_bracket_index, self.i - 1);
 
                     // Check that the next token is a colon
                     if self.get_token().token_type != TokenType::OperatorColon {
