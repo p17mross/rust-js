@@ -2,7 +2,7 @@ use crate::lexer::{Token, TokenType};
 
 use super::*;
 
-use super::ast::statements::{LetExpression, Statement, Block};
+use super::ast::statements::{Block, LetExpression, Statement};
 
 impl Parser {
     /// Consumes any [semicolon](TokenType::Semicolon) tokens\
@@ -106,7 +106,7 @@ impl Parser {
 
                     "if" => todo!(),
                     "else" => todo!(),
-                    
+
                     "while" => todo!(),
                     "for" => todo!(),
                     "in" => todo!(),
@@ -129,7 +129,7 @@ impl Parser {
 
                     "export" => todo!(),
                     "import" => todo!(),
-                    
+
                     "with" => todo!(),
 
                     _ => None,
@@ -177,9 +177,12 @@ impl Parser {
     /// Parses a sequence of statements.\
     /// Ends on EOF or on a [closing brace](TokenType::CloseBrace), which is not consumed.
     /// The given location will be used if it is `Some`, or the location of the current token if it is `None`.
-    pub(super) fn parse_statements(&mut self, location: Option<ProgramLocation>) -> Result<Block, ParseError> {
+    pub(super) fn parse_statements(
+        &mut self,
+        location: Option<ProgramLocation>,
+    ) -> Result<Block, ParseError> {
         let mut block = Block {
-            location: location.unwrap_or_else(||self.get_location()),
+            location: location.unwrap_or_else(|| self.get_location()),
             statements: vec![],
         };
 

@@ -1,11 +1,11 @@
 //! Tests which only test for whether or not a certain program parses, not its behaviour
 
-use crate::{Program, Config, Gc, engine::ProgramSource, lexer::Lexer, parser::Parser};
+use crate::{engine::ProgramSource, lexer::Lexer, parser::Parser, Config, Gc, Program};
 
 mod array_literals;
-mod value_literals;
-mod object_literals;
 mod expressions;
+mod object_literals;
+mod value_literals;
 
 /// Asserts that a given program lexes and parses
 fn assert_parses(code: &str) {
@@ -101,5 +101,4 @@ fn test_bracket_matching() {
     assert_parses(r#" ["["] "#); // String literals don't count when matching brackets
     assert_parses(r#" (")") "#);
     assert_parses(r#" {")("} "#);
-
 }

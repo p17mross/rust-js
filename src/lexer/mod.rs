@@ -1,6 +1,6 @@
-pub(crate) mod token;
 pub(crate) mod error;
 mod literals;
+pub(crate) mod token;
 
 pub(crate) use token::{Token, TokenType};
 
@@ -53,7 +53,7 @@ impl Lexer {
                 self.i += 1;
                 Some(*c)
             }
-            None => None
+            None => None,
         }
     }
 
@@ -105,11 +105,7 @@ impl Lexer {
     /// * `token_start_char`: the character which the token starts with
     /// * `program`: the program which the tokens are being lexed from
     /// * `program_text`: the source to parse a token from
-    fn lex_token(
-        &mut self,
-        program: &Gc<Program>,
-        program_text: &[char],
-    ) -> Result<(), LexError> {
+    fn lex_token(&mut self, program: &Gc<Program>, program_text: &[char]) -> Result<(), LexError> {
         let token_start = self.i;
         // This should never fail as it will be checked before the function is called
         let token_start_char = self.get_char(program_text).unwrap();
@@ -220,7 +216,7 @@ impl Lexer {
         ));
     }
 
-    /// Lex a line comment by consuming characters until a newline. 
+    /// Lex a line comment by consuming characters until a newline.
     /// The newline character will not be consumed, which allows line numbers to be properly tracked and semicolon insertion to function correctly
     fn lex_single_line_comment(&mut self, program_text: &[char]) {
         while let Some(c) = self.get_char(program_text) {
@@ -234,10 +230,23 @@ impl Lexer {
 
     /// Lex a multi-line comment by consuming characters until a '*/' is encountered, which will be consumed.
     /// Line and column numbers will be tracked inside the comment.
-    fn lex_multi_line_comment(&mut self, program: &Gc<Program>, program_text: &[char], token_start: usize) -> Result<(), LexError> {
+    fn lex_multi_line_comment(
+        &mut self,
+        program: &Gc<Program>,
+        program_text: &[char],
+        token_start: usize,
+    ) -> Result<(), LexError> {
         loop {
             match self.get_char(program_text) {
-                None => return Err(LexError::new(program.clone(), self.line, self.line_index, token_start, LexErrorType::UnclosedComment)),
+                None => {
+                    return Err(LexError::new(
+                        program.clone(),
+                        self.line,
+                        self.line_index,
+                        token_start,
+                        LexErrorType::UnclosedComment,
+                    ))
+                }
                 // Still track line / columns in a comment
                 Some('\n') => {
                     self.line_index = self.i;
@@ -262,7 +271,7 @@ impl Lexer {
         'test_operators: for (operator, operator_token) in OPERATORS {
             // Get a [char] slice of the same length as the operator
             let Some(slice) = program_text.get(self.i..self.i+operator.len()) else {continue 'test_operators};
-            
+
             // If the operator matches the current text, produce that operator
             if slice.iter().map(char::to_owned).eq(operator.chars()) {
                 self.i += operator.len();

@@ -4,12 +4,16 @@ use std::{
     path::PathBuf,
 };
 
-use crate::{parser::ast::{ASTNodeProgram, ToTree}, lexer::Lexer, parser::Parser};
+use crate::{
+    lexer::Lexer,
+    parser::ast::{ASTNodeProgram, ToTree},
+    parser::Parser,
+};
 
 use super::{
     error::{ProgramFromFileError, SyntaxError},
     garbage_collection::{GarbageCollectable, GarbageCollectionId},
-    Gc, Config,
+    Config, Gc,
 };
 
 /// Holds the type and location, so that the source of error messages can be printed.
@@ -73,7 +77,7 @@ impl Program {
         // Lex
         let lexer = Lexer::new();
         let tokens = lexer.lex(s)?;
-        
+
         if s.borrow().config.debug {
             println!("{tokens:?}");
         }
@@ -96,7 +100,7 @@ impl Program {
             source: ProgramSource::Console,
             program: s.chars().collect(),
             ast: None,
-            config
+            config,
         });
         Self::load_ast(&program)?;
         Ok(program)
@@ -113,16 +117,16 @@ impl Program {
             source: ProgramSource::File(p),
             program: program.chars().collect(),
             ast: None,
-            config
+            config,
         });
         Self::load_ast(&program)?;
         Ok(program)
     }
 
     /// Prints the program's AST as a tree structure. This is meant for debugging purposes only and should not be user-facing.
-    /// 
+    ///
     /// ### Panics
-    /// * If an AST has not been generated. 
+    /// * If an AST has not been generated.
     ///     This should never occur if the provided [`from_file`][Program::from_file] or [`from_console`][Program::from_console] functions are used.
     pub fn debug_ast(&self) {
         println!("{}", self.ast.as_ref().unwrap().to_tree());

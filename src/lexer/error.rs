@@ -1,6 +1,10 @@
 use std::fmt::Display;
 
-use crate::{engine::{ProgramLocation, Gc}, Program, util::NumberLiteralBase};
+use crate::{
+    engine::{Gc, ProgramLocation},
+    util::NumberLiteralBase,
+    Program,
+};
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]

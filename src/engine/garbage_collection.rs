@@ -24,7 +24,7 @@ pub trait GarbageCollectable {
     ///     number: i32,
     ///     some_other_data: Gc<GcTreeNode>,
     /// }
-    /// 
+    ///
     /// /// A type which implements the GarbageCollectable trait
     /// struct GcTreeNode {
     ///     left: Option<Gc<GcTreeNode>>,
@@ -35,20 +35,20 @@ pub trait GarbageCollectable {
     /// impl GarbageCollectable for GcTreeNode {
     ///     fn get_children(&self) -> Vec<GarbageCollectionId> {
     ///         let mut ids = Vec::new();
-    /// 
-    /// 
+    ///
+    ///
     ///         // Don't recursively call get_children, just return the ids of any Gc properties
     ///         if let Some(n) = &self.left {
     ///             ids.push(n.get_id());
     ///         }
-    /// 
+    ///
     ///         if let Some(n) = &self.right {
     ///             ids.push(n.get_id());
     ///         }
     ///     
     ///         // self.data.number can be ignored as it is not a Gc type
     ///         // Grandchild properties must be included as well
-    ///         ids.push(self.data.some_other_data.get_id()); 
+    ///         ids.push(self.data.some_other_data.get_id());
     ///
     ///         ids
     ///     }

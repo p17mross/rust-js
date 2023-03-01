@@ -55,7 +55,7 @@ impl Display for ParseErrorType {
             Self::ItemsAfterRestElementInArrayDestructure => {
                 f.write_str("The rest element of an array destructure must be the last item")
             }
-            Self::ExpectedProperty => f.write_str("Expected a property")
+            Self::ExpectedProperty => f.write_str("Expected a property"),
         }
     }
 }

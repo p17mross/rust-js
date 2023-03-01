@@ -15,7 +15,6 @@ pub(crate) struct ObjectLiteral {
     pub location: ProgramLocation,
 
     pub properties: Vec<ObjectLiteralProperty>,
-    
     // TODO: getters and setters
 }
 

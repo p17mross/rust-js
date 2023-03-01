@@ -13,14 +13,13 @@ fn test_array_literals() {
     assert_parses("[test, (a + b), test2]");
     assert_parses("[[[[[[[[[[[[[[]]]]]]]]]]]]]]");
 
-
     assert_parses("[10,]"); // Trailing comma
     assert_parses("[10 ,,, 20]"); // Multiple commas
     assert_parses("[10,,,,,]"); // Multiple trailing commas
     assert_parses("[,10]"); // Leading comma
     assert_parses("[,10]"); // Multiple leading commas
     assert_parses("[,,]"); // Only commas
-    
+
     assert_parses("[...[]]"); // Spread
     assert_parses("[...a]");
     assert_parses("[...a, b, c, ...d]");
@@ -29,6 +28,4 @@ fn test_array_literals() {
     assert_lexes_only("[a b]");
     assert_lexes_only("[()]");
     assert_lexes_only("[(a + b) 10]");
-
-
 }

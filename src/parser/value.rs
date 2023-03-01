@@ -92,7 +92,7 @@ impl Parser {
             // Close brace for the end of the object literal
             TokenType::CloseBrace(_) => Ok(()),
             // Anything else is an error
-            _ => Err(self.get_error(ParseErrorType::ExpectedProperty))
+            _ => Err(self.get_error(ParseErrorType::ExpectedProperty)),
         }
     }
 
@@ -107,8 +107,8 @@ impl Parser {
             match t.token_type {
                 // The end of the object literal
                 TokenType::CloseBrace(_) => break 'properties,
-                
-                // A normal 'a: b' item or a shortHand property 'a' or a method  
+
+                // A normal 'a: b' item or a shortHand property 'a' or a method
                 TokenType::Identifier(_) | TokenType::ValueLiteral(_) => {
                     let (k, can_be_shorthand) = match &t.token_type {
                         TokenType::Identifier(k) => (k.clone(), true),
@@ -179,7 +179,6 @@ impl Parser {
                     self.check_token_between_properties()?;
 
                     properties.push(ObjectLiteralProperty::Spread(e));
-
                 }
 
                 _ => return Err(self.get_error(ParseErrorType::ExpectedProperty)),

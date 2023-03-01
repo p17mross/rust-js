@@ -229,7 +229,7 @@ impl Lexer {
                 // Any other character means the end of the number
                 _ => {
                     self.i -= 1;
-                    break 'digits
+                    break 'digits;
                 }
             }
 
@@ -412,7 +412,7 @@ impl Lexer {
                         token_start,
                         TokenType::ValueLiteral(ValueLiteral::Number(0.0)),
                     ));
-                    
+
                     return Ok(None);
                 }
             },

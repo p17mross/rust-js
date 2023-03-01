@@ -1,5 +1,5 @@
-pub(crate) mod ast;
 pub(crate) mod assignment;
+pub(crate) mod ast;
 pub(crate) mod error;
 pub(crate) mod expression;
 pub(crate) mod operator_precedence;

@@ -17,10 +17,12 @@ pub(crate) mod lexer;
 pub(crate) mod parser;
 pub(crate) mod util;
 
-pub use engine::{Engine, Config, Program};
-pub use engine::{Gc, GarbageCollectionId, GarbageCollectable, GarbageCollectionBorrowError, GarbageCollectionBorrowMutError};
+pub use engine::{Config, Engine, Program};
+pub use engine::{
+    GarbageCollectable, GarbageCollectionBorrowError, GarbageCollectionBorrowMutError,
+    GarbageCollectionId, Gc,
+};
 pub use lexer::LexError;
 pub use parser::ParseError;
-
 
 mod tests;

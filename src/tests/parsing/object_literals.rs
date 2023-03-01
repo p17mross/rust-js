@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn test_object_literals() {
     // Brackets are needed in these tests to prevent the expressions from being parsed as blocks
-    
+
     assert_parses("({})"); // Empty object
     assert_parses("({a: 10})"); // Simple properties
     assert_parses("({a: 10, b: 20})");
@@ -27,5 +27,4 @@ fn test_object_literals() {
     assert_lexes_only("({,a: 10})"); // Leading commas are not allowed
     assert_lexes_only("({,})"); // Only comma
     assert_lexes_only("({a,,b})"); // Multiple commas
-    
 }

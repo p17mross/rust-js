@@ -38,7 +38,7 @@ fn test_function_calls() {
     assert_parses("f()"); // Function call
     assert_parses("f(10)");
     assert_parses("f(10, 20, 30)");
-    
+
     assert_parses("a.f(10)"); // The lhs can be any expression
     assert_parses("a(10)(10)"); // Chained function calls
 
