@@ -49,3 +49,19 @@ fn test_function_calls() {
     assert_lexes_only("()()"); // Empty expression
     assert_lexes_only("f(())"); // Empty expression
 }
+
+/// Tests that 'new A' expressions are parsed
+#[test]
+fn test_new() {
+    assert_parses("new A"); // New without argument
+    assert_parses("new A()"); // New with arguments
+    assert_parses("new A(10)");
+
+    assert_parses("new (A)()"); // Target can be any expression
+    assert_parses("new A.B()");
+    assert_parses("new (a + b)()");
+    assert_parses("new new A()()");
+    assert_parses("new new A");
+
+    assert_lexes_only("new A B");
+}
