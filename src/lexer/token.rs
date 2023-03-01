@@ -298,7 +298,7 @@ use UpdateAssignmentOperator::*;
 /// Because of the way [`lex_operator`][super::Lexer::lex_operator] is implemented, any operator which starts with another operator should come before the operator that it starts with. 
 /// For instance, `===` should come before `==` in this array.
 #[rustfmt::skip]
-pub(super) const OPERATORS: [(&str, TokenType); 50] = [
+pub(super) const OPERATORS: [(&str, TokenType); 51] = [
     
     ("...",  OperatorSpread),
 
@@ -349,6 +349,7 @@ pub(super) const OPERATORS: [(&str, TokenType); 50] = [
     ("&",    BinaryOperator(BinaryOperator::BitwiseAnd)),
     ("^",    BinaryOperator(BinaryOperator::BitwiseXor)),
     ("~",    OperatorBitwiseNot),
+    ("??",   BinaryOperator(BinaryOperator::NullishCoalescing)),
 
     ("<<",   BinaryOperator(BinaryOperator::ShiftLeft)),
     (">>>",  BinaryOperator(BinaryOperator::UnsignedShiftRight)),
