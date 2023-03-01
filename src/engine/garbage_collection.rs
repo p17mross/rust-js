@@ -1,3 +1,6 @@
+//! Functionality related to the [Gc] type, which implements garbage collection.
+//! Currently the implementation is simple and can lead to memory leaks.
+
 use std::{
     cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut},
     fmt::{Debug, Display},
@@ -6,10 +9,57 @@ use std::{
 
 use uid::IdU64;
 
+/// A trait for items which can be garbage collected.
+/// Each type implementing this trait must implement the [`get_children`][GarbageCollectable::get_children] method, which returns the [`GarbageCollectionId`]s of its children.
+/// This will allow the garbage collector to detect loops.
+/// If a type contains a [Gc] property but does not return its id from this method, then that property may be collected, which may lead to panics.
 pub trait GarbageCollectable {
+    /// Poll what references a [`GarbageCollectable`] type holds.
+    /// The implementation of this method should return the [`GarbageCollectionId`] of any [`Gc`] properties of the type, including grandchildren
+    ///
+    /// ```
+    /// # use js::{Gc, GarbageCollectable, GarbageCollectionId};
+    /// /// The data for a GcTreeNode
+    /// struct GcTreeData {
+    ///     number: i32,
+    ///     some_other_data: Gc<GcTreeNode>,
+    /// }
+    /// 
+    /// /// A type which implements the GarbageCollectable trait
+    /// struct GcTreeNode {
+    ///     left: Option<Gc<GcTreeNode>>,
+    ///     right: Option<Gc<GcTreeNode>>,
+    ///     data: GcTreeData,
+    /// }
+    ///
+    /// impl GarbageCollectable for GcTreeNode {
+    ///     fn get_children(&self) -> Vec<GarbageCollectionId> {
+    ///         let mut ids = Vec::new();
+    /// 
+    /// 
+    ///         // Don't recursively call get_children, just return the ids of any Gc properties
+    ///         if let Some(n) = &self.left {
+    ///             ids.push(n.get_id());
+    ///         }
+    /// 
+    ///         if let Some(n) = &self.right {
+    ///             ids.push(n.get_id());
+    ///         }
+    ///     
+    ///         // self.data.number can be ignored as it is not a Gc type
+    ///         // Grandchild properties must be included as well
+    ///         ids.push(self.data.some_other_data.get_id()); 
+    ///
+    ///         ids
+    ///     }
+    /// }
+    /// ```
+    ///
     fn get_children(&self) -> Vec<GarbageCollectionId>;
 }
 
+/// A unique identifier for a [`Gc`] object, used to construct a reference graph for garbage collection.
+/// The [`GarbageCollectionId`] of a [`Gc`] object can be gotten using the [`get_id`][Gc::get_id] method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GarbageCollectionId(IdU64<Self>);
 
@@ -41,7 +91,9 @@ pub struct CollectedError;
 #[derive(Debug)]
 /// An error type to combine [`CollectedError`] and [`BorrowError`]
 pub enum GarbageCollectionBorrowError {
+    /// The data was collected
     CollectedError(CollectedError),
+    /// The data was already mutably borrowed
     BorrowError(BorrowError),
 }
 
@@ -60,7 +112,9 @@ impl From<BorrowError> for GarbageCollectionBorrowError {
 #[derive(Debug)]
 /// An error type to combine [`CollectedError`] and [`BorrowMutError`]
 pub enum GarbageCollectionBorrowMutError {
+    /// The data was collected
     CollectedError(CollectedError),
+    /// The data was already borrowed
     BorrowMutError(BorrowMutError),
 }
 
@@ -96,14 +150,6 @@ impl<T: GarbageCollectable + ?Sized> Clone for Gc<T> {
 }
 
 impl<T: GarbageCollectable + ?Sized> Gc<T> {
-    #[allow(dead_code)]
-    pub(crate) fn from_rc(t: Rc<RefCell<T>>) -> Self {
-        Self {
-            data: Some(t),
-            id: GarbageCollectionId(IdU64::new()),
-        }
-    }
-
     /// Borrows the data.
     ///
     /// ### Panics

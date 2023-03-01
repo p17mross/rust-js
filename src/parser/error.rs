@@ -65,8 +65,24 @@ impl std::error::Error for ParseErrorType {}
 #[derive(Debug, Clone)]
 /// An error that occurs during parsing
 pub struct ParseError {
-    pub location: ProgramLocation,
-    pub error_type: ParseErrorType,
+    /// Where the error occurred
+    location: ProgramLocation,
+    /// The type of the error
+    error_type: ParseErrorType,
+}
+
+impl ParseError {
+    /// Get the location of the error
+    #[must_use]
+    pub fn get_location(&self) -> ProgramLocation {
+        self.location.clone()
+    }
+
+    /// Get the type of the error
+    #[must_use]
+    pub fn get_type(&self) -> ParseErrorType {
+        self.error_type.clone()
+    }
 }
 
 impl Display for ParseError {

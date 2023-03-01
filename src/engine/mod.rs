@@ -1,8 +1,11 @@
+//! Functionality to do with the execution of programs. 
+//! Currently very small as no execution has been implemented.
+
 pub(crate) mod garbage_collection;
 pub(crate) mod program;
 pub(crate) mod error;
 
-pub use garbage_collection::Gc;
+pub use garbage_collection::{Gc, GarbageCollectable, GarbageCollectionId, GarbageCollectionBorrowError, GarbageCollectionBorrowMutError};
 pub use program::{Program, ProgramLocation, ProgramSource};
 pub use error::{SyntaxError, ProgramFromFileError};
 
@@ -16,6 +19,7 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Construct a new [`Engine`] from the given [`Program`]
     #[must_use]
     pub const fn new(program: Program) -> Self {
         Self { program }

@@ -89,11 +89,13 @@ impl LexError {
         }
     }
 
+    /// Get the location of the error
     #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         self.location.clone()
     }
 
+    /// Get the type of the error
     #[must_use]
     pub fn get_type(&self) -> LexErrorType {
         self.error_type
