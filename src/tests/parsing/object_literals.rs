@@ -26,5 +26,6 @@ fn test_object_literals() {
     assert_lexes_only(r#" ({"string"}) "#); // Shorthand properties can't be strings
     assert_lexes_only("({,a: 10})"); // Leading commas are not allowed
     assert_lexes_only("({,})"); // Only comma
+    assert_lexes_only("({a,,b})"); // Multiple commas
     
 }
