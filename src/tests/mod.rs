@@ -52,6 +52,7 @@ fn test_empty_program() {
     );
 }
 
+/// Tests that only programs with matching brackets will lex
 #[test]
 fn test_bracket_matching() {
     assert_parses("(a)");
@@ -80,6 +81,10 @@ fn test_bracket_matching() {
     assert_not_lexes("}");
     assert_not_lexes("]");
 
+    assert_not_lexes(")(");
+    assert_not_lexes("][");
+    assert_not_lexes("}{");
+
     assert_not_lexes("())");
     assert_not_lexes("{})");
     assert_not_lexes("[])");
@@ -93,5 +98,9 @@ fn test_bracket_matching() {
 
     assert_not_lexes("({)}");
     assert_not_lexes("[(])");
+
+    assert_parses(r#" ["["] "#); // String literals don't count when matching brackets
+    assert_parses(r#" (")") "#);
+    assert_parses(r#" {")("} "#);
 
 }
