@@ -4,7 +4,9 @@ use crate::engine::{Gc, ProgramSource, Config};
 use crate::lexer::Lexer;
 use crate::{parser::Parser, Program};
 
-mod literals;
+mod array_literals;
+mod value_literals;
+mod object_literals;
 
 /// Asserts that a given program lexes and parses
 fn assert_parses(code: &str) {
@@ -39,12 +41,57 @@ fn assert_lexes_only(code: &str) {
     Parser::parse(program, tokens).expect_err("Program should not have parsed");
 }
 
-
 /// Asserts that an empty program parses
 #[test]
 fn test_empty_program() {
     assert_parses("");
     assert_parses(" ");
-    assert_parses("
-    ");
+    assert_parses(
+        "
+    ",
+    );
+}
+
+#[test]
+fn test_bracket_matching() {
+    assert_parses("(a)");
+    assert_parses("[]");
+    assert_parses("{}");
+    assert_parses("({})");
+    assert_parses("([({})])");
+    assert_parses("{[]}");
+    assert_parses(
+        "( [ ( [ ( [ ( [ 
+            (( [[ (( [[ 
+                ((( [[[ ((( [[[ 
+                    (((( [[[[ ]]]] )))) 
+                ]]] ))) ]]] )))
+            ]] )) ]] ))
+        ] ) ] ) ] ) ] )",
+    );
+
+    assert_lexes_only("({[{()}]})");
+    assert_lexes_only("({[{()}]})");
+
+    assert_not_lexes("(");
+    assert_not_lexes("{");
+    assert_not_lexes("[");
+    assert_not_lexes(")");
+    assert_not_lexes("}");
+    assert_not_lexes("]");
+
+    assert_not_lexes("())");
+    assert_not_lexes("{})");
+    assert_not_lexes("[])");
+    assert_not_lexes("{{}");
+    assert_not_lexes("[[]");
+    assert_not_lexes("(()");
+
+    assert_not_lexes("(]");
+    assert_not_lexes("[}");
+    assert_not_lexes("{)");
+
+    assert_not_lexes("({)}");
+    assert_not_lexes("[(])");
+
 }
