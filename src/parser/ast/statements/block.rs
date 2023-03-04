@@ -1,13 +1,17 @@
+//! The [`Block`] type
+
 use std::fmt::Debug;
 
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// A block containing statements
 #[derive(Debug)]
 pub(crate) struct Block {
+    /// The location of the start of the block
     pub location: ProgramLocation,
-
+    /// The block's statements
     pub statements: Vec<Statement>,
 }
 

@@ -1,3 +1,5 @@
+//! Types representing [`Statement`]s which can be executed
+
 mod block;
 mod let_expression;
 
@@ -8,14 +10,19 @@ use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// A statement which can be run
 #[derive(Debug)]
 pub(crate) enum Statement {
+    /// An expression to be evaluated
     Expression(Expression),
+    /// A block of other statements
     Block(Box<Block>),
+    /// A [`LetExpression`]
     LetExpression(Box<LetExpression>),
 }
 
 impl Statement {
+    /// Get the location of a [`Statement`]
     #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         match self {

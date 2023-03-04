@@ -1,12 +1,18 @@
+//! The [`LetExpression`] type
+
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// A let expression scoped to the containing block
 #[derive(Debug)]
 pub(crate) struct LetExpression {
+    /// The location of the let expression
     pub location: ProgramLocation,
 
+    /// The target of the assignment
     pub lhs: DestructuringAssignmentTarget,
+    /// The expression being assigned
     pub rhs: Expression,
 }
 

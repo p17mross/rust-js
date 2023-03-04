@@ -1,3 +1,5 @@
+//! The [`FunctionCall`] and related types
+
 use std::fmt::Display;
 
 use crate::engine::program::ProgramLocation;
@@ -7,27 +9,38 @@ use super::*;
 /// The type of a function call
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum FunctionCallType {
+    /// A standard function call `f()`
     FunctionCall,
+    /// An optionally chained function call `f?.()`
     OptionalChainedFunctionCall,
+    /// A call to new `new A()`
     New,
 }
 
+/// A function call
 #[derive(Debug)]
 pub(crate) struct FunctionCall {
+    /// The location of the call expression
     pub location: ProgramLocation,
 
+    /// The function being called
     pub function: Expression,
+    /// The argument to the function
     pub args: Vec<FunctionCallArgument>,
 
     /// The type of the call
     pub call_type: FunctionCallType,
 }
 
+/// An argument to a function call
 #[derive(Debug)]
 pub(crate) struct FunctionCallArgument {
+    /// The location of the argument
     pub location: ProgramLocation,
 
+    /// The expression being passed
     pub expression: Expression,
+    /// Whether the expression was spread using the `f(...a)` syntax
     pub spread: bool,
 }
 

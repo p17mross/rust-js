@@ -1,19 +1,29 @@
+//! The [`ObjectLiteral`] and related types
+
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// A property in an object literal
 #[derive(Debug)]
 pub(crate) enum ObjectLiteralProperty {
+    /// A traditional property `{a: 10}`
     KeyValue(String, Expression),
+    /// A shorthand property `{a}`
     KeyOnly(String),
+    /// A computed property `{["a"]: 10}`
     Computed(Expression, Expression),
+    /// A spread from an expression `{...a}`
     Spread(Expression),
 }
 
+/// An object literal
 #[derive(Debug)]
 pub(crate) struct ObjectLiteral {
+    /// The location of the literal
     pub location: ProgramLocation,
 
+    /// The object's properties
     pub properties: Vec<ObjectLiteralProperty>,
     // TODO: getters and setters
 }

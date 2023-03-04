@@ -1,3 +1,5 @@
+//! The [`UpdateExpression`] and related types
+
 use crate::{
     engine::program::ProgramLocation,
     parser::ast::{StringExtTreeIndent, ToTree},
@@ -5,30 +7,44 @@ use crate::{
 
 use super::{Expression, PropertyLookup, Variable};
 
+/// The type of an [`UpdateExpression`]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum UpdateExpressionOperatorType {
+    /// An increment `++a` or `a++`
     Increment,
+    /// A decrement `--a` or `a--`
     Decrement,
 }
 
+/// Which side of the value the [`UpdateExpression`] is on
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UpdateExpressionSide {
+    /// A prefix `++a` or `--a`
     Prefix,
+    /// A postfix `a++` or `a--` 
     Postfix,
 }
 
+/// The target of an [`UpdateExpression`]
 #[derive(Debug)]
 pub(crate) enum UpdateExpressionTarget {
+    /// A [`Variable`]
     Variable(Box<Variable>),
+    /// A [`PropertyLookup`]
     Property(Box<PropertyLookup>),
 }
 
+/// An update expression (`++` or `--` operator)
 #[derive(Debug)]
 pub(crate) struct UpdateExpression {
+    /// The location of the update expression
     pub location: ProgramLocation,
 
+    /// The target of the update expression
     pub target: UpdateExpressionTarget,
+    /// The type of operator
     pub operator_type: UpdateExpressionOperatorType,
+    /// Which side of the [target][UpdateExpression::target] the operator is
     pub side: UpdateExpressionSide,
 }
 

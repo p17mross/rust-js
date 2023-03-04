@@ -1,3 +1,5 @@
+//! Types representing [`Expression`]s which can be evaluated
+
 pub(crate) mod array_literal;
 pub(crate) mod assignment;
 pub(crate) mod binary_operators;
@@ -22,29 +24,45 @@ use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// All the different types of expression.
+/// Variants are boxed to prevent recursive types
 #[derive(Debug)]
 pub(crate) enum Expression {
+    /// An [`ArrayLiteral`]
     ArrayLiteral(Box<ArrayLiteral>),
+    /// An [`Assignment`]
     Assignment(Box<Assignment>),
+    /// A [`BinaryOperator`][ASTNodeBinaryOperator]
     BinaryOperator(Box<ASTNodeBinaryOperator>),
+    /// A [`FunctionCall`]
     FunctionCall(Box<FunctionCall>),
+    /// An [`ObjectLiteral`]
     ObjectLiteral(Box<ObjectLiteral>),
+    /// A [`PropertyLookup`]
     PropertyLookup(Box<PropertyLookup>),
+    /// A [`UnaryOperator`]
     UnaryOperator(Box<ASTNodeUnaryOperator>),
+    /// An [`UpdateAssignment`]
     UpdateAssignment(Box<UpdateAssignment>),
+    /// An [`UpdateExpression`]
     UpdateExpression(Box<UpdateExpression>),
+    /// A [`ValueLiteral`][ASTNodeValueLiteral]
     ValueLiteral(Box<ASTNodeValueLiteral>),
+    /// A [`Variable`]
     Variable(Box<Variable>),
 }
 
+/// A variable lookup
 #[derive(Debug)]
 pub(crate) struct Variable {
+    /// The location of the variable
     pub location: ProgramLocation,
-
+    /// The variable's name
     pub identifier: String,
 }
 
 impl Expression {
+    /// Get the location of an [`Expression`]
     #[must_use]
     pub fn get_location(&self) -> ProgramLocation {
         match self {
@@ -62,6 +80,7 @@ impl Expression {
         }
     }
 
+    /// Get the type of an [`Expression`] as a [`String`]
     #[must_use]
     pub fn get_type(&self) -> String {
         match self {

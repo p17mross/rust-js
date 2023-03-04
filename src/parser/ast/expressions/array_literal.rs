@@ -1,22 +1,31 @@
+//! The [`ArrayLiteral`] and related types
+
 use crate::engine::program::ProgramLocation;
 
 use super::*;
 
+/// An item in an array literal
 #[derive(Debug)]
 pub(crate) enum ArrayItem {
+    /// A normal item e.g. `[10]`
     Item(Expression),
+    /// A spread from some other array e.g. `[...[10, 20]]`
     Spread(Expression),
+    /// An empty slot e.g. `[,]`
     Empty(ProgramLocation),
 }
 
+/// An array literal
 #[derive(Debug)]
 pub(crate) struct ArrayLiteral {
+    /// The location of the start of the literal
     pub location: ProgramLocation,
-
+    /// The items contained in the literal
     pub items: Vec<ArrayItem>,
 }
 
 impl ArrayItem {
+    /// Get the location of an array item
     #[must_use]
     pub(crate) fn get_location(&self) -> ProgramLocation {
         match self {

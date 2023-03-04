@@ -1,3 +1,5 @@
+//! Types for storing the AST of a program
+
 pub(crate) mod assignment;
 pub(crate) mod expressions;
 pub(crate) mod statements;
@@ -6,9 +8,7 @@ use assignment::*;
 use expressions::*;
 use statements::*;
 
-use crate::engine::{
-    garbage_collection::GarbageCollectable, program::ProgramLocation, Gc, Program,
-};
+use crate::engine::{garbage_collection::GarbageCollectable, Gc, Program};
 use std::fmt::Debug;
 
 // Format for ASTNode files:
@@ -17,8 +17,11 @@ use std::fmt::Debug;
 // 3) Trait impls on these types (e.g. Debug, From)
 // 4) to_tree() impls
 
+/// A parsed AST for a [`Program`]
 pub(crate) struct ASTNodeProgram {
+    /// The program which this AST is for
     pub program: Gc<Program>,
+    /// The AST
     pub block: Block,
 }
 
@@ -39,7 +42,10 @@ impl Debug for ASTNodeProgram {
     }
 }
 
+/// An extension trait for [`String`]s to replace "\n" with "\n| ".
+/// This is used by `to_tree` implementations to indent subtrees.
 pub(crate) trait StringExtTreeIndent {
+    /// Replaces all instances of "\n" with "\n| "
     fn indent_tree(&self) -> Self;
 }
 
@@ -49,7 +55,9 @@ impl StringExtTreeIndent for String {
     }
 }
 
+/// A trait for printing AST nodes as a tree structure
 pub trait ToTree {
+    /// Get the tree representation of this node and its children
     #[must_use]
     fn to_tree(&self) -> String;
 }

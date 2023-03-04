@@ -1,9 +1,13 @@
+//! The [`ASTNodeValueLiteral`] type
+
 use crate::{engine::program::ProgramLocation, lexer::token::ValueLiteral, parser::ast::ToTree};
 
+/// A value literal (string, number, or `BigInt`)
 #[derive(Debug)]
 pub(crate) struct ASTNodeValueLiteral {
+    /// The location of the literal
     pub location: ProgramLocation,
-
+    /// The value of the literal
     pub value: ValueLiteral,
 }
 

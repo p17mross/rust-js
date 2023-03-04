@@ -1,15 +1,22 @@
+//! The [`ASTNodeBinaryOperator`] type
+
 use std::fmt::Debug;
 
 use crate::lexer::token::BinaryOperator;
 
 use super::*;
 
+/// A binary operator
 #[derive(Debug)]
 pub(crate) struct ASTNodeBinaryOperator {
+    /// The location of the operator
     pub location: ProgramLocation,
 
+    /// Which binary operator is being applied
     pub operator_type: BinaryOperator,
+    /// The left hand side of the operator
     pub lhs: Expression,
+    /// The right hand side of the operator
     pub rhs: Expression,
 }
 

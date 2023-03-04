@@ -1,3 +1,5 @@
+//! The [`Assignment`] and [`UpdateAssignment`] types
+
 use crate::{
     engine::program::ProgramLocation,
     lexer::token::UpdateAssignmentOperator,
@@ -6,20 +8,29 @@ use crate::{
 
 use super::Expression;
 
+/// An assignment using the [`=`][crate::lexer::TokenType::OperatorAssignment] operator
 #[derive(Debug)]
 pub(crate) struct Assignment {
+    /// The location of the `=` token
     pub location: ProgramLocation,
 
+    /// The target of the assignment
     pub lhs: DestructuringAssignmentTarget,
+    /// The expression which is being assigned
     pub rhs: Expression,
 }
 
+/// An assignment using an [`UpdateAssignmentOperator`]
 #[derive(Debug)]
 pub(crate) struct UpdateAssignment {
+    /// The location of the assignment operator
     pub location: ProgramLocation,
 
+    /// The type of assignment operator
     pub operator_type: UpdateAssignmentOperator,
+    /// The target of the assignment
     pub lhs: AssignmentTarget,
+    /// The expression which is being assigned
     pub rhs: Expression,
 }
 

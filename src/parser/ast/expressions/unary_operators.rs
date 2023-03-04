@@ -1,9 +1,12 @@
+//! The [`ASTNodeUnaryOperator`] and related types
+
 use crate::engine::program::ProgramLocation;
 
 use std::fmt::Debug;
 
 use super::*;
 
+/// A type of unary operator
 #[derive(Debug)]
 pub(crate) enum UnaryOperator {
     /// A '+'
@@ -24,11 +27,14 @@ pub(crate) enum UnaryOperator {
     Delete,
 }
 
+/// A unary operator being applied to a value
 #[derive(Debug)]
 pub(crate) struct ASTNodeUnaryOperator {
+    /// The location of the unary operator
     pub location: ProgramLocation,
-
+    /// The type of operator
     pub operator_type: UnaryOperator,
+    /// The expression to which the operator is being applied
     pub expression: Expression,
 }
 
