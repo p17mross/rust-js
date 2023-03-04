@@ -2,10 +2,7 @@
 
 use num::BigInt;
 
-use crate::{
-    engine::{program::ProgramLocation, Gc, Program},
-    util::PrettyPrint,
-};
+use crate::engine::{program::ProgramLocation, Gc, Program};
 
 /// A type of literal value
 #[derive(Debug, Clone, PartialEq)]
@@ -375,21 +372,6 @@ pub(super) const OPERATORS: [(&str, TokenType); 51] = [
     ("?",    OperatorQuestionMark),
     (":",    OperatorColon),
 ];
-
-impl PrettyPrint for Vec<Token> {
-    fn pretty_print(&self) {
-        println!(
-            "Tokens parsed from {:?}",
-            self[0].location.program.borrow().source
-        );
-        for token in self {
-            println!(
-                "{:?} at {}:{}",
-                token.token_type, token.location.line, token.location.column
-            );
-        }
-    }
-}
 
 #[test]
 /// Tests that no item in [`OPERATORS`] starts with an item before it in the array
