@@ -82,7 +82,11 @@ impl Program {
         let tokens = lexer.lex(s)?;
 
         if s.borrow().config.debug {
-            println!("{tokens:?}");
+            println!("[");
+            for token in &tokens {
+                println!("    {token:?},");
+            }
+            println!("]");
         }
 
         // Parse
