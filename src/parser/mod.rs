@@ -1,3 +1,5 @@
+//! The [`Parser`] type and methods to parse a series of [`Token`]s into an AST
+
 pub(crate) mod assignment;
 pub(crate) mod ast;
 pub(crate) mod error;
@@ -20,7 +22,9 @@ use operator_precedence::{precedences, Associativity, BinaryPrecedence, BINARY_P
 #[derive(Debug, Default)]
 /// Struct responsible for parsing an AST from a token stream
 pub(super) struct Parser {
+    /// The tokens which are being parsed
     tokens: Vec<Token>,
+    /// The current index into the [tokens][Parser::tokens]
     i: usize,
 }
 

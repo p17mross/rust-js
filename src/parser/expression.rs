@@ -1,3 +1,5 @@
+//! The [`parse_expression`][Parser::parse_expression] method to parse an expression with a provided precedence 
+
 use super::*;
 
 use super::ast::expressions::{

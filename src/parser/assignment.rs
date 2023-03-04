@@ -1,3 +1,5 @@
+//! The [`parse_assignment`][Parser::parse_assignment] method to parse variable assignments
+
 use super::*;
 
 use super::ast::assignment::{AssignmentTarget, DestructuringAssignmentTarget};

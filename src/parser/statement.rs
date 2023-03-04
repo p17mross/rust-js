@@ -1,3 +1,5 @@
+//! The [`parse_statement`][Parser::parse_statement] method
+
 use crate::lexer::{Token, TokenType};
 
 use super::*;
@@ -5,8 +7,8 @@ use super::*;
 use super::ast::statements::{Block, LetExpression, Statement};
 
 impl Parser {
-    /// Consumes any [semicolon](TokenType::Semicolon) tokens\
-    /// Returns true if the end of the file or a [closing brace](TokenType::CloseBrace) token was reached.
+    /// Consumes any [semicolon][TokenType::Semicolon] tokens\
+    /// Returns true if the end of the file or a [closing brace][TokenType::CloseBrace] token was reached.
     fn next_statement(&mut self) -> bool {
         // Loop over the tokens
         loop {
@@ -175,7 +177,7 @@ impl Parser {
     }
 
     /// Parses a sequence of statements.\
-    /// Ends on EOF or on a [closing brace](TokenType::CloseBrace), which is not consumed.
+    /// Ends on EOF or on a [closing brace][TokenType::CloseBrace], which is not consumed.
     /// The given location will be used if it is `Some`, or the location of the current token if it is `None`.
     pub(super) fn parse_statements(
         &mut self,

@@ -1,3 +1,5 @@
+//! The [`NumberLiteralBase`] type for representing the base of a numeral 
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A type representing a base for a numerical literal.
 /// Includes binary, octal, decimal, and hexadecimal.

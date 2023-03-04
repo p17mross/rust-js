@@ -1,3 +1,5 @@
+//! The [`ParseError`] type for representing errors during parsing
+
 use std::fmt::Display;
 
 use super::*;
@@ -9,13 +11,18 @@ use super::ast::expressions::UpdateExpressionSide;
 pub enum ParseErrorType {
     /// A certain type of token was found when it was not expected
     UnexpectedToken {
+        /// A string representation of the token which was found
         found: &'static str,
+        /// What token was expected
         expected: Option<&'static str>,
     },
     /// The end of the file was reached when it was not expected
     UnexpectedEOF,
     /// An expression was expected, but not found
-    ExpectedExpression { found: Option<&'static str> },
+    ExpectedExpression {
+        /// A string representation of the token which was found
+        found: Option<&'static str>
+    },
     /// The argument to an increment or decrement operator was not an assignment target
     InvalidUpdateExpressionOperand(UpdateExpressionSide),
     /// The LHS of an assignment is not valid
@@ -101,6 +108,7 @@ impl Display for ParseError {
 impl std::error::Error for ParseError {}
 
 impl Parser {
+    /// Get an error at the location of the token at `self.tokens[self.i]` with the given [`ParseErrorType`]
     pub(super) fn get_error(&self, error_type: ParseErrorType) -> ParseError {
         match error_type {
             // Handle UnexpectedEOF differently as self.i likely points beyond the end of self.tokens

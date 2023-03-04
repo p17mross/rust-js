@@ -146,17 +146,17 @@ pub(crate) enum TokenType {
     OperatorFatArrow,
 
     // Brackets and braces
-    /// `(`. usize is matching [CloseParen](TokenType::CloseParen)
+    /// `(`. usize is matching [CloseParen][TokenType::CloseParen]
     OpenParen(usize),
-    /// `)`. usize is matching [OpenParen](TokenType::OpenParen)
+    /// `)`. usize is matching [OpenParen][TokenType::OpenParen]
     CloseParen(usize),
-    /// `{`. usize is matching [CloseBrace](TokenType::CloseBrace)
+    /// `{`. usize is matching [CloseBrace][TokenType::CloseBrace]
     OpenBrace(usize),
-    /// `}`. usize is matching [OpenBrace](TokenType::OpenBrace)
+    /// `}`. usize is matching [OpenBrace][TokenType::OpenBrace]
     CloseBrace(usize),
-    /// `[`. usize is matching [CloseSquareBracket](TokenType::CloseSquareBracket)
+    /// `[`. usize is matching [CloseSquareBracket][TokenType::CloseSquareBracket]
     OpenSquareBracket(usize),
-    /// `]`. usize is matching [OpenSquareBracket](TokenType::OpenSquareBracket)
+    /// `]`. usize is matching [OpenSquareBracket][TokenType::OpenSquareBracket]
     CloseSquareBracket(usize),
 
     // This is not in BinaryOperator as let, var, and const declarations treat it differently to other assignment operators

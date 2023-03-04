@@ -1,18 +1,23 @@
+//! Functions to parse some general javascript syntax
+
 use super::*;
 
 use super::ast::assignment::DestructuringAssignmentTarget;
 use super::ast::expressions::FunctionCallArgument;
 
 impl Parser {
+    /// Parse a destructuring assignment target
     pub(super) fn parse_destructuring_assignment_target(
         &mut self,
     ) -> Result<DestructuringAssignmentTarget, ParseError> {
         match &self.try_get_token()?.token_type {
             TokenType::Identifier(i) => Ok(DestructuringAssignmentTarget::Variable(i.clone())),
+            // TODO: other types of assignment target
             _ => Err(self.get_error(ParseErrorType::SyntaxError)),
         }
     }
 
+    /// Parse the arguments to a function call
     pub(super) fn parse_function_args(&mut self) -> Result<Vec<FunctionCallArgument>, ParseError> {
         let Token{token_type: TokenType::OpenParen(start_bracket_index), ..} = self.tokens[self.i - 1] else {panic!()};
 

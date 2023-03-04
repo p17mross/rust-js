@@ -1,3 +1,5 @@
+//! Constants and structs for representing the precedence of different operators
+
 use crate::lexer::token::BinaryOperator;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +24,8 @@ pub(super) struct BinaryPrecedence {
 use Associativity::*;
 use BinaryOperator::*;
 
+/// Which operators belong to a given precedence.
+/// This is used by [`parse_binary_operator`][Parser::parse_binary_operator] to implement precedence
 #[rustfmt::skip]
 pub(super) const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
     /* Precedence 0 - Not a real precedence, but having it here makes offsets nicer */ None,
@@ -41,68 +45,29 @@ pub(super) const BINARY_PRECEDENCES: &[Option<BinaryPrecedence>] = &[
     /* Precedences 14 - 18 have no binary operators */
 ];
 
-#[allow(dead_code)]
+/// Constants for which operators have what precedence.
+/// Not all operators are listed here, only ones where the precedence number is needed somewhere in the parser.
 pub(crate) mod precedences {
+    /// The highest precedence - the precedence of value, array and object literals, and parentheses.
     pub const GROUPING: usize = 18;
 
-    pub const MEMBER_ACCESS: usize = 17;
-    pub const OPTIONAL_CHAINING: usize = 17;
-    pub const COMPUTED_MEMBER_ACCESS: usize = 17;
-    pub const NEW_WITH_ARGUMENT_LIST: usize = 17;
-    pub const FUNCTION_CALL: usize = 17;
+    /// The precedence of operators which make up assignment targets - `.`, `?.`, `[...]`, new with argument list, function call
     pub const ASSIGNMENT_TARGET: usize = 17;
 
-    pub const NEW_WITHOUT_ARGUMENT_LIST: usize = 16;
-
-    pub const POSTFIX: usize = 15;
-
+    /// The precedence of the unary operators `!`, `~`, `+`, `-`, prefix increment and decrement, `typeof`, `void`, `delete`, and `await`
     pub const UNARY_OPERATOR: usize = 14;
-    pub const PREFIX: usize = 14;
-    pub const DELETE: usize = 14;
 
-    pub const EXPONENTIATION: usize = 13;
-
-    pub const MULTIPLICATION: usize = 12;
-    pub const DIVISION: usize = 12;
-    pub const REMAINDER: usize = 12;
-
+    /// The precedence of the binary addition operator
     pub const ADDITION: usize = 11;
+    /// The precedence of the binary subtraction operator
     pub const SUBTRACTION: usize = 11;
 
-    pub const SHIFT_LEFT: usize = 10;
-    pub const SHIFT_RIGHT: usize = 10;
-    pub const UNSIGNED_SHIFT_RIGHT: usize = 10;
-
-    pub const LESS_THAN: usize = 9;
-    pub const LESS_THAN_OR_EQUAL: usize = 9;
-    pub const GREATER_THAN: usize = 9;
-    pub const GREATER_THAN_OR_EQUAL: usize = 9;
-    pub const IN: usize = 9;
-    pub const INSTANCE_OF: usize = 9;
-
-    pub const EQUALITY: usize = 8;
-    pub const INEQUALITY: usize = 8;
-    pub const STRICT_EQUALITY: usize = 8;
-    pub const STRICT_INEQUALITY: usize = 8;
-
-    pub const BITWISE_AND: usize = 7;
-
-    pub const BITWISE_XOR: usize = 6;
-
-    pub const BITWISE_OR: usize = 5;
-
-    pub const LOGICAL_AND: usize = 4;
-
-    pub const LOGICAL_OR: usize = 3;
-    pub const NULLISH_COALESCING: usize = 3;
-
+    /// The precedence of assignment operators
     pub const ASSIGNMENT: usize = 2;
-    pub const TERNARY_OPERATOR: usize = 2;
-    pub const ARROW_FUNCTION: usize = 2;
-    pub const YIELD: usize = 2;
-    pub const SPREAD: usize = 2;
 
+    /// The precedence of the comma operator
     pub const COMMA: usize = 1;
 
+    /// The lowest precedence - will parse any expression
     pub const ANY_EXPRESSION: usize = 0;
 }

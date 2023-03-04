@@ -1,3 +1,5 @@
+//! Functions to parse expressions with a precedence of [`precedences::GROUPING`]
+
 use super::*;
 
 use super::ast::expressions::{
@@ -191,6 +193,8 @@ impl Parser {
         })
     }
 
+    /// Parse an expression with a precedence of [`precedences::GROUPING`].
+    /// This includes string, number, `BigInt`, array, and object literals, as well as variables and expressions in parentheses.
     pub(super) fn parse_value(&mut self) -> Result<Expression, ParseError> {
         let t = self.try_get_token()?;
         match &t.token_type {
