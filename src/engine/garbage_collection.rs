@@ -18,7 +18,7 @@ pub trait GarbageCollectable {
     /// The implementation of this method should return the [`GarbageCollectionId`] of any [`Gc`] properties of the type, including grandchildren
     ///
     /// ```
-    /// # use js::{Gc, GarbageCollectable, GarbageCollectionId};
+    /// # use js::engine::garbage_collection::{Gc, GarbageCollectable, GarbageCollectionId};
     /// /// The data for a GcTreeNode
     /// struct GcTreeData {
     ///     number: i32,

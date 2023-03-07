@@ -6,7 +6,7 @@
 
 use std::{env, path::PathBuf};
 
-use js::{Config, Program};
+use js::engine::{Config, program::Program};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();

@@ -12,16 +12,11 @@
 #![allow(clippy::enum_glob_use)]
 #![allow(clippy::wildcard_imports)]
 
-mod engine;
+pub mod engine;
 pub(crate) mod lexer;
 pub(crate) mod parser;
 pub(crate) mod util;
 
-pub use engine::{Config, Engine, Program};
-pub use engine::{
-    GarbageCollectable, GarbageCollectionBorrowError, GarbageCollectionBorrowMutError,
-    GarbageCollectionId, Gc,
-};
 pub use lexer::LexError;
 pub use parser::ParseError;
 

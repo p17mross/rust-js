@@ -14,8 +14,8 @@ use crate::{
 
 use super::{
     error::{ProgramFromFileError, SyntaxError},
-    garbage_collection::{GarbageCollectable, GarbageCollectionId},
-    Config, Gc,
+    garbage_collection::{GarbageCollectable, GarbageCollectionId, Gc},
+    Config,
 };
 
 /// Holds the type and location, so that the source of error messages can be printed.

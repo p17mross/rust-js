@@ -1,16 +1,11 @@
 //! Functionality to do with the execution of programs.
 //! Currently very small as no execution has been implemented.
 
-pub(crate) mod error;
-pub(crate) mod garbage_collection;
-pub(crate) mod program;
+pub mod error;
+pub mod garbage_collection;
+pub mod program;
 
-pub use error::{ProgramFromFileError, SyntaxError};
-pub use garbage_collection::{
-    GarbageCollectable, GarbageCollectionBorrowError, GarbageCollectionBorrowMutError,
-    GarbageCollectionId, Gc,
-};
-pub use program::{Program, ProgramLocation, ProgramSource};
+use program::Program;
 
 #[derive(Debug)]
 #[allow(dead_code)]

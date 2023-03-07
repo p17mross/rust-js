@@ -12,7 +12,8 @@ pub(crate) mod value;
 pub use error::ParseError;
 
 use self::{ast::*, error::ParseErrorType};
-use crate::engine::{program::ProgramLocation, Gc, Program};
+use crate::engine::garbage_collection::Gc;
+use crate::engine::program::{Program, ProgramLocation};
 use crate::lexer::{
     token::{BinaryOperator, ValueLiteral},
     Token, TokenType,

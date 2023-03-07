@@ -1,6 +1,8 @@
 //! Tests which only test for whether or not a certain program parses, not its behaviour
 
-use crate::{engine::ProgramSource, lexer::Lexer, parser::Parser, Config, Gc, Program};
+use crate::{lexer::Lexer, parser::Parser};
+use crate::engine::{Config, garbage_collection::Gc};
+use crate::engine::program::{Program, ProgramSource};
 
 mod array_literals;
 mod expressions;

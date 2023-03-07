@@ -8,7 +8,7 @@ pub(crate) use token::{Token, TokenType};
 
 pub use error::{LexError, LexErrorType};
 
-use crate::engine::{Gc, Program};
+use crate::engine::{garbage_collection::Gc, program::Program};
 use crate::util::{is_identifier_continue, is_identifier_start};
 
 use self::token::OPERATORS;

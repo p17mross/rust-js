@@ -3,10 +3,10 @@
 use std::fmt::Display;
 
 use crate::{
-    engine::{Gc, ProgramLocation},
+    engine::{garbage_collection::Gc},
     util::NumberLiteralBase,
-    Program,
 };
+use crate::engine::program::{ProgramLocation, Program};
 
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]

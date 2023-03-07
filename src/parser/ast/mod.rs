@@ -8,7 +8,9 @@ use assignment::*;
 use expressions::*;
 use statements::*;
 
-use crate::engine::{garbage_collection::GarbageCollectable, Gc, Program};
+use crate::engine::{
+    garbage_collection::GarbageCollectable, garbage_collection::Gc, program::Program,
+};
 use std::fmt::Debug;
 
 // Format for ASTNode files:

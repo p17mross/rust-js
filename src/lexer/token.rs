@@ -2,7 +2,8 @@
 
 use num::BigInt;
 
-use crate::engine::{program::ProgramLocation, Gc, Program};
+use crate::engine::{garbage_collection::Gc};
+use crate::engine::program::{Program, ProgramLocation};
 
 /// A type of literal value
 #[derive(Debug, Clone, PartialEq)]
