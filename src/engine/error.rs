@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use crate::{lexer::LexError, parser::ParseError};
+pub use crate::{lexer::LexError, parser::ParseError};
 
 #[derive(Debug)]
 /// A general type for any syntax error that can occur.
